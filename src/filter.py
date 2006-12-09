@@ -5,21 +5,34 @@ def buttfilt(dat,freqRange,sampleRate,filtType,order):
     """Wrapper for a Butterworth filter.
 
     """
+    
+    # make sure dat is an array
+    dat = asarray(dat)
 
-    # make the freqRange an array
-    freqRange = asarray(freqRange)
+    # see if data has more than one dimension
+    if len(dat.shape) > 1:
+        # has more dimensions, loop over first dimension
+        filtDat = []
+        for i in xrange(dat.shape[0]):
+            filtDat.append(buttfilt(dat[i],freqRange,sampleRate,filtType,order))
 
-    # Nyquist frequency
-    nyq=sampleRate/2.;
+        # turn into array
+        filtDat = asarray(filtDat)
+    else:
+        # is single dimension, so filter it
+        # make the freqRange an array
+        freqRange = asarray(freqRange)
 
-    # generate the butterworth filter coefficients
-    [b,a]=butter(order,freqRange/nyq,filtType)
+        # Nyquist frequency
+        nyq=sampleRate/2.;
 
-    # run the filter on the last dimension of data
-    # XXX currently only does 1D
-    y=filtfilt(b,a,dat)
+        # generate the butterworth filter coefficients
+        [b,a]=butter(order,freqRange/nyq,filtType)
 
-    return y
+        # run the filter on 
+        filtDat=filtfilt(b,a,dat)
+
+    return filtDat
 
 
 ############
