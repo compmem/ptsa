@@ -51,7 +51,8 @@ def phasePow1d(freq,dat,samplerate,width):
 def tfPhasePow(freqs,dat,samplerate,width=5,downsample=None):
     """ Calculate phase and power over time with a Morlet wavelet.
 
-    """
+    You can optionally pass in downsample, which is the samplerate to
+    decimate to following the power/phase calculation. """
     # make sure dat is an array
     dat = asarray(dat)
 
@@ -76,29 +77,28 @@ def tfPhasePow(freqs,dat,samplerate,width=5,downsample=None):
             # get the phase and pow
             tPhase,tPower = phasePow1d(freq,dat,samplerate,width)
 
-            # see if decimate
-            if not downsample is None:
-                # set the decimation ratio
-                dmate = int(round(samplerate/downsample))
-
-                # must log transform power before decimating
-                tPower[tPower<=0] = finfo(tPower.dtype).eps
-                tPower = log10(tPower)
-                tPower = decimate(tPower,dmate);
-                tPower = pow(10,tPower)
-
-                # decimate the unwraped phase, then wrap it back
-                tPhase= mod(decimate(unwrap(tPhase),dmate)+pi,2*pi)-pi;
-
             # append it to the result
             phase.append(tPhase)
             power.append(tPower)
-
-            
 
     # turn into array
     phase = asarray(phase)
     power = asarray(power)        
     
+    # see if decimate
+    if not downsample is None and downsample != samplerate:
+        # set the decimation ratio
+        dmate = int(round(samplerate/downsample))
+
+        # must log transform power before decimating
+        power[power<=0] = finfo(power.dtype).eps
+        power = log10(power)
+        power = decimate(power,dmate);
+        power = pow(10,power)
+
+        # decimate the unwraped phase, then wrap it back
+        phase= mod(decimate(unwrap(phase),dmate)+pi,2*pi)-pi;
+
+
     # return the power and phase
     return phase,power
