@@ -1,4 +1,6 @@
 from numpy import *
+from scipy import unwrap
+from filter import decimate
 
 def morlet(freq,t,width):
     """ Generate a Morlet wavelet for specified frequncy for times t.
@@ -46,7 +48,7 @@ def phasePow1d(freq,dat,samplerate,width):
 
     return phase,power
 
-def tfPhasePow(freqs,dat,samplerate,width=5):
+def tfPhasePow(freqs,dat,samplerate,width=5,downsample=None):
     """ Calculate phase and power over time with a Morlet wavelet.
 
     """
@@ -71,9 +73,28 @@ def tfPhasePow(freqs,dat,samplerate,width=5):
         # hase one dimension
         # calculate the phase and pow for each freq
         for freq in freqs:
+            # get the phase and pow
             tPhase,tPower = phasePow1d(freq,dat,samplerate,width)
+
+            # see if decimate
+            if not downsample is None:
+                # set the decimation ratio
+                dmate = int(round(samplerate/downsample))
+
+                # must log transform power before decimating
+                tPower[tPower<=0] = finfo(tPower.dtype).eps
+                tPower = log10(tPower)
+                tPower = decimate(tPower,dmate);
+                tPower = pow(10,tPower)
+
+                # decimate the unwraped phase, then wrap it back
+                tPhase= mod(decimate(unwrap(tPhase),dmate)+pi,2*pi)-pi;
+
+            # append it to the result
             phase.append(tPhase)
             power.append(tPower)
+
+            
 
     # turn into array
     phase = asarray(phase)
