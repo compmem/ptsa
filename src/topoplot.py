@@ -4,7 +4,7 @@ from matplotlib.patches import Circle
 
 def topoplot():
     headCenter = (0,0)
-    headRad = 0.5
+    headRad = 0.5 # radius of head
     headLineWidth = 3
     head = Circle(headCenter,headRad,fill=False,linewidth=headLineWidth)
     
