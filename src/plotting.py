@@ -17,17 +17,20 @@ def topoplot():
     noseDist = math.cos(math.asin((noseWidth/2)/headRad))*headRad
     # Distance from the center of the head to the tip of the nose:
     noseTipDist = 1.15*headRad
-    nose = Line2D([-noseWidth/2,0,noseWidth/2],[noseDist,noseTipDist,noseDist],color='black',linewidth=noseLineWidth,solid_joinstyle='round',solid_capstyle='round')
+    nose = Line2D([-noseWidth/2+headCenter[0],0+headCenter[0],noseWidth/2+headCenter[0]],[noseDist+headCenter[1],noseTipDist+headCenter[1],noseDist+headCenter[1]],color='black',linewidth=noseLineWidth,solid_joinstyle='round',solid_capstyle='round')
     
     q = .04 # ear lengthening
-    earX = array([.497-.005,.510,.518,.5299,.5419,.54,.547,.532,.510,.489-.005])*(headRad/0.5)
-    earY = array([q+.0555,q+.0775,q+.0783,q+.0746,q+.0555,-.0055,-.0932,-.1313,-.1384,-.1199])*(headRad/0.5)
-    earRight = Line2D(earX,earY,color='black',linewidth=earLineWidth,solid_joinstyle='round',solid_capstyle='round')
-    earLeft = Line2D((earX*-1),earY,color='black',linewidth=earLineWidth,solid_joinstyle='round',solid_capstyle='round')
+    earX = array([.497-.005,.510,.518,.5299,.5419,.54,.547,.532,.510,.489-.005])*(headRad/0.5)#+headCenter[0]
+    #print(earX)
+    earY = array([q+.0555,q+.0775,q+.0783,q+.0746,q+.0555,-.0055,-.0932,-.1313,-.1384,-.1199])*(headRad/0.5)#+headCenter[1]
+    #print(earY)
+    earRight = Line2D(earX+headCenter[0],earY+headCenter[1],color='black',linewidth=earLineWidth,solid_joinstyle='round',solid_capstyle='round')
+    earLeft = Line2D(headCenter[0]-earX,earY+headCenter[1],color='black',linewidth=earLineWidth,solid_joinstyle='round',solid_capstyle='round')
+    #print(earX*(-1))
     
     a=subplot(1,1,1, aspect='equal')
-    xlim(-(headRad*2), (headRad*2))
-    ylim(-(headRad*2), (headRad*2))
+    xlim(-(headRad*2)+headCenter[0], (headRad*2)+headCenter[0])
+    ylim(-(headRad*2)+headCenter[1], (headRad*2)+headCenter[1])
     a.add_artist(head)
     a.add_artist(nose)
     a.add_artist(earRight)
