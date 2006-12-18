@@ -1,6 +1,7 @@
 from numpy import *
 from scipy import unwrap
 from filter import decimate
+from helper import reshapeTo2D,reshapeFrom2D
 
 def morlet(freq,t,width):
     """ Generate a Morlet wavelet for specified frequncy for times t.
@@ -30,7 +31,7 @@ def phasePow1d(freq,dat,samplerate,width):
     m = morlet(freq,t,width)
 
     # convolve the wavelet and the signal
-    y = convolve(m,dat,1)
+    y = convolve(m,dat,'same')
     
     # get the power
     power = pow(abs(y),2)
@@ -48,57 +49,101 @@ def phasePow1d(freq,dat,samplerate,width):
 
     return phase,power
 
-def tfPhasePow(freqs,dat,samplerate,width=5,downsample=None):
-    """ Calculate phase and power over time with a Morlet wavelet.
+
+
+def tfPhasePow(freqs,dat,samplerate,axis=-1,width=5,downsample=None):
+    """Calculate phase and power over time with a Morlet wavelet.
 
     You can optionally pass in downsample, which is the samplerate to
-    decimate to following the power/phase calculation. """
+    decimate to following the power/phase calculation. 
+
+    As always, it is best to pass in extra signal (a buffer) on either
+    side of the signal of interest because power calculations and
+    decimation have edge effects."""
     # make sure dat is an array
     dat = asarray(dat)
 
-    # allocate for the phase and power
-    # appending as a list and turning it into an array saves memory use
-    phase = []
-    power = []
+#     # allocate for the phase and power
+#     # appending as a list and turning it into an array saves memory use
+#     phase = []
+#     power = []
 
-    # see if shape is 1d, otherwise loop over first dimension calling
-    # recursively
-    if len(dat.shape) > 1:    
-        # has more dimensions, loop over first dimension
+#     # see if shape is 1d, otherwise loop over first dimension calling
+#     # recursively
+#     if len(dat.shape) > 1:    
+#         # has more dimensions, loop over first dimension
+#         for i in xrange(dat.shape[0]):
+#             tPhase,tPower = tfPhasePow(freqs,dat[i],samplerate,width)
+#             phase.append(tPhase)
+#             power.append(tPower)
+
+#     else:
+#         # hase one dimension
+#         # calculate the phase and pow for each freq
+#         for freq in freqs:
+#             # get the phase and pow
+#             tPhase,tPower = phasePow1d(freq,dat,samplerate,width)
+
+#             # append it to the result
+#             phase.append(tPhase)
+#             power.append(tPower)
+
+    # reshape the data to 2D with time on the 2nd dimension
+    origshape = dat.shape
+    dat = reshapeTo2D(dat,axis)
+
+    # convert negative axis to positive axis
+    rnk = len(origshape)
+
+    # allocate
+    phaseAll = []
+    powerAll = []
+
+    # loop over freqs
+    for freq in freqs:
+        # allocate for data
+        phase = empty(dat.shape,single)
+        power = empty(dat.shape,single)
+    
+        # loop over chunks of time
         for i in xrange(dat.shape[0]):
-            tPhase,tPower = tfPhasePow(freqs,dat[i],samplerate,width)
-            phase.append(tPhase)
-            power.append(tPower)
-
-    else:
-        # hase one dimension
-        # calculate the phase and pow for each freq
-        for freq in freqs:
             # get the phase and pow
-            tPhase,tPower = phasePow1d(freq,dat,samplerate,width)
+            phase[i],power[i] = phasePow1d(freq,dat[i],samplerate,width)
+        
+        # reshape back do original data shape
+        phase = reshapeFrom2D(phase,axis,origshape)
+        power = reshapeFrom2D(power,axis,origshape)
 
-            # append it to the result
-            phase.append(tPhase)
-            power.append(tPower)
+        # append to all
+        phaseAll.append(phase)
+        powerAll.append(power)
 
     # turn into array
-    phase = asarray(phase)
-    power = asarray(power)        
-    
+    phaseAll = asarray(phaseAll)
+    powerAll = asarray(powerAll)        
+
     # see if decimate
     if not downsample is None and downsample != samplerate:
+        # set time axis, used for decimation
+        taxis = axis
+        if taxis < 0: 
+            taxis = taxis + rnk
+
+        # add one b/c of new freq dim at beginning
+        taxis = taxis + 1
+
         # set the decimation ratio
         dmate = int(round(samplerate/downsample))
 
-        # must log transform power before decimating
-        power[power<=0] = finfo(power.dtype).eps
-        power = log10(power)
-        power = decimate(power,dmate);
-        power = pow(10,power)
+        # must log transform powerAll before decimating
+        powerAll[powerAll<=0] = finfo(powerAll.dtype).eps
+        powerAll = log10(powerAll)
+        powerAll = decimate(powerAll,dmate,axis=taxis);
+        powerAll = pow(10,powerAll)
 
         # decimate the unwraped phase, then wrap it back
-        phase= mod(decimate(unwrap(phase),dmate)+pi,2*pi)-pi;
+        phaseAll = mod(decimate(unwrap(phaseAll),dmate)+pi,2*pi)-pi;
 
 
     # return the power and phase
-    return phase,power
+    return phaseAll,powerAll
