@@ -21,12 +21,9 @@ def topoplot():
     
     q = .04 # ear lengthening
     earX = array([.497-.005,.510,.518,.5299,.5419,.54,.547,.532,.510,.489-.005])*(headRad/0.5)#+headCenter[0]
-    #print(earX)
     earY = array([q+.0555,q+.0775,q+.0783,q+.0746,q+.0555,-.0055,-.0932,-.1313,-.1384,-.1199])*(headRad/0.5)#+headCenter[1]
-    #print(earY)
     earRight = Line2D(earX+headCenter[0],earY+headCenter[1],color='black',linewidth=earLineWidth,solid_joinstyle='round',solid_capstyle='round')
     earLeft = Line2D(headCenter[0]-earX,earY+headCenter[1],color='black',linewidth=earLineWidth,solid_joinstyle='round',solid_capstyle='round')
-    #print(earX*(-1))
     
     a=subplot(1,1,1, aspect='equal')
     xlim(-(headRad*2)+headCenter[0], (headRad*2)+headCenter[0])
