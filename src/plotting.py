@@ -36,11 +36,12 @@ def topoplot():
     theta=locs.next()
     radius=locs.next()
     
-    # get sin and cos of theta-90 (because nose is on top and not right)
+    # Get sin and cos of theta-90 (because nose is on top and not right).
+    # I'll eventually add the possibility to move the nose to a different position.
     # convert from deg to rad: 
     cosTheta = array([math.cos(((double(i)-90)/180)*math.pi) for i in theta])
     sinTheta = array([math.sin(((double(i)-90)/180)*math.pi) for i in theta])
-    radius = array([double(i) for i in radius])
+    radius = array([double(i)*(headRad/0.5) for i in radius])
     
     # convert from polar to cartesian coords:
     x = radius*cosTheta
