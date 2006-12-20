@@ -48,3 +48,43 @@ def reshapeFrom2D(data,axis,dshape):
     # make sure we have a copy
     ret = ret.copy()
     return ret
+
+def deg2rad(degrees):
+    """Convert degrees to radians."""
+    return degrees/180*math.pi
+
+def rad2deg(radians):
+    """Convert radians to degrees."""
+    return radians/math.pi*180
+
+def pol2cart(theta,radius,z=[],radians=True):
+    """Converts corresponding angles (theta), radii, and (optional) height (z)
+    from polar (or, when height is given, cylindrical) coordinates
+    to Cartesian coordinates x, y, and x.
+    Theta is assumed to be in radians, but will be converted
+    from degrees if radians==False."""
+    if radians:
+        x = radius*cos(theta)
+        y = radius*sin(theta)
+    else:
+        x = radius*cos(deg2rad(theta))
+        y = radius*sin(deg2rad(theta))
+    # make sure we have a copy
+    z = z.copy()
+    return x,y,z
+
+def cart2pol(x,y,z=[],radians=True):
+    """Converts corresponding Cartesian coordinates x, y, and (optional) z
+    to polar (or, when z is given, cylindrical) coordinates
+    angle (theta), radius, and z.
+    By default theta is returned in radians, but will be converted
+    to degrees if radians==False."""    
+    if radians:
+        theta = arctan2(y,x)
+    else:
+        theta = rad2deg(arctan2(y,x))
+    radius = hypot(x,y)
+    # make sure we have a copy
+    z = z.copy()
+    return theta,radius,z
+
