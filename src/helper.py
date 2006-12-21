@@ -69,9 +69,12 @@ def pol2cart(theta,radius,z=[],radians=True):
     else:
         x = radius*cos(deg2rad(theta))
         y = radius*sin(deg2rad(theta))
-    # make sure we have a copy
-    z = z.copy()
-    return x,y,z
+    if size(z)>0:
+        # make sure we have a copy
+        z=z.copy()
+        return x,y,z
+    else:
+        return x,y
 
 def cart2pol(x,y,z=[],radians=True):
     """Converts corresponding Cartesian coordinates x, y, and (optional) z
@@ -84,7 +87,12 @@ def cart2pol(x,y,z=[],radians=True):
     else:
         theta = rad2deg(arctan2(y,x))
     radius = hypot(x,y)
-    # make sure we have a copy
-    z = z.copy()
-    return theta,radius,z
+    if size(z)>0:
+        # make sure we have a copy
+        z=z.copy()
+        return theta,radius,z
+    else:
+        return theta,radius
+
+
 
