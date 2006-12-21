@@ -42,8 +42,8 @@ def topoplot():
     #
     ########################################################
     
-    x,y = getElectrodeCoords()
-    
+    x,y = getElectrodeCoords(headRad)
+
     a=subplot(1,1,1, aspect='equal')
     xlim(-(headRad*2)+headCenter[0], (headRad*2)+headCenter[0])
     ylim(-(headRad*2)+headCenter[1], (headRad*2)+headCenter[1])
@@ -55,7 +55,7 @@ def topoplot():
     show()
 
 
-def getElectrodeCoords():
+def getElectrodeCoords(headRad):
     # read in testLocs.dat that was generated in Matlab as follows:
     # locs_orig=readlocs('GSN129.sfp');
     # locs=locs_orig(4:end); %ignore orig locations 1-3, these are frontal ones we dont have
