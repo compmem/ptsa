@@ -30,7 +30,10 @@ class BinaryEEG(DataWrapper):
     def getdataMS(channels,eventOffsets,DurationMS,OffsetMS,BufferMS,resampledRate=None):
         pass
 
-class EEGData(N.array):
+class EEGArray(N.array):
+    """
+    Array subclass that holds information about the EEG.
+    """
     def __new__(subtype,obj,samplerate,channels=None):
         self = obj.view(subtype)
         self.samplerate = samplerate
@@ -48,6 +51,10 @@ class Events(DataArray):
         # determine the eeg offsets into the file for each event
         
         # determine the index into dataWrappers for each event (-1 for none)
+        # the other option is to save a dataWrapper instance with each event
+
+        # return the updated array
+        return self
 
     def getDataMS(channels,DurationMS,OffsetMS,BufferMS,resampledRate):
         """
