@@ -28,16 +28,20 @@ class BinaryEEG(DataWrapper):
         pass
 
     def getdataMS(channels,eventOffsets,DurationMS,OffsetMS,BufferMS,resampledRate=None):
+        """
+        Return an EEGArray of data for the specified channels,events,and durations.
+        """
         pass
 
 class EEGArray(N.array):
     """
     Array subclass that holds information about the EEG.
     """
-    def __new__(subtype,obj,samplerate,channels=None):
+    def __new__(subtype,obj,samplerate,channels=None,units='uV'):
         self = obj.view(subtype)
         self.samplerate = samplerate
         self.channels = channels
+        self.units = units
         return self
 
 class Events(DataArray):
