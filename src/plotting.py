@@ -1,7 +1,6 @@
-from numpy import *
+#from numpy import *
 from pylab import *
-from matplotlib.patches import Circle
-import csv
+#from matplotlib.patches import Circle
 from helper import pol2cart
 from griddata import griddata
 
@@ -44,33 +43,48 @@ def topoplot():
     ########################################################
     
     x,y = getElectrodeCoords(headRad)
-    
+    #print x
+
     #xi = linspace(min(x),max(x),10)
     #yi = linspace(min(y),max(y),10)
     
     
     #x = random.uniform(-2,2,100);  y = random.uniform(-2,2,100)
     #z = x*exp(-x**2-y**2)
-    z = rand(129)
+    #z = rand(129)
+    z = getPowerVals()
+    #print z
     
     # x, y, and z are now vectors containing nonuniformly sampled data.
     # Define a regular grid and grid data to it.
-    nx = 51; ny = 41
-    xi, yi = meshgrid(linspace(-2,2,nx),linspace(-2,2,ny))
+    nx = 500
+    ny = 500
+    xi, yi = meshgrid(linspace(-1,1,nx),linspace(-1,1,ny))
     # masked=True mean no extrapolation, output is masked array.
-    zi = griddata(x,y,z,xi,yi,masked=True)
+    zi = griddata(x,y,z,xi,yi,masked=False,ext=1)
+
+    mask = (sqrt(pow(xi,2) + pow(yi,2)) > headRad*1.5) # mask outside the plotting circle
+    #ii = find(not mask)
+    zi[mask] = 0 # mask non-plotting voxels with NaNs
+    #grid = plotrad;                       % unless 'noplot', then 3rd output arg is plotrad
+
+    #zi[60:,60:]=0
     
     #nx = 50; ny = 50
     #xi, yi = meshgrid(linspace(min(x),max(x),nx),linspace(min(y),max(y),ny))
-    
+    a=subplot(1,1,1, aspect='equal')
     #Xi,Yi,Zi =
     #zi = griddata(y,x,rand(129),yi,xi,masked=True)
-    #CS = contour(xi,yi,zi,15,linewidths=0.5,colors=['k'])
+    CS = contour(xi,yi,zi,15,linewidths=0.5,colors=['k'])
     CS = contourf(xi,yi,zi,15,cmap=cm.jet)
     #test=imshow(zi)
-    
-    print 'min/max = ',min(zi.compressed()),max(zi.compressed())
 
+    #imshow((zi),interpolation="nearest")
+    
+    #print shape(xi)
+    
+    #print 'min/max = ',min(zi.compressed()),max(zi.compressed())
+    
     #ax = axes([0.1,0.1,0.75,0.75])
     # Contour the gridded data, plotting dots at the nonuniform data points.
     # CS = p.contour(xi,yi,zi,15,linewidths=0.5,colors=['k'])
@@ -111,10 +125,10 @@ def topoplot():
     #a=subplot(1,1,1, aspect='equal')
     xlim(-(headRad*2)+headCenter[0], (headRad*2)+headCenter[0])
     ylim(-(headRad*2)+headCenter[1], (headRad*2)+headCenter[1])
-    #a.add_artist(head)
-    #a.add_artist(nose)
-    #a.add_artist(earRight)
-    #a.add_artist(earLeft)
+    a.add_artist(head)
+    a.add_artist(nose)
+    a.add_artist(earRight)
+    a.add_artist(earLeft)
     #plot(x,y,'bo')
     #a.add_artist(CS)
     show()
@@ -126,14 +140,16 @@ def getElectrodeCoords(headRad):
     # locs=locs_orig(4:end); %ignore orig locations 1-3, these are frontal ones we dont have
     # tmp = [locs.theta; locs.radius];
     # save testLocs.dat tmp -ascii
-    locs = csv.reader(open("testLocs.dat", "r"), delimiter=' ',skipinitialspace=True)
-    theta=locs.next()
-    radius=locs.next()
-    theta = array([(double(i)+90) for i in theta])
-    radius = array([double(i)*(headRad/0.5) for i in radius])
+    locs=load("testLocs.dat")
+    theta=locs[0]+90
+    radius=locs[1]*(headRad/0.5)
     x,y=pol2cart(theta,radius,radians=False)
     return x,y
 
+def getPowerVals():
+    # read in toPlotDiff
+    toPlot = load("toPlotDiff.dat")
+    return toPlot
 
-    
+  
 
