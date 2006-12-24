@@ -51,11 +51,11 @@ def reshapeFrom2D(data,axis,dshape):
 
 def deg2rad(degrees):
     """Convert degrees to radians."""
-    return degrees/180*math.pi
+    return degrees/180.*math.pi
 
 def rad2deg(radians):
     """Convert radians to degrees."""
-    return radians/math.pi*180
+    return radians/math.pi*180.
 
 def pol2cart(theta,radius,z=[],radians=True):
     """Converts corresponding angles (theta), radii, and (optional) height (z)
