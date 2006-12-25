@@ -1,83 +1,87 @@
 #from numpy import *
 from pylab import *
 #from matplotlib.patches import Circle
-from helper import pol2cart
+from helper import pol2cart,cart2pol,deg2rad
 from griddata import griddata
 
-def topoplot():
+def topoplot(headCenter=(0,0),noseDir=0.,noseDirRadians=False,headRad=0.5,plotHead=True,elecs=(0,0),headCol='black',headLineWidth=3,noseLineWidth=2,earLineWidth=2,contCols='black',gridRes=250,colmap=None,elecsCol='black',numConts=15,contWidth=0.5,contStyle='-'):
     """Plot a topographic map of the scalp in a 2-D circular view (looking down at the top of the head).
     Nose is at top of plot; left is left; right is right. More to come ...."""
     
-    ########################################################
-    # Set up head:
-    #
-    # Basics:
-    # Coordinates of middle of head:
-    headCenter = (0,0)
-    #
-    # Angle of direction where the nose points in degrees:
-    # 0 deg is top, 90 deg is right, etc.
-    noseDeg = 0 # not yet used!
-    #
-    # Outline:
-    headRad = 0.5 # radius of head
-    headLineWidth = 3
-    head = Circle(headCenter,headRad,fill=False,linewidth=headLineWidth)
-    #
-    # Nose:    
-    noseLineWidth = earLineWidth = 2
-    noseWidth = 0.18*headRad
-    # Distance from the center of the head to the point where the nose touches the outline of the head: 
-    noseDist = math.cos(math.asin((noseWidth/2)/headRad))*headRad
-    # Distance from the center of the head to the tip of the nose:
-    noseTipDist = 1.15*headRad
-    nose = Line2D([-noseWidth/2+headCenter[0],0+headCenter[0],noseWidth/2+headCenter[0]],[noseDist+headCenter[1],noseTipDist+headCenter[1],noseDist+headCenter[1]],color='black',linewidth=noseLineWidth,solid_joinstyle='round',solid_capstyle='round')
-    #
-    # Ears:
-    q = .04 # ear lengthening
-    earX = array([.497-.005,.510,.518,.5299,.5419,.54,.547,.532,.510,.489-.005])*(headRad/0.5)#+headCenter[0]
-    earY = array([q+.0555,q+.0775,q+.0783,q+.0746,q+.0555,-.0055,-.0932,-.1313,-.1384,-.1199])*(headRad/0.5)#+headCenter[1]
-    earRight = Line2D(earX+headCenter[0],earY+headCenter[1],color='black',linewidth=earLineWidth,solid_joinstyle='round',solid_capstyle='round')
-    earLeft = Line2D(headCenter[0]-earX,earY+headCenter[1],color='black',linewidth=earLineWidth,solid_joinstyle='round',solid_capstyle='round')
-    #
-    ########################################################
+    if colmap is None: colmap = get_cmap()
     
-    x,y = getElectrodeCoords(headRad)
-    #print x
-
-    #xi = linspace(min(x),max(x),10)
-    #yi = linspace(min(y),max(y),10)
+    if plotHead:
+        # Set up head
+        head = Circle(headCenter,headRad,fill=False,linewidth=headLineWidth,edgecolor=headCol)
+        # Nose:
+        noseWidth = 0.18*headRad
+        # Distance from the center of the head to the point where the nose touches the outline of the head: 
+        noseDist = math.cos(math.asin((noseWidth/2)/headRad))*headRad
+        # Distance from the center of the head to the tip of the nose:
+        noseTipDist = 1.15*headRad
+        nosePolarTheta,nosePolarRadius=cart2pol(array([-noseWidth/2+headCenter[0],headCenter[0],noseWidth/2+headCenter[0]]),array([noseDist+headCenter[1],noseTipDist+headCenter[1],noseDist+headCenter[1]]))
+        if noseDirRadians:
+            nosePolarTheta=nosePolarTheta+noseDir
+        else:
+            nosePolarTheta=nosePolarTheta+deg2rad(noseDir)
+        noseX,noseY=pol2cart(nosePolarTheta,nosePolarRadius)
+        nose = Line2D(noseX,noseY,color=headCol,linewidth=noseLineWidth,solid_joinstyle='round',solid_capstyle='round')
+        # Ears:
+        q = .04 # ear lengthening
+        earX = array([.497-.005,.510,.518,.5299,.5419,.54,.547,.532,.510,.489-.005])*(headRad/0.5)#+headCenter[0]
+        earY = array([q+.0555,q+.0775,q+.0783,q+.0746,q+.0555,-.0055,-.0932,-.1313,-.1384,-.1199])*(headRad/0.5)#+headCenter[1]
+        earPolarThetaRight,earPolarRadiusRight=cart2pol(earX,earY)
+        earPolarThetaLeft,earPolarRadiusLeft=cart2pol(-earX,earY)
+        if noseDirRadians:
+            earPolarThetaRight=earPolarThetaRight+noseDir
+            earPolarThetaLeft=earPolarThetaLeft+noseDir
+        else:
+            earPolarThetaRight=earPolarThetaRight+deg2rad(noseDir)
+            earPolarThetaLeft=earPolarThetaLeft+deg2rad(noseDir)
+        earXRight,earYRight=pol2cart(earPolarThetaRight,earPolarRadiusRight)
+        earXLeft,earYLeft=pol2cart(earPolarThetaLeft,earPolarRadiusLeft)
+        earRight = Line2D(earXRight+headCenter[0],earYRight+headCenter[1],color=headCol,linewidth=earLineWidth,solid_joinstyle='round',solid_capstyle='round')
+        earLeft = Line2D(earXLeft+headCenter[0],earYLeft+headCenter[1],color=headCol,linewidth=earLineWidth,solid_joinstyle='round',solid_capstyle='round')
     
+    # Set up Electrodes
+    #x,y = getElectrodeCoords()
+    #print size(elecs)
+    #print elecs
+    if size(elecs) < 4 or len(elecs) !=2: return
     
-    #x = random.uniform(-2,2,100);  y = random.uniform(-2,2,100)
-    #z = x*exp(-x**2-y**2)
-    #z = rand(129)
+    theta,radius = cart2pol(elecs[0],elecs[1])
+    radius = radius*(headRad/0.5)
+    theta = theta + deg2rad(noseDir)
+    # if plotRad is None:
+    plotRad = max(radius)
+    # print plotRad
+    # plotRad = max(plotRad,headRad)
+    
+    x,y = pol2cart(theta,radius)
     z = getPowerVals()
-    #print z
+    nx = round(gridRes*plotRad*2)
+    ny = round(gridRes*plotRad*2)
+    xi, yi = meshgrid(linspace(-plotRad,plotRad,nx),linspace(-plotRad,plotRad,ny))
+    zi = griddata(x,y,z,xi,yi,masked=True)
     
-    # x, y, and z are now vectors containing nonuniformly sampled data.
-    # Define a regular grid and grid data to it.
-    nx = 500
-    ny = 500
-    xi, yi = meshgrid(linspace(-1,1,nx),linspace(-1,1,ny))
-    # masked=True mean no extrapolation, output is masked array.
-    zi = griddata(x,y,z,xi,yi,masked=False,ext=1)
-
     mask = (sqrt(pow(xi,2) + pow(yi,2)) > headRad*1.5) # mask outside the plotting circle
     #ii = find(not mask)
     zi[mask] = 0 # mask non-plotting voxels with NaNs
     #grid = plotrad;                       % unless 'noplot', then 3rd output arg is plotrad
-
-    #zi[60:,60:]=0
     
+    #zi[60:,60:]=0
+
     #nx = 50; ny = 50
     #xi, yi = meshgrid(linspace(min(x),max(x),nx),linspace(min(y),max(y),ny))
     a=subplot(1,1,1, aspect='equal')
     #Xi,Yi,Zi =
     #zi = griddata(y,x,rand(129),yi,xi,masked=True)
-    CS = contour(xi,yi,zi,15,linewidths=0.5,colors=['k'])
-    CS = contourf(xi,yi,zi,15,cmap=cm.jet)
+    #CS = contour(xi,yi,zi,15,linewidths=0.5,colors=['gray'])#['k'])
+    #CS = contourf(xi,yi,zi,15,cmap=colmap)
+    CS = contour(xi,yi,zi,numConts,linewidths=contWidth,linestyle=contStyle,colors=contCols)#['k'])
+    CS = contourf(xi,yi,zi,numConts,cmap=colmap)
     #test=imshow(zi)
+    #cm.autoscale()
 
     #imshow((zi),interpolation="nearest")
     
@@ -119,12 +123,12 @@ def topoplot():
     
     
     
-    
-    plot(x,y,'bo')
+    if elecsCol is not None:
+        plot(x,y,markerfacecolor=elecsCol,marker='o',linestyle=None)
     
     #a=subplot(1,1,1, aspect='equal')
-    xlim(-(headRad*2)+headCenter[0], (headRad*2)+headCenter[0])
-    ylim(-(headRad*2)+headCenter[1], (headRad*2)+headCenter[1])
+    xlim(headCenter[0]-plotRad,headCenter[0]+plotRad)
+    ylim(headCenter[1]-plotRad,headCenter[1]+plotRad)
     a.add_artist(head)
     a.add_artist(nose)
     a.add_artist(earRight)
@@ -132,9 +136,10 @@ def topoplot():
     #plot(x,y,'bo')
     #a.add_artist(CS)
     show()
+    #figure()
 
 
-def getElectrodeCoords(headRad):
+def getElectrodeCoords():
     # read in testLocs.dat that was generated in Matlab as follows:
     # locs_orig=readlocs('GSN129.sfp');
     # locs=locs_orig(4:end); %ignore orig locations 1-3, these are frontal ones we dont have
@@ -142,7 +147,7 @@ def getElectrodeCoords(headRad):
     # save testLocs.dat tmp -ascii
     locs=load("testLocs.dat")
     theta=locs[0]+90
-    radius=locs[1]*(headRad/0.5)
+    radius=locs[1]#*(headRad/0.5)
     x,y=pol2cart(theta,radius,radians=False)
     return x,y
 
