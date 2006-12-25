@@ -2,9 +2,31 @@ from pylab import *
 from helper import pol2cart,cart2pol,deg2rad
 from griddata import griddata
 
-def topoplot(splot=None,headCenter=(0,0),noseDir=0.,noseDirRadians=False,headRad=0.5,plotHead=True,elecs=(0,0),elecsRadians=False,valsToPlot=None,headCol='black',headLineWidth=3,noseLineWidth=2,earLineWidth=2,contCols='black',gridRes=250,colmap=None,elecsCol='black',numConts=15,contWidth=0.5,contStyle='-',axisProp='off',plotMask='linear'):
+def topoplot(splot=None,headCenter=(0,0),noseDir=0.,noseDirRadians=False,headRad=0.5,plotHead=True,elecs=None,elecsRadians=False,elecsCol='black',valsToPlot=None,headCol='black',headLineWidth=3,noseLineWidth=2,earLineWidth=2,contCols='black',contWidth=0.5,numConts=15,contStyle='-',gridRes=400,colmap=None,axisProp='off',plotMask='linear'):
     """Plot a topographic map of the scalp in a 2-D circular view (looking down at the top of the head).
-    Nose is at top of plot; left is left; right is right. More to come ...."""
+    This function takes the following arguments:
+    splot: a subplot to which the topoplot should be added.
+    headCenter: x and y coordinates of the center of the head.
+    noseDir: angle (by default in degrees) where the nose is pointing. 0 is top 90 degree is left, 270 degree is right, etc.
+    noseDirRadians: if True, noseDir must be specified in radians.
+    headRad: radius of the head.
+    plotHead: if True, head is plotted.
+    elecs: polar coordinates of the electrode locations (by default, angles are given in degrees).
+    elecsRadians: if True, theta (angles of electrodes) must be specified in radians.
+    elecsCol: color of electrode markers
+    valsToPlot: values to plot -- there must be one value for each electrode.
+    headCol: color of the outline of the head.
+    headLineWidth: line width for outline of the head.
+    noseLineWidth: line width for the outline of the nose.
+    earLineWidth: line width for the outline of the ear.
+    contCols: color(s) of the contours.
+    contWidth: withd of the countours (if contWidth==0, no contours are plotted)
+    contStyle: line style of the contours
+    gridRes: resolution of the interpolated grid. Higher numbers give smoother edges of the plot, but increase memory and computational demands.
+    colMap: color map for the contour plot. If colMap==None, the default color map is used.
+    numConts: number of countours.
+    axisProp: axis propertis.
+    plotMask: the mask around the plotted values. 'linear' conects the outer electrodes with straight lines, 'circular' draws a circle around the outer electrodes, and 'square' (or any other value) draws a square around the electrodes"""
 
     # If no colormap is specified, use default colormap:
     if colmap is None: colmap = get_cmap()
@@ -66,7 +88,7 @@ def topoplot(splot=None,headCenter=(0,0),noseDir=0.,noseDirRadians=False,headRad
         a.add_artist(earRight)
         a.add_artist(earLeft)
 
-    if size(elecs) < 4 or len(elecs) !=2:
+    if elecs is None:
         if splot is None:
             xlim(-headRad*1.2+headCenter[0],headRad*1.2+headCenter[0])
             ylim(-headRad*1.2+headCenter[1],headRad*1.2+headCenter[1]) 
@@ -101,11 +123,8 @@ def topoplot(splot=None,headCenter=(0,0),noseDir=0.,noseDirRadians=False,headRad
     z = valsToPlot
     
     # gridRes determines the number of interpolated points per unit
-    # it is based on the standard head radius of 0.5
-    # it scales with the actual head radius used
-    gridRes=gridRes*(headRad/0.5)
-    nx = round(gridRes*plotRad*2)
-    ny = round(gridRes*plotRad*2)
+    nx = round(gridRes*plotRad)
+    ny = round(gridRes*plotRad)
     # now set up the grid:
     xi, yi = meshgrid(linspace(-plotRad,plotRad,nx),linspace(-plotRad,plotRad,ny))
     # and move the center to coincide with the center of the head:
@@ -130,7 +149,7 @@ def topoplot(splot=None,headCenter=(0,0),noseDir=0.,noseDirRadians=False,headRad
         # values for the square surrounding the head.
     
     # make contour lines:
-    contour(xi,yi,zi,numConts,linewidths=contWidth,linestyle=contStyle,colors=contCols)#['k'])
+    contour(xi,yi,zi,numConts,linewidths=contWidth,linestyle=contStyle,colors=contCols)
     # make countour color patches:
     contourf(xi,yi,zi,numConts,cmap=colmap)
     
