@@ -113,7 +113,7 @@ def topoplot(splot=None,headCenter=(0,0),noseDir=0.,noseDirRadians=False,headRad
     y = y + headCenter[1]
 
     if elecsCol is not None: # plot electrodes
-        plot(x,y,markerfacecolor=elecsCol,marker='o',linestyle=None)
+        plot(x,y,markerfacecolor=elecsCol,marker='o',linestyle='')
 
     if valsToPlot is None:
         return('No values to plot specified!')

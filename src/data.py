@@ -13,7 +13,7 @@ class DataWrapper:
     """
     Base class to provide interface to timeseries data.
     """
-    def getdataMS(channels,eventOffsets,DurationMS,OffsetMS,BufferMS,resampledRate=None):
+    def getdataMS(self,channels,eventOffsets,DurationMS,OffsetMS,BufferMS,resampledRate=None,filtFreq=None,filtType='stop',filtOrder=4):
         pass
 
 class BinaryEEG(DataWrapper):
@@ -21,17 +21,31 @@ class BinaryEEG(DataWrapper):
     Interface to data stored in binary format with a separate file for
     each channel.
     """
-    def __init__(dataroot,samplerate=None,format=None,gain=None):
+    def __init__(self,dataroot,samplerate=None,format=None,gain=None):
         # set up the basic params of the data
+        self.dataroot = dataroot
 
         # see if can find them from a params file in dataroot
-        pass
+        params = self._getParams(dataroot)
 
-    def getdataMS(channels,eventOffsets,DurationMS,OffsetMS,BufferMS,resampledRate=None):
+    def _getParams(self,dataroot):
+        """Get parameters of the data from the dataroot."""
+        # set default params
+        params = {'samplerate':256.03,'gain':1.}
+
+        # first look for dataroot.params file
+        testFile = dataroot + '.params'
+        if not os.path.isfile(testFile):
+            # see if it's params.txt
+            testFile = os.path.join(os.path.dirname(dataroot),'params.txt')
+            
+        
+
+    def getdataMS(self,channels,eventOffsets,DurationMS,OffsetMS,BufferMS,resampledRate=None,filtFreq=None,filtType='stop',filtOrder=4):
         """
         Return an EEGArray of data for the specified channels,events,and durations.
         """
-        pass
+        
 
 class EEGArray(N.array):
     """
@@ -60,7 +74,7 @@ class Events(DataArray):
         # return the updated array
         return self
 
-    def getDataMS(channels,DurationMS,OffsetMS,BufferMS,resampledRate):
+    def getDataMS(self,channels,DurationMS,OffsetMS,BufferMS,resampledRate):
         """
         Return the requested range of data for each event by using the
         proper data retrieval mechanism for each event.
