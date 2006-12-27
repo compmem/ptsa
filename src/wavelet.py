@@ -63,37 +63,9 @@ def tfPhasePow(freqs,dat,samplerate,axis=-1,width=5,downsample=None):
     # make sure dat is an array
     dat = asarray(dat)
 
-#     # allocate for the phase and power
-#     # appending as a list and turning it into an array saves memory use
-#     phase = []
-#     power = []
-
-#     # see if shape is 1d, otherwise loop over first dimension calling
-#     # recursively
-#     if len(dat.shape) > 1:    
-#         # has more dimensions, loop over first dimension
-#         for i in xrange(dat.shape[0]):
-#             tPhase,tPower = tfPhasePow(freqs,dat[i],samplerate,width)
-#             phase.append(tPhase)
-#             power.append(tPower)
-
-#     else:
-#         # hase one dimension
-#         # calculate the phase and pow for each freq
-#         for freq in freqs:
-#             # get the phase and pow
-#             tPhase,tPower = phasePow1d(freq,dat,samplerate,width)
-
-#             # append it to the result
-#             phase.append(tPhase)
-#             power.append(tPower)
-
     # reshape the data to 2D with time on the 2nd dimension
     origshape = dat.shape
     dat = reshapeTo2D(dat,axis)
-
-    # convert negative axis to positive axis
-    rnk = len(origshape)
 
     # allocate
     phaseAll = []
@@ -124,6 +96,9 @@ def tfPhasePow(freqs,dat,samplerate,axis=-1,width=5,downsample=None):
 
     # see if decimate
     if not downsample is None and downsample != samplerate:
+        # convert negative axis to positive axis
+        rnk = len(origshape)
+
         # set time axis, used for decimation
         taxis = axis
         if taxis < 0: 

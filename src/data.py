@@ -136,6 +136,7 @@ class RawBinaryEEG(DataWrapper):
         chandata = InfoArray(chandata,info={'samplerate':self.samplerate})
 
         # remove the buffer
+        chandata = chandata[:,:,buffer:-buffer]
 
         # multiply by the gain and return
         return chandata*self.gain
