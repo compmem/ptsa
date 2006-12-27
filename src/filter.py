@@ -74,7 +74,8 @@ def decimate(x, q, n=None, ftype='iir', axis=-1):
         y = lfilter(b, 1., x, axis=axis)
     else:
         (b, a) = cheby1(n, 0.05, 0.8/q)
-
+        
+        # This needs to be filtfilt eventually
         y = lfilter(b, a, x, axis=axis)
 
     return y.swapaxes(0,axis)[::q].swapaxes(0,axis)
@@ -121,7 +122,7 @@ def filtfilt(b,a,x):
     edge=ntaps*3
 
     if x.ndim != 1:
-        raise ValueError, "Filiflit is only accepting 1 dimension arrays."
+        raise ValueError, "Filtflit is only accepting 1 dimension arrays."
 
     #x must be bigger than edge
     if x.size < edge:
