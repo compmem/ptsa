@@ -144,9 +144,14 @@ class EEGArray(N.ndarray):
     """
     Array subclass that holds information about the EEG.
     """
-    #def __new__(subtype,obj,samplerate,channels=None,units='uV'):
-    def __init__(self,obj,samplerate,channels=None,units='uV'):
-        self = obj.view(subtype)
+    def __new__(subtype, data, dtype=None, copy=True):
+        if isinstance(data, DataArray):
+            return data
+        if isinstance(data, N.ndarray):
+            return data.view(subtype)
+        arr = N.array(data)
+        return N.ndarray.__new__(DataArray, shape=arr.shape,dtype=arr.dtype, buffer=arr)
+    def setParams(self,samplerate,channels=None,units='uV')
         self.samplerate = samplerate
         self.channels = channels
         self.units = units
