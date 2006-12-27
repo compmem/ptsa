@@ -19,7 +19,7 @@ class DataWrapper:
     def getdataMS(self,channels,eventOffsets,DurationMS,OffsetMS,BufferMS,resampledRate=None,filtFreq=None,filtType='stop',filtOrder=4):
         pass
 
-class BinaryEEG(DataWrapper):
+class RawBinaryEEG(DataWrapper):
     """
     Interface to data stored in binary format with a separate file for
     each channel.
