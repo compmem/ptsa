@@ -113,7 +113,7 @@ class BinaryEEG(DataWrapper):
                 efile.seek(self.nBytes*thetime,0)
 
                 # read the data
-                data = efile.read(self.nBytes*duration)
+                data = efile.read(int(self.nBytes*duration))
                 
                 # convert from string to array based on the format
                 # hard codes little endian
@@ -133,29 +133,39 @@ class BinaryEEG(DataWrapper):
             chandata.append(eventdata)
 
         # turn the data into an EEGArray
-        chandata = EEGArray(N.asarray(chandata),self.samplerate,channels=channels)
+        chandata = InfoArray(chandata,info={'samplerate':self.samplerate})
 
         # remove the buffer
 
         # multiply by the gain and return
         return chandata*self.gain
 
-class EEGArray(N.ndarray):
-    """
-    Array subclass that holds information about the EEG.
-    """
-    def __new__(subtype, data, dtype=None, copy=True):
-        if isinstance(data, DataArray):
-            return data
-        if isinstance(data, N.ndarray):
-            return data.view(subtype)
-        arr = N.array(data)
-        return N.ndarray.__new__(DataArray, shape=arr.shape,dtype=arr.dtype, buffer=arr)
-    def setParams(self,samplerate,channels=None,units='uV')
-        self.samplerate = samplerate
-        self.channels = channels
-        self.units = units
-        return self
+class InfoArray(N.ndarray):
+    def __new__(subtype, data, info=None, dtype=None, copy=True):
+        # When data is an InfoArray
+        if isinstance(data, InfoArray):
+            if not copy and dtype==data.dtype:
+                return data.view(subtype)
+            else:
+                return data.astype(dtype).view(subtype)
+        subtype._info = info
+        subtype.info = subtype._info
+        return N.array(data).view(subtype)
+
+    def __array_finalize__(self,obj):
+        if hasattr(obj, "info"):
+            # The object already has an info tag: just use it
+            self.info = obj.info
+        else:
+            # The object has no info tag: use the default
+            self.info = self._info
+
+    def __repr__(self):
+        desc="""\
+array(data=
+  %(data)s,
+      tag=%(tag)s)"""
+        return desc % {'data': str(self), 'tag':self.info }
 
 
 # data array subclass of recarray
