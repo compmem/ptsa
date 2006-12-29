@@ -2,5 +2,7 @@
 PyEEG - The Python EEG toolbox.
 """
 
-__all__ = [data,filter,plotting,wavelet]
+import data,filter,plotting,wavelet
+
+#__all__ = [data,filter,plotting,wavelet]
 

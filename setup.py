@@ -5,10 +5,10 @@ from distutils.sysconfig import get_config_var
 import os
 import sys
 
-
+from src import version
 
 setup(name='pyeeg', 
-      version='0.0.1', ### MAKE SURE THIS MATCHES src/version.py !!
+      version=version.vstr, ### MAKE SURE THIS MATCHES src/version.py !!
       package_dir={"pyeeg":"src"},
       packages=['pyeeg'],
       author=['Per B. Sederberg, Christoph T. Weidemann'],
