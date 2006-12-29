@@ -14,13 +14,13 @@ Version management module.
 from distutils.version import StrictVersion
 
 ## !!!!!
-## MAKE SURE THIS MATCHES THE VERSION NUMBER IN pyeeg/setup.py !!!
-vstr = '0.0.1'
+import versionString
+#vstr = open('versionString.txt').readline().strip()
 ## !!!!!
 
-pyeegVersion = StrictVersion(vstr)
+pyeegVersion = StrictVersion(versionString.vstr)
 
-def versionIsAtLeast(someString):
+def versionAtLeast(someString):
     """
     Check that the current pyeeg Version >= argument string's version.
     """

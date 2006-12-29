@@ -10,8 +10,6 @@ import filter
 
 import pdb
 
-
-
 class DataWrapper:
     """
     Base class to provide interface to timeseries data.
