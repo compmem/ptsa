@@ -1,7 +1,9 @@
 from scipy.signal import butter
 from numpy import asarray
 
-def buttfilt(dat,freqRange,sampleRate,filtType,order):
+from helper import reshapeTo2D,reshapeFrom2D
+
+def buttfilt(dat,freqRange,sampleRate,filtType,order,axis=-1):
     """Wrapper for a Butterworth filter.
 
     """
@@ -9,30 +11,26 @@ def buttfilt(dat,freqRange,sampleRate,filtType,order):
     # make sure dat is an array
     dat = asarray(dat)
 
-    # see if data has more than one dimension
-    if len(dat.shape) > 1:
-        # has more dimensions, loop over first dimension
-        filtDat = []
-        for i in xrange(dat.shape[0]):
-            filtDat.append(buttfilt(dat[i],freqRange,sampleRate,filtType,order))
+    # reshape the data to 2D with time on the 2nd dimension
+    origshape = dat.shape
+    dat = reshapeTo2D(dat,axis)
 
-        # turn into array
-        filtDat = asarray(filtDat)
-    else:
-        # is single dimension, so filter it
-        # make the freqRange an array
-        freqRange = asarray(freqRange)
+    # set up the filter
+    freqRange = asarray(freqRange)
 
-        # Nyquist frequency
-        nyq=sampleRate/2.;
+    # Nyquist frequency
+    nyq=sampleRate/2.;
 
-        # generate the butterworth filter coefficients
-        [b,a]=butter(order,freqRange/nyq,filtType)
+    # generate the butterworth filter coefficients
+    [b,a]=butter(order,freqRange/nyq,filtType)
 
-        # run the filter on 
-        filtDat=filtfilt(b,a,dat)
+    # loop over final dimension
+    for i in xrange(dat.shape[0]):
+        dat[i] = filtfilt(b,a,dat[i])
 
-    return filtDat
+    # reshape the data back
+    dat = reshapeFrom2D(dat,axis,origshape)
+    return dat
 
 ######
 # Code for decimate from http://www.bigbold.com/snippets/posts/show/1209
@@ -41,7 +39,7 @@ def buttfilt(dat,freqRange,sampleRate,filtType,order):
 from scipy.signal import cheby1, firwin, lfilter
 
 def decimate(x, q, n=None, ftype='iir', axis=-1):
-    """downsample the signal x by an integer factor q, using an order n filter
+    """Downsample the signal x by an integer factor q, using an order n filter
     
     By default, an order 8 Chebyshev type I filter is used or a 30 point FIR 
     filter with hamming window if ftype is 'fir'.
@@ -70,13 +68,25 @@ def decimate(x, q, n=None, ftype='iir', axis=-1):
         else:
             n = 8
     if ftype == 'fir':
+        # PBS - This method must be verified
         b = firwin(n+1, 1./q, window='hamming')
         y = lfilter(b, 1., x, axis=axis)
     else:
         (b, a) = cheby1(n, 0.05, 0.8/q)
-        
+
+        # reshape the data to 2D with time on the 2nd dimension
+        origshape = x.shape
+        y = reshapeTo2D(x,axis)
+
+        # loop over final dimension
+        for i in xrange(y.shape[0]):
+            y[i] = filtfilt(b,a,y[i])
+
+        # reshape the data back
+        y = reshapeFrom2D(y,axis,origshape)
+
         # This needs to be filtfilt eventually
-        y = lfilter(b, a, x, axis=axis)
+        #y = lfilter(b, a, x, axis=axis)
 
     return y.swapaxes(0,axis)[::q].swapaxes(0,axis)
 
