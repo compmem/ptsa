@@ -1,6 +1,9 @@
 
 # necessary global imports
 import numpy as N
+
+from scipy.io import loadmat
+
 import os
 import glob
 import string
@@ -134,7 +137,8 @@ class RawBinaryEEG(DataWrapper):
         chandata = InfoArray(chandata,info={'samplerate':self.samplerate})
 
         # remove the buffer
-        chandata = chandata[:,:,buffer:-buffer]
+	if buffer > 0:
+	    chandata = chandata[:,:,buffer:-buffer]
 
         # multiply by the gain and return
         return chandata*self.gain
@@ -233,9 +237,8 @@ class DataArray(N.recarray):
         return self.__class__(N.rec.fromarrays(arrays,names=names))
 
     def addFields(self,**fields):
-        """
-        Add fields from the keyword args provided.  To add an empty
-        field, pass a dtype as the array.
+        """ Add fields from the keyword args provided and return a new
+        instance.  To add an empty field, pass a dtype as the array.
 
         addFields(name1=array1, name2=dtype('i4'))
         
@@ -270,22 +273,7 @@ class DataArray(N.recarray):
         return self.__class__(N.rec.fromarrays(arrays,names=names))
 
 class Events(DataArray):
-    def align(self,eegPulseFiles,behPulseFiles,eegDataWrappers,channels,msField='mstime'):
-        """
-        Align the behavioral events with eeg data.
-        """
-        # will fill the list of data wrappers
-        self.dataWrappers = []
-
-        # determine the eeg offsets into the file for each event
-        
-        # determine the index into dataWrappers for each event (-1 for none)
-        # the other option is to save a dataWrapper instance with each event
-
-        # return the updated array
-        return self
-
-    def getDataMS(self,channels,DurationMS,OffsetMS,BufferMS,resampledRate):
+    def getDataMS(self,channels,DurationMS,OffsetMS,BufferMS,resampledRate,filtFreq=None,filtType='stop',filtOrder=4):
         """
         Return the requested range of data for each event by using the
         proper data retrieval mechanism for each event.
@@ -293,4 +281,52 @@ class Events(DataArray):
         The result will be an EEG array of dimensions (channels,events,time).
         """
         pass
-        
+
+def createEventsFromMatFile(matfile):
+    """Create an events data array from an events structure saved in a
+    Matlab mat file."""
+    # load the mat file
+    mat = loadmat(matfile)
+
+    # get num events
+    numEvents = len(mat['events'])
+
+    # determine the fieldnames and formats
+    fields = mat['events'][0]._fieldnames
+    
+    # create list with array for each field
+    data = []
+    hasEEGInfo = False
+    for field in fields:
+	# handle special cases
+	if field == 'eegfile':
+	    # we have eeg info
+	    hasEEGInfo = True
+
+	    # get unique files
+	    eegfiles = N.unique(map(lambda x: str(x.eegfile),mat['events']))
+	    
+	    # make dictionary of data wrapers for the eeg files
+	    efile_dict = {}
+	    for eegfile in eegfiles:
+		efile_dict[eegfile] = RawBinaryEEG(eegfile)
+	
+	    # set the eegfile to the correct data wrapper
+	    newdat = N.array(map(lambda x: efile_dict[str(x.__getattribute__(field))],
+				     mat['events']))
+	else:
+	    # get the data in normal fashion
+	    newdat = N.array(map(lambda x: x.__getattribute__(field),mat['events']))
+
+	# append the data
+	data.append(newdat)
+
+    # allocate for new array
+    newrec = N.rec.fromarrays(data,names=fields)
+
+    # see if process into DataArray or Events
+    if hasEEGInfo:
+	newrec = Events(newrec)
+    else:
+	newrec = DataArray(newrec)
+    return newrec
