@@ -81,67 +81,61 @@ class RawBinaryEEG(DataWrapper):
         return params
         
 
-    def getdataMS(self,channels,eventOffsets,DurationMS,OffsetMS,BufferMS,resampledRate=None,filtFreq=None,filtType='stop',filtOrder=4):
+    def getdataMS(self,channel,eventOffsets,DurationMS,OffsetMS,BufferMS,resampledRate=None,filtFreq=None,filtType='stop',filtOrder=4):
         """
-        Return an EEGArray of data for the specified channels,events,and durations.
+        Return an EEGArray of data for the specified channel,events,and durations.
         """
         # set event durations from rate
         duration = N.fix((DurationMS+(2*BufferMS))*self.samplerate/1000);
         offset = N.fix((OffsetMS-BufferMS)*self.samplerate/1000);
         buffer = N.fix((BufferMS)*self.samplerate/1000);
 
-        # loop over channels
-        chandata = []
-        for chan in channels:
-            # determine the file
-            eegfname = '%s.%03i' % (self.dataroot,chan)
-            if os.path.isfile(eegfname):
-                efile = open(eegfname,'rb')
-            else:
-                # try unpadded lead
-                eegfname = '%s.%03i' % (self.dataroot,chan)
-                if os.path.isfile(eegfname):
-                    efile = open(eegfname,'rb')
-                else:
-                    raise IOError('EEG file not found for channel %i and file root %s\n' 
-                                  % (chan,self.dataroot))
+        # determine the file
+		eegfname = '%s.%03i' % (self.dataroot,channel)
+		if os.path.isfile(eegfname):
+			efile = open(eegfname,'rb')
+		else:
+			# try unpadded lead
+			eegfname = '%s.%03i' % (self.dataroot,channel)
+			if os.path.isfile(eegfname):
+				efile = open(eegfname,'rb')
+			else:
+				raise IOError('EEG file not found for channel %i and file root %s\n' 
+							  % (channel,self.dataroot))
                 
-            # loop over events
-            eventdata = []
-            for evOffset in eventOffsets:
-                # seek to the position in the file
-                thetime = offset+evOffset
-                efile.seek(self.nBytes*thetime,0)
+		# loop over events
+		eventdata = []
+		for evOffset in eventOffsets:
+			# seek to the position in the file
+			thetime = offset+evOffset
+			efile.seek(self.nBytes*thetime,0)
 
-                # read the data
-                data = efile.read(int(self.nBytes*duration))
+			# read the data
+			data = efile.read(int(self.nBytes*duration))
                 
-                # convert from string to array based on the format
-                # hard codes little endian
-                data = N.array(struct.unpack('<'+str(len(data)/self.nBytes)+self.fmtStr,data))
+			# convert from string to array based on the format
+			# hard codes little endian
+			data = N.array(struct.unpack('<'+str(len(data)/self.nBytes)+self.fmtStr,data))
 
-                # filter if desired
-                if not filtFreq is None:
-                    # filter that data
-                    data = filter.buttfilt(data,filtFreq,self.samplerate,filtType,filtOrder)
+			# filter if desired
+			if not filtFreq is None:
+				# filter that data
+				data = filter.buttfilt(data,filtFreq,self.samplerate,filtType,filtOrder)
 
-                # decimate if desired
+			# decimate if desired
 
-                # append it to the events
-                eventdata.append(data)
-
-            # append the event data
-            chandata.append(eventdata)
+			# append it to the events
+			eventdata.append(data)
 
         # turn the data into an EEGArray
-        chandata = InfoArray(chandata,info={'samplerate':self.samplerate})
+        eventdata = InfoArray(eventdata,info={'samplerate':self.samplerate})
 
         # remove the buffer
-	if buffer > 0:
-	    chandata = chandata[:,:,buffer:-buffer]
+		if buffer > 0:
+			eventdata = eventdata[:,:,buffer:-buffer]
 
         # multiply by the gain and return
-        return chandata*self.gain
+        return eventdata*self.gain
 
 class InfoArray(N.ndarray):
     def __new__(subtype, data, info=None, dtype=None, copy=True):
@@ -273,15 +267,25 @@ class DataArray(N.recarray):
         return self.__class__(N.rec.fromarrays(arrays,names=names))
 
 class Events(DataArray):
-    def getDataMS(self,channels,DurationMS,OffsetMS,BufferMS,resampledRate,filtFreq=None,filtType='stop',filtOrder=4):
+    def getDataMS(self,channel,DurationMS,OffsetMS,BufferMS,resampledRate,filtFreq=None,filtType='stop',filtOrder=4):
         """
         Return the requested range of data for each event by using the
         proper data retrieval mechanism for each event.
 
-        The result will be an EEG array of dimensions (channels,events,time).
+        The result will be an EEG array of dimensions (events,time).
         """
-        pass
+		# get ready to load dat
+		eventdata = []
+        # loop over events
+		for i in xrange(len(self)):
+			# get the eeg
+			pass
 
+		# force uniform samplerate, so if no resampledRate is
+		# provided, fix to samplerate of first event.
+
+		# return (events, time) InfoArray with samplerate
+		
 def createEventsFromMatFile(matfile):
     """Create an events data array from an events structure saved in a
     Matlab mat file."""
