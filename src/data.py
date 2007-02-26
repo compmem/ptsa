@@ -86,53 +86,53 @@ class RawBinaryEEG(DataWrapper):
         Return an EEGArray of data for the specified channel,events,and durations.
         """
         # set event durations from rate
-        duration = N.fix((DurationMS+(2*BufferMS))*self.samplerate/1000);
-        offset = N.fix((OffsetMS-BufferMS)*self.samplerate/1000);
-        buffer = N.fix((BufferMS)*self.samplerate/1000);
+        duration = N.fix((DurationMS+(2*BufferMS))*self.samplerate/1000)
+        offset = N.fix((OffsetMS-BufferMS)*self.samplerate/1000)
+        buffer = N.fix((BufferMS)*self.samplerate/1000)
 
         # determine the file
-		eegfname = '%s.%03i' % (self.dataroot,channel)
-		if os.path.isfile(eegfname):
-			efile = open(eegfname,'rb')
-		else:
-			# try unpadded lead
-			eegfname = '%s.%03i' % (self.dataroot,channel)
-			if os.path.isfile(eegfname):
-				efile = open(eegfname,'rb')
-			else:
-				raise IOError('EEG file not found for channel %i and file root %s\n' 
-							  % (channel,self.dataroot))
+	eegfname = '%s.%03i' % (self.dataroot,channel)
+	if os.path.isfile(eegfname):
+	    efile = open(eegfname,'rb')
+	else:
+	    # try unpadded lead
+	    eegfname = '%s.%03i' % (self.dataroot,channel)
+	    if os.path.isfile(eegfname):
+		efile = open(eegfname,'rb')
+	    else:
+		raise IOError('EEG file not found for channel %i and file root %s\n' 
+			      % (channel,self.dataroot))
                 
-		# loop over events
-		eventdata = []
-		for evOffset in eventOffsets:
-			# seek to the position in the file
-			thetime = offset+evOffset
-			efile.seek(self.nBytes*thetime,0)
+	# loop over events
+	eventdata = []
+	for evOffset in eventOffsets:
+	    # seek to the position in the file
+	    thetime = offset+evOffset
+	    efile.seek(self.nBytes*thetime,0)
 
-			# read the data
-			data = efile.read(int(self.nBytes*duration))
+	    # read the data
+	    data = efile.read(int(self.nBytes*duration))
                 
-			# convert from string to array based on the format
-			# hard codes little endian
-			data = N.array(struct.unpack('<'+str(len(data)/self.nBytes)+self.fmtStr,data))
+	    # convert from string to array based on the format
+	    # hard codes little endian
+	    data = N.array(struct.unpack('<'+str(len(data)/self.nBytes)+self.fmtStr,data))
 
-			# filter if desired
-			if not filtFreq is None:
-				# filter that data
-				data = filter.buttfilt(data,filtFreq,self.samplerate,filtType,filtOrder)
+	    # filter if desired
+	    if not filtFreq is None:
+		# filter that data
+		data = filter.buttfilt(data,filtFreq,self.samplerate,filtType,filtOrder)
 
-			# decimate if desired
+	    # decimate if desired
 
-			# append it to the events
-			eventdata.append(data)
+	    # append it to the events
+	    eventdata.append(data)
 
         # turn the data into an EEGArray
         eventdata = InfoArray(eventdata,info={'samplerate':self.samplerate})
 
         # remove the buffer
-		if buffer > 0:
-			eventdata = eventdata[:,:,buffer:-buffer]
+	if buffer > 0:
+	    eventdata = eventdata[:,:,buffer:-buffer]
 
         # multiply by the gain and return
         return eventdata*self.gain
@@ -167,7 +167,7 @@ array(data=
 
 # data array subclass of recarray
 class DataArray(N.recarray):
-	def __new__(subtype, data, dtype=None, copy=True):
+    def __new__(subtype, data, dtype=None, copy=True):
         # When data is an DataArray
         if isinstance(data, DataArray):
             if not copy and dtype==data.dtype:
@@ -280,17 +280,18 @@ class Events(DataArray):
 
         The result will be an EEG array of dimensions (events,time).
         """
-		# get ready to load dat
-		eventdata = []
-        # loop over events
-		for i in xrange(len(self)):
-			# get the eeg
-			pass
+	# get ready to load dat
+	eventdata = []
+        
+	# loop over events
+	for i in xrange(len(self)):
+	    # get the eeg
+	    pass
 
-		# force uniform samplerate, so if no resampledRate is
-		# provided, fix to samplerate of first event.
+	# force uniform samplerate, so if no resampledRate is
+	# provided, fix to samplerate of first event.
 
-		# return (events, time) InfoArray with samplerate
+	# return (events, time) InfoArray with samplerate
 		
 def createEventsFromMatFile(matfile):
     """Create an events data array from an events structure saved in a
@@ -308,42 +309,42 @@ def createEventsFromMatFile(matfile):
     data = []
     hasEEGInfo = False
     for f,field in enumerate(fields):
-		# handle special cases
-		if field == 'eegfile':
-			# we have eeg info
-			hasEEGInfo = True
+	# handle special cases
+	if field == 'eegfile':
+	    # we have eeg info
+	    hasEEGInfo = True
 
-			# get unique files
-			eegfiles = N.unique(map(lambda x: str(x.eegfile),mat['events']))
+	    # get unique files
+	    eegfiles = N.unique(map(lambda x: str(x.eegfile),mat['events']))
 	    
-			# make dictionary of data wrapers for the eeg files
-			efile_dict = {}
-			for eegfile in eegfiles:
-				efile_dict[eegfile] = RawBinaryEEG(eegfile)
+	    # make dictionary of data wrapers for the eeg files
+	    efile_dict = {}
+	    for eegfile in eegfiles:
+		efile_dict[eegfile] = RawBinaryEEG(eegfile)
 
-			# Handle when the eegfile field is blank
-			efile_dict[''] = None
+	    # Handle when the eegfile field is blank
+	    efile_dict[''] = None
 	
-			# set the eegfile to the correct data wrapper
-			newdat = N.array(map(lambda x: efile_dict[str(x.__getattribute__(field))],
-								 mat['events']))
+	    # set the eegfile to the correct data wrapper
+	    newdat = N.array(map(lambda x: efile_dict[str(x.__getattribute__(field))],
+				 mat['events']))
 			
-			# change field name to eegsrc
-			fields[f] = 'eegsrc'
-		else:
-			# get the data in normal fashion
-			newdat = N.array(map(lambda x: x.__getattribute__(field),mat['events']))
+	    # change field name to eegsrc
+	    fields[f] = 'eegsrc'
+	else:
+	    # get the data in normal fashion
+	    newdat = N.array(map(lambda x: x.__getattribute__(field),mat['events']))
 
-		# append the data
-		data.append(newdat)
+	# append the data
+	data.append(newdat)
 
     # allocate for new array
     newrec = N.rec.fromarrays(data,names=fields)
 
     # see if process into DataArray or Events
     if hasEEGInfo:
-		newrec = Events(newrec)
+	newrec = Events(newrec)
     else:
-		newrec = DataArray(newrec)
+	newrec = DataArray(newrec)
     return newrec
 
