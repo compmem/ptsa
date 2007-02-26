@@ -3,7 +3,7 @@ PyEEG - The Python EEG toolbox.
 """
 
 
-from data import DataArray,DataWrapper,Events,InfoArray,RawBinaryEEG
+from data import DataArray,DataWrapper,Events,InfoArray,RawBinaryEEG,createEventsFromMatFile
 from filter import buttfilt, decimate, filtfilt
 from plotting import topoplot
 from wavelet import tfPhasePow,phasePow1d

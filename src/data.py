@@ -167,9 +167,15 @@ array(data=
 
 # data array subclass of recarray
 class DataArray(N.recarray):
-    def __new__(subtype,obj):
-        self = obj.view(subtype)
-        return self
+	def __new__(subtype, data, dtype=None, copy=True):
+        # When data is an DataArray
+        if isinstance(data, DataArray):
+            if not copy and dtype==data.dtype:
+                return data.view(subtype)
+            else:
+                return data.astype(dtype).view(subtype)
+        return N.array(data).view(subtype)
+
     def filterIndex(self,filterStr,iterate=False):
         """
         Return the boolean index to filter events based on a filter
@@ -301,36 +307,43 @@ def createEventsFromMatFile(matfile):
     # create list with array for each field
     data = []
     hasEEGInfo = False
-    for field in fields:
-	# handle special cases
-	if field == 'eegfile':
-	    # we have eeg info
-	    hasEEGInfo = True
+    for f,field in enumerate(fields):
+		# handle special cases
+		if field == 'eegfile':
+			# we have eeg info
+			hasEEGInfo = True
 
-	    # get unique files
-	    eegfiles = N.unique(map(lambda x: str(x.eegfile),mat['events']))
+			# get unique files
+			eegfiles = N.unique(map(lambda x: str(x.eegfile),mat['events']))
 	    
-	    # make dictionary of data wrapers for the eeg files
-	    efile_dict = {}
-	    for eegfile in eegfiles:
-		efile_dict[eegfile] = RawBinaryEEG(eegfile)
-	
-	    # set the eegfile to the correct data wrapper
-	    newdat = N.array(map(lambda x: efile_dict[str(x.__getattribute__(field))],
-				     mat['events']))
-	else:
-	    # get the data in normal fashion
-	    newdat = N.array(map(lambda x: x.__getattribute__(field),mat['events']))
+			# make dictionary of data wrapers for the eeg files
+			efile_dict = {}
+			for eegfile in eegfiles:
+				efile_dict[eegfile] = RawBinaryEEG(eegfile)
 
-	# append the data
-	data.append(newdat)
+			# Handle when the eegfile field is blank
+			efile_dict[''] = None
+	
+			# set the eegfile to the correct data wrapper
+			newdat = N.array(map(lambda x: efile_dict[str(x.__getattribute__(field))],
+								 mat['events']))
+			
+			# change field name to eegsrc
+			fields[f] = 'eegsrc'
+		else:
+			# get the data in normal fashion
+			newdat = N.array(map(lambda x: x.__getattribute__(field),mat['events']))
+
+		# append the data
+		data.append(newdat)
 
     # allocate for new array
     newrec = N.rec.fromarrays(data,names=fields)
 
     # see if process into DataArray or Events
     if hasEEGInfo:
-	newrec = Events(newrec)
+		newrec = Events(newrec)
     else:
-	newrec = DataArray(newrec)
+		newrec = DataArray(newrec)
     return newrec
+
