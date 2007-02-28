@@ -81,7 +81,7 @@ class RawBinaryEEG(DataWrapper):
         return params
         
 
-    def getdataMS(self,channel,eventOffsets,DurationMS,OffsetMS,BufferMS,resampledRate=None,filtFreq=None,filtType='stop',filtOrder=4):
+    def getDataMS(self,channel,eventOffsets,DurationMS,OffsetMS,BufferMS,resampledRate=None,filtFreq=None,filtType='stop',filtOrder=4):
         """
         Return an EEGArray of data for the specified channel,events,and durations.
         """
@@ -132,7 +132,7 @@ class RawBinaryEEG(DataWrapper):
 
         # remove the buffer
 	if buffer > 0:
-	    eventdata = eventdata[:,:,buffer:-buffer]
+	    eventdata = eventdata[:,buffer:-buffer]
 
         # multiply by the gain and return
         return eventdata*self.gain
@@ -273,7 +273,7 @@ class DataArray(N.recarray):
         return self.__class__(N.rec.fromarrays(arrays,names=names))
 
 class Events(DataArray):
-    def getDataMS(self,channel,DurationMS,OffsetMS,BufferMS,resampledRate,filtFreq=None,filtType='stop',filtOrder=4):
+    def getDataMS(self,channel,DurationMS,OffsetMS,BufferMS,resampledRate=None,filtFreq=None,filtType='stop',filtOrder=4):
         """
         Return the requested range of data for each event by using the
         proper data retrieval mechanism for each event.
@@ -283,15 +283,26 @@ class Events(DataArray):
 	# get ready to load dat
 	eventdata = []
         
+	# could be sped up by get unique events first
+	
 	# loop over events
 	for i in xrange(len(self)):
 	    # get the eeg
-	    pass
+	    eventdata.append(self['eegsrc'][i].getDataMS(channel,
+							 self['eegoffset'][i],
+							 DurationMS,
+							 OffsetMS,
+							 BufferMS,
+							 resampledRate,
+							 filtFreq,
+							 filtType,
+							 filtOrder))
 
 	# force uniform samplerate, so if no resampledRate is
 	# provided, fix to samplerate of first event.
 
 	# return (events, time) InfoArray with samplerate
+	return InfoArray(eventdata,info={'samplerate':eventdata[0].info['samplerate']})
 		
 def createEventsFromMatFile(matfile):
     """Create an events data array from an events structure saved in a
