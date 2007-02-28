@@ -105,6 +105,8 @@ class RawBinaryEEG(DataWrapper):
                 
 	# loop over events
 	eventdata = []
+	if len(eventOffsets.shape)==0:
+	    eventOffsets = [eventOffsets]
 	for evOffset in eventOffsets:
 	    # seek to the position in the file
 	    thetime = offset+evOffset
@@ -112,6 +114,11 @@ class RawBinaryEEG(DataWrapper):
 
 	    # read the data
 	    data = efile.read(int(self.nBytes*duration))
+
+	    # make sure we got some data
+	    if len(data) < duration:
+		raise IOError('Event with offset %d is outside the bounds of file %s.\n'
+			      % (evOffset,eegfname)
                 
 	    # convert from string to array based on the format
 	    # hard codes little endian
@@ -123,6 +130,7 @@ class RawBinaryEEG(DataWrapper):
 		data = filter.buttfilt(data,filtFreq,self.samplerate,filtType,filtOrder)
 
 	    # decimate if desired
+	    
 
 	    # append it to the events
 	    eventdata.append(data)
@@ -285,18 +293,22 @@ class Events(DataArray):
         
 	# could be sped up by get unique events first
 	
+	if len(self.shape)==0:
+	    events = [self]
+	else:
+	    events = self
 	# loop over events
-	for i in xrange(len(self)):
+	for ev in events:
 	    # get the eeg
-	    eventdata.append(self['eegsrc'][i].getDataMS(channel,
-							 self['eegoffset'][i],
-							 DurationMS,
-							 OffsetMS,
-							 BufferMS,
-							 resampledRate,
-							 filtFreq,
-							 filtType,
-							 filtOrder))
+	    eventdata.extend(ev['eegsrc'].getDataMS(channel,
+						    [ev['eegoffset']],
+						    DurationMS,
+						    OffsetMS,
+						    BufferMS,
+						    resampledRate,
+						    filtFreq,
+						    filtType,
+						    filtOrder))
 
 	# force uniform samplerate, so if no resampledRate is
 	# provided, fix to samplerate of first event.
