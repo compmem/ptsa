@@ -105,6 +105,7 @@ class RawBinaryEEG(DataWrapper):
                 
 	# loop over events
 	eventdata = []
+	eventOffsets = N.asarray(eventOffsets)
 	if len(eventOffsets.shape)==0:
 	    eventOffsets = [eventOffsets]
 	for evOffset in eventOffsets:
@@ -301,7 +302,7 @@ class Events(DataArray):
 	for ev in events:
 	    # get the eeg
 	    eventdata.extend(ev['eegsrc'].getDataMS(channel,
-						    [ev['eegoffset']],
+						    ev['eegoffset'],
 						    DurationMS,
 						    OffsetMS,
 						    BufferMS,
