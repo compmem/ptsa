@@ -118,7 +118,7 @@ class RawBinaryEEG(DataWrapper):
 	    # make sure we got some data
 	    if len(data) < duration:
 		raise IOError('Event with offset %d is outside the bounds of file %s.\n'
-			      % (evOffset,eegfname)
+			      % (evOffset,eegfname))
                 
 	    # convert from string to array based on the format
 	    # hard codes little endian
