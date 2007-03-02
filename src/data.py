@@ -3,6 +3,7 @@
 import numpy as N
 
 from scipy.io import loadmat
+from scipy.signal import resample
 
 import os
 import glob
@@ -125,19 +126,31 @@ class RawBinaryEEG(DataWrapper):
 	    # hard codes little endian
 	    data = N.array(struct.unpack('<'+str(len(data)/self.nBytes)+self.fmtStr,data))
 
-	    # filter if desired
-	    if not filtFreq is None:
-		# filter that data
-		data = filter.buttfilt(data,filtFreq,self.samplerate,filtType,filtOrder)
-
-	    # decimate if desired
-	    
-
 	    # append it to the events
 	    eventdata.append(data)
 
-        # turn the data into an EEGArray
-        eventdata = InfoArray(eventdata,info={'samplerate':self.samplerate})
+	# make it an array
+	eventdata = N.array(eventdata)
+
+	# turn the data into an EEGArray
+        #eventdata = InfoArray(eventdata,info={'samplerate':self.samplerate})
+
+	# filter if desired
+	if not filtFreq is None:
+	    # filter that data
+	    eventdata = filter.buttfilt(eventdata,filtFreq,self.samplerate,filtType,filtOrder)
+
+	# decimate if desired
+	if not resampledRate is None and not resampledRate == self.samplerate:
+	    # resample the data
+	    newLength = N.fix(eventdata.shape[1]*resampledRate/float(self.samplerate))
+	    eventdata = resample(eventdata,newLength,axis=1)
+	    
+	    # set the new buffer length
+	    buffer = N.fix(buffer*resampledRate/float(self.samplerate))
+	    
+	    # set the new samplerate
+	    #eventdata.info['samplerate'] = resampledRate
 
         # remove the buffer
 	if buffer > 0:
@@ -315,7 +328,10 @@ class Events(DataArray):
 	# provided, fix to samplerate of first event.
 
 	# return (events, time) InfoArray with samplerate
-	return InfoArray(eventdata,info={'samplerate':eventdata[0].info['samplerate']})
+	#return InfoArray(eventdata,info={'samplerate':eventdata[0].info['samplerate']})
+	
+	# return (events, time) ndarray with samplerate
+	return N.asarray(eventdata)
 		
 def createEventsFromMatFile(matfile):
     """Create an events data array from an events structure saved in a
