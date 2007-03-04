@@ -11,9 +11,9 @@ def morlet(freq,t,width):
     suggested.
 
     """
-    sf = freq/float(width)
-    st = 1/(2*pi*sf)
-    A = 1/sqrt(st*sqrt(pi))
+    sf = float(freq)/float(width)
+    st = 1./(2*pi*sf)
+    A = 1./sqrt(st*sqrt(pi))
     y = A*exp(-pow(t,2)/(2*pow(st,2)))*exp(2j*pi*freq*t)
     return y
 
@@ -22,17 +22,25 @@ def phasePow1d(freq,dat,samplerate,width):
 
     """
     # set the parameters for the wavelet
-    dt = 1./samplerate
-    sf = freq/float(width)
+    dt = 1./float(samplerate)
+    sf = float(freq)/float(width)
     st = 1./(2*pi*sf)
     
     # get the morlet wavelet for the proper time range
     t=arange(-3.5*st,3.5*st,dt)
     m = morlet(freq,t,width)
 
+    # make sure we are not trying to get a too low a freq
+    # for now it is up to them
+    #if len(t) > len(dat):
+	#raise
+
     # convolve the wavelet and the signal
-    y = convolve(m,dat,'same')
-    
+    y = convolve(m,dat,'full')
+
+    # cut off the extra
+    y = y[ceil(len(m)/2.)-1:len(y)-floor(len(m)/2.)];
+
     # get the power
     power = pow(abs(y),2)
 
