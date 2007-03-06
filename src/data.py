@@ -141,6 +141,7 @@ class RawBinaryEEG(DataWrapper):
 	    eventdata = filter.buttfilt(eventdata,filtFreq,self.samplerate,filtType,filtOrder)
 
 	# decimate if desired
+	samplerate = self.samplerate
 	if not resampledRate is None and not resampledRate == self.samplerate:
 	    # resample the data
 	    newLength = N.fix(eventdata.shape[1]*resampledRate/float(self.samplerate))
@@ -150,14 +151,20 @@ class RawBinaryEEG(DataWrapper):
 	    buffer = N.fix(buffer*resampledRate/float(self.samplerate))
 	    
 	    # set the new samplerate
-	    #eventdata.info['samplerate'] = resampledRate
+	    samplerate = resampledRate
 
         # remove the buffer
 	if buffer > 0:
 	    eventdata = eventdata[:,buffer:-buffer]
 
         # multiply by the gain and return
-        return eventdata*self.gain
+	eventdata = eventdata*self.gain
+	
+	# make dictinary of results
+	res = {'data': eventdata, 
+	       'samplerate': samplerate,
+	       'time': N.linspace(OffsetMS,OffsetMS+DurationMS,eventdata.shape[1])}
+        return res
 
 class InfoArray(N.ndarray):
     def __new__(subtype, data, info=None, dtype=None, copy=True):
@@ -305,7 +312,7 @@ class Events(DataArray):
 	# get ready to load dat
 	eventdata = []
         
-	# could be sped up by get unique events first
+	# could be sped up by get unique event sources first
 	
 	if len(self.shape)==0:
 	    events = [self]
@@ -387,4 +394,28 @@ def createEventsFromMatFile(matfile):
     else:
 	newrec = DataArray(newrec)
     return newrec
+
+
+def testcase():
+    # hypothetical test case
+
+    # load events
+    ev = createEventsFromMatFile('events.mat')
+    
+    # split out two conditions
+    rev = ev.filter('recalled==1')
+    nev = ev.filter('recalled==0')
+
+    # do sample erp by getting raw eeg and doing an average for a
+    # single channel
+
+    # get power for the events for a range of freqs
+    freqs = range(2,81,2)
+    DurationMS = 2500
+    OffsetMS = -500
+    BufferMS = 1000
+    # should give me data struct with: power,phase,time,freqs
+    
+    # plot difference in mean power
+
 
