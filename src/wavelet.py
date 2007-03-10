@@ -1,5 +1,6 @@
 import numpy as N
 from scipy import unwrap
+import sys
 
 from filter import decimate
 from helper import reshapeTo2D,reshapeFrom2D
@@ -108,7 +109,7 @@ def phasePow2d(freq,dat,samplerate,width):
 
 
 
-def tfPhasePow(freqs,dat,axis=-1,width=5,downsample=None,keepBuffer=False):
+def tfPhasePow(freqs,dat,axis=-1,width=5,downsample=None,keepBuffer=False,verbose=False):
     """Calculate phase and power over time with a Morlet wavelet.
 
     You can optionally pass in downsample, which is the samplerate to
@@ -129,8 +130,14 @@ def tfPhasePow(freqs,dat,axis=-1,width=5,downsample=None,keepBuffer=False):
     # loop over freqs
     freqs = N.asarray(freqs)
     if len(freqs.shape)==0:
-	freqs = [freqs]
+	freqs = N.array([freqs])
+    if verbose:
+	sys.stdout.write('Calculating wavelet phase/power...\n')
+	sys.stdout.write('Freqs (%g to %g): ' % (N.min(freqs),N.max(freqs)))
     for f,freq in enumerate(freqs):
+	if verbose:
+	    sys.stdout.write('%g ' % (freq))
+	    sys.stdout.flush()
 	# get the phase and power for that freq
 	phase,power = phasePow2d(freq,eegdat,dat.samplerate,width)
         
@@ -148,22 +155,28 @@ def tfPhasePow(freqs,dat,axis=-1,width=5,downsample=None,keepBuffer=False):
         phaseAll[f] = phase
         powerAll[f] = power
 
+    if verbose:
+	sys.stdout.write('\n')
+
+    # convert negative axis to positive axis
+    rnk = len(origshape)
+    
+    # set time axis, used for decimation
+    taxis = axis
+    if taxis < 0: 
+	taxis = taxis + rnk
+	
+    # add one b/c of new freq dim at beginning
+    taxis = taxis + 1
+
     # see if decimate
     samplerate = dat.samplerate
     timeRange = dat.time
     buffer = dat.bufLen
     if not downsample is None and downsample != samplerate:
-        # convert negative axis to positive axis
-        rnk = len(origshape)
-
-        # set time axis, used for decimation
-        taxis = axis
-        if taxis < 0: 
-            taxis = taxis + rnk
-
-        # add one b/c of new freq dim at beginning
-        taxis = taxis + 1
-
+	if verbose:
+	    sys.stdout.write('Decimating...')
+	    sys.stdout.flush()
         # set the decimation ratio
         dmate = int(N.round(samplerate/downsample))
 
@@ -190,6 +203,9 @@ def tfPhasePow(freqs,dat,axis=-1,width=5,downsample=None,keepBuffer=False):
 	    timeRange = N.linspace(dat.OffsetMS,
 				   dat.OffsetMS+dat.DurationMS,
 				   phaseAll.shape[taxis])
+	if verbose:
+	    sys.stdout.write('Done!\n')
+	    sys.stdout.flush()
 
     # make dictinary of results
     res = {'phase': phaseAll,

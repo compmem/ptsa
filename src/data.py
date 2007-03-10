@@ -18,7 +18,7 @@ class DataWrapper:
     """
     Base class to provide interface to timeseries data.
     """
-    def getdataMS(self,channels,eventOffsets,DurationMS,OffsetMS,BufferMS,resampledRate=None,filtFreq=None,filtType='stop',filtOrder=4,keepBuffer=False):
+    def getDataMS(self,channels,eventOffsets,DurationMS,OffsetMS,BufferMS,resampledRate=None,filtFreq=None,filtType='stop',filtOrder=4,keepBuffer=False):
         pass
 
 class RawBinaryEEG(DataWrapper):
@@ -556,27 +556,5 @@ class DataDict(BaseDict):
 	    self.bufLen = 0
 
 
-
-def testcase():
-    # hypothetical test case
-
-    # load events
-    ev = createEventsFromMatFile('events.mat')
-    
-    # split out two conditions
-    rev = ev.filter('recalled==1')
-    nev = ev.filter('recalled==0')
-
-    # do sample erp by getting raw eeg and doing an average for a
-    # single channel
-
-    # get power for the events for a range of freqs
-    freqs = range(2,81,2)
-    DurationMS = 2500
-    OffsetMS = -500
-    BufferMS = 1000
-    # should give me data struct with: power,phase,time,freqs
-    
-    # plot difference in mean power
 
 
