@@ -75,6 +75,7 @@ def testcase():
     fig+=1
     pylab.figure(fig)
     pylab.contourf(rRes.time,rRes.freqs,rPow-nPow)
+    pylab.colorbar()
     pylab.xlabel('Time (ms)')
     pylab.ylabel('Frequency (Hz)')
     pylab.title('SME (diff in power) for channel %d' % (chan))
