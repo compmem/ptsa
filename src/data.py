@@ -321,7 +321,7 @@ class Events(DataArray):
 	    # allocate if necessary
 	    if len(eventdata) == 0:
 		# make ndarray with events by time
-		eventdata = N.array(len(events),newdat['data'].shape[1],
+		eventdata = N.empty((len(events),newdat['data'].shape[1]),
 				    dtype=newdat['data'].dtype)
 
 	    # fill up the eventdata
