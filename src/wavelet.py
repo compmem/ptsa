@@ -1,5 +1,6 @@
-from numpy import *
+import numpy as N
 from scipy import unwrap
+
 from filter import decimate
 from helper import reshapeTo2D,reshapeFrom2D
 
@@ -14,7 +15,7 @@ def morlet(freq,t,width):
     sf = float(freq)/float(width)
     st = 1./(2*pi*sf)
     A = 1./sqrt(st*sqrt(pi))
-    y = A*exp(-pow(t,2)/(2*pow(st,2)))*exp(2j*pi*freq*t)
+    y = A*N.exp(-N.power(t,2)/(2*N.power(st,2)))*N.exp(2j*pi*freq*t)
     return y
 
 def phasePow1d(freq,dat,samplerate,width):
@@ -27,7 +28,7 @@ def phasePow1d(freq,dat,samplerate,width):
     st = 1./(2*pi*sf)
     
     # get the morlet wavelet for the proper time range
-    t=arange(-3.5*st,3.5*st,dt)
+    t=N.arange(-3.5*st,3.5*st,dt)
     m = morlet(freq,t,width)
 
     # make sure we are not trying to get a too low a freq
@@ -36,30 +37,30 @@ def phasePow1d(freq,dat,samplerate,width):
 	#raise
 
     # convolve the wavelet and the signal
-    y = convolve(m,dat,'full')
+    y = N.convolve(m,dat,'full')
 
     # cut off the extra
-    y = y[ceil(len(m)/2.)-1:len(y)-floor(len(m)/2.)];
+    y = y[N.ceil(len(m)/2.)-1:len(y)-N.floor(len(m)/2.)];
 
     # get the power
-    power = pow(abs(y),2)
+    power = N.power(N.abs(y),2)
 
     # find where the power is zero
     ind = power==0
         
     # normalize the phase estimates to length one
     y[ind] = 1.
-    y = y/abs(y)
+    y = y/N.abs(y)
     y[ind] = 0
         
     # get the phase
-    phase = angle(y)
+    phase = N.angle(y)
 
     return phase,power
 
 
 
-def tfPhasePow(freqs,dat,samplerate,axis=-1,width=5,downsample=None):
+def tfPhasePow(freqs,dat,axis=-1,width=5,downsample=None):
     """Calculate phase and power over time with a Morlet wavelet.
 
     You can optionally pass in downsample, which is the samplerate to
@@ -69,7 +70,7 @@ def tfPhasePow(freqs,dat,samplerate,axis=-1,width=5,downsample=None):
     side of the signal of interest because power calculations and
     decimation have edge effects."""
     # make sure dat is an array
-    dat = asarray(dat)
+    dat = N.asarray(dat)
 
     # reshape the data to 2D with time on the 2nd dimension
     origshape = dat.shape
@@ -82,8 +83,8 @@ def tfPhasePow(freqs,dat,samplerate,axis=-1,width=5,downsample=None):
     # loop over freqs
     for freq in freqs:
         # allocate for data
-        phase = empty(dat.shape,single)
-        power = empty(dat.shape,single)
+        phase = N.empty(dat.shape,N.single)
+        power = N.empty(dat.shape,N.single)
     
         # loop over chunks of time
         for i in xrange(dat.shape[0]):
@@ -99,8 +100,8 @@ def tfPhasePow(freqs,dat,samplerate,axis=-1,width=5,downsample=None):
         powerAll.append(power)
 
     # turn into array
-    phaseAll = asarray(phaseAll)
-    powerAll = asarray(powerAll)        
+    phaseAll = N.asarray(phaseAll)
+    powerAll = N.asarray(powerAll)        
 
     # see if decimate
     if not downsample is None and downsample != samplerate:
@@ -116,16 +117,16 @@ def tfPhasePow(freqs,dat,samplerate,axis=-1,width=5,downsample=None):
         taxis = taxis + 1
 
         # set the decimation ratio
-        dmate = int(round(samplerate/downsample))
+        dmate = int(N.round(samplerate/downsample))
 
         # must log transform powerAll before decimating
-        powerAll[powerAll<=0] = finfo(powerAll.dtype).eps
-        powerAll = log10(powerAll)
+        powerAll[powerAll<=0] = N.finfo(powerAll.dtype).eps
+        powerAll = N.log10(powerAll)
         powerAll = decimate(powerAll,dmate,axis=taxis);
-        powerAll = pow(10,powerAll)
+        powerAll = N.power(10,powerAll)
 
         # decimate the unwraped phase, then wrap it back
-        phaseAll = mod(decimate(unwrap(phaseAll),dmate)+pi,2*pi)-pi;
+        phaseAll = N.mod(decimate(N.unwrap(phaseAll),dmate)+pi,2*pi)-pi;
 
 
     # return the power and phase
