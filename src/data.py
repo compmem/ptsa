@@ -18,7 +18,7 @@ class DataWrapper:
     """
     Base class to provide interface to timeseries data.
     """
-    def getdataMS(self,channels,eventOffsets,DurationMS,OffsetMS,BufferMS,resampledRate=None,filtFreq=None,filtType='stop',filtOrder=4):
+    def getdataMS(self,channels,eventOffsets,DurationMS,OffsetMS,BufferMS,resampledRate=None,filtFreq=None,filtType='stop',filtOrder=4,keepBuffer=False):
         pass
 
 class RawBinaryEEG(DataWrapper):
@@ -82,7 +82,7 @@ class RawBinaryEEG(DataWrapper):
         return params
         
 
-    def getDataMS(self,channel,eventOffsets,DurationMS,OffsetMS,BufferMS,resampledRate=None,filtFreq=None,filtType='stop',filtOrder=4):
+    def getDataMS(self,channel,eventOffsets,DurationMS,OffsetMS,BufferMS,resampledRate=None,filtFreq=None,filtType='stop',filtOrder=4,keepBuffer=False):
         """
         Return an EEGArray of data for the specified channel,events,and durations.
         """
@@ -153,46 +153,31 @@ class RawBinaryEEG(DataWrapper):
 	    # set the new samplerate
 	    samplerate = resampledRate
 
-        # remove the buffer
-	if buffer > 0:
+        # remove the buffer and set the time range
+	if buffer > 0 and not keepBuffer:
+	    # remove the buffer
 	    eventdata = eventdata[:,buffer:-buffer]
-
+	    # set the time range with no buffer
+	    timeRange = N.linspace(OffsetMS,OffsetMS+DurationMS,eventdata.shape[1])
+	    # reset buffer to indicate it was removed
+	    buffer = 0
+	else:
+	    # keep the buffer, but set the time range
+	    timeRange = N.linspace(OffsetMS-BufferMS,
+				   OffsetMS+DurationMS+2*BufferMS,
+				   eventdata.shape[1])
         # multiply by the gain and return
 	eventdata = eventdata*self.gain
 	
 	# make dictinary of results
 	res = {'data': eventdata, 
 	       'samplerate': samplerate,
-	       'time': N.linspace(OffsetMS,OffsetMS+DurationMS,eventdata.shape[1])}
+	       'time': timeRange,
+	       'OffsetMS': OffsetMS,
+	       'DurationMS': DurationMS,
+	       'BufferMS': BufferMS,
+	       'bufLen': buffer}
         return res
-
-class InfoArray(N.ndarray):
-    def __new__(subtype, data, info=None, dtype=None, copy=True):
-        # When data is an InfoArray
-        if isinstance(data, InfoArray):
-            if not copy and dtype==data.dtype:
-                return data.view(subtype)
-            else:
-                return data.astype(dtype).view(subtype)
-        subtype._info = info
-        subtype.info = subtype._info
-        return N.array(data).view(subtype)
-
-    def __array_finalize__(self,obj):
-        if hasattr(obj, "info"):
-            # The object already has an info tag: just use it
-            self.info = obj.info
-        else:
-            # The object has no info tag: use the default
-            self.info = self._info
-
-    def __repr__(self):
-        desc="""\
-array(data=
-  %(data)s,
-      tag=%(tag)s)"""
-        return desc % {'data': str(self), 'tag':self.info }
-
 
 # data array subclass of recarray
 class DataArray(N.recarray):
@@ -302,13 +287,14 @@ class DataArray(N.recarray):
         return self.__class__(N.rec.fromarrays(arrays,names=names))
 
 class Events(DataArray):
-    def getDataMS(self,channel,DurationMS,OffsetMS,BufferMS,resampledRate=None,filtFreq=None,filtType='stop',filtOrder=4):
+    def getDataMS(self,channel,DurationMS,OffsetMS,BufferMS,resampledRate=None,filtFreq=None,filtType='stop',filtOrder=4,keepBuffer=False):
         """
         Return the requested range of data for each event by using the
         proper data retrieval mechanism for each event.
 
-        The result will be an EEG array of dimensions (events,time).
-        """
+        The result will be a dictionary with an EEG array of
+        dimensions (events,time) for the data and also some
+        information about the data returned.  """
 	# get ready to load dat
 	eventdata = []
         
@@ -319,17 +305,30 @@ class Events(DataArray):
 	else:
 	    events = self
 	# loop over events
-	for ev in events:
+	for evNo,ev in enumerate(events):
 	    # get the eeg
-	    eventdata.extend(ev['eegsrc'].getDataMS(channel,
-						    ev['eegoffset'],
-						    DurationMS,
-						    OffsetMS,
-						    BufferMS,
-						    resampledRate,
-						    filtFreq,
-						    filtType,
-						    filtOrder))
+	    newdat = ev['eegsrc'].getDataMS(channel,
+					    ev['eegoffset'],
+					    DurationMS,
+					    OffsetMS,
+					    BufferMS,
+					    resampledRate,
+					    filtFreq,
+					    filtType,
+					    filtOrder,
+					    keepBuffer)
+
+	    # allocate if necessary
+	    if len(eventdata) == 0:
+		# make ndarray with events by time
+		eventdata = N.array(len(events),newdat['data'].shape[1],
+				    dtype=newdat['data'].dtype)
+
+	    # fill up the eventdata
+	    eventdata[evNo,:] = newdat['data'][0,:]
+
+	# set the newdat to hold all the data
+	newdat['data'] = eventdata
 
 	# force uniform samplerate, so if no resampledRate is
 	# provided, fix to samplerate of first event.
@@ -338,7 +337,7 @@ class Events(DataArray):
 	#return InfoArray(eventdata,info={'samplerate':eventdata[0].info['samplerate']})
 	
 	# return (events, time) ndarray with samplerate
-	return N.asarray(eventdata)
+	return newdat
 		
 def createEventsFromMatFile(matfile):
     """Create an events data array from an events structure saved in a
