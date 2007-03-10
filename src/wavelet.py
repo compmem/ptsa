@@ -108,7 +108,7 @@ def phasePow2d(freq,dat,samplerate,width):
 
 
 
-def tfPhasePow(freqs,dat,axis=-1,width=5,downsample=None):
+def tfPhasePow(freqs,dat,axis=-1,width=5,downsample=None,keepBuffer=False):
     """Calculate phase and power over time with a Morlet wavelet.
 
     You can optionally pass in downsample, which is the samplerate to
@@ -151,6 +151,7 @@ def tfPhasePow(freqs,dat,axis=-1,width=5,downsample=None):
     # see if decimate
     samplerate = dat.samplerate
     timeRange = dat.time
+    buffer = dat.bufLen
     if not downsample is None and downsample != samplerate:
         # convert negative axis to positive axis
         rnk = len(origshape)
@@ -182,12 +183,13 @@ def tfPhasePow(freqs,dat,axis=-1,width=5,downsample=None):
 	    timeRange = N.linspace(dat.OffsetMS-dat.BufferMS,
 				   dat.OffsetMS+dat.DurationMS+dat.BufferMS,
 				   phaseAll.shape[taxis])
+	    # reset the buffer
+	    buffer = int(N.fix((dat.BufferMS)*samplerate/1000.))
 	else:
 	    # redo with no buffer
 	    timeRange = N.linspace(dat.OffsetMS,
 				   dat.OffsetMS+dat.DurationMS,
 				   phaseAll.shape[taxis])
-
 
     # make dictinary of results
     res = {'phase': phaseAll,
@@ -199,5 +201,12 @@ def tfPhasePow(freqs,dat,axis=-1,width=5,downsample=None):
 	   'OffsetMS': dat.OffsetMS,
 	   'DurationMS': dat.DurationMS,
 	   'BufferMS': dat.BufferMS,
-	   'bufLen': dat.bufLen}
-    return DataDict(res)
+	   'bufLen': buffer}
+    res = DataDict(res)
+
+    # see if remove the buffer
+    if not keepBuffer:
+	res.removeBuffer(['phase','power'],axis=taxis)
+    
+    # return the results
+    return res

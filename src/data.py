@@ -87,9 +87,9 @@ class RawBinaryEEG(DataWrapper):
         Return an EEGArray of data for the specified channel,events,and durations.
         """
         # set event durations from rate
-        duration = int(N.fix((DurationMS+(2*BufferMS))*self.samplerate/1000))
-        offset = int(N.fix((OffsetMS-BufferMS)*self.samplerate/1000))
-        buffer = int(N.fix((BufferMS)*self.samplerate/1000))
+        duration = int(N.fix((DurationMS+(2*BufferMS))*self.samplerate/1000.))
+        offset = int(N.fix((OffsetMS-BufferMS)*self.samplerate/1000.))
+        buffer = int(N.fix((BufferMS)*self.samplerate/1000.))
 
         # determine the file
 	eegfname = '%s.%03i' % (self.dataroot,channel)
@@ -537,19 +537,23 @@ class BaseDict(dict):
 class DataDict(BaseDict):
     """ Dictionary where you can access the values as attributes, but with
     added features for manipulating the data inside.  """
-    def removeBuffer(self,axis=-1):
+    def removeBuffer(self,fields,axis=-1):
 	"""Use the information contained in the data dictionary to remove the
-	buffer and reset the time range.  If bufLen is 0, no action is
-	performed."""
+	buffer from the specified fields and reset the time range.  If
+	bufLen is 0, no action is performed."""
 	# see if remove the anything
 	if self.bufLen>0:
-	    # remove the buffer
-	    self.data = self.data.take(range(self.bufLen,
-					     self.data.shape[axis]-self.bufLen),axis)
-	# set the time range with no buffer
-	self.time = N.linspace(self.OffsetMS,self.OffsetMS+self.DurationMS,self.data.shape[axis])
-	# reset buffer to indicate it was removed
-	self.bufLen = 0
+	    for field in fields:
+		# remove the buffer
+		self[field] = self[field].take(range(self.bufLen,
+						     self[field].shape[axis]-self.bufLen),
+					       axis)
+	    # set the time range with no buffer
+	    self.time = N.linspace(self.OffsetMS,
+				   self.OffsetMS+self.DurationMS,
+				   self[fields[0]].shape[axis])
+	    # reset buffer to indicate it was removed
+	    self.bufLen = 0
 
 
 
