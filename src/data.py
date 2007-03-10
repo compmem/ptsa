@@ -164,7 +164,7 @@ class RawBinaryEEG(DataWrapper):
 	else:
 	    # keep the buffer, but set the time range
 	    timeRange = N.linspace(OffsetMS-BufferMS,
-				   OffsetMS+DurationMS+2*BufferMS,
+				   OffsetMS+DurationMS+BufferMS,
 				   eventdata.shape[1])
         # multiply by the gain and return
 	eventdata = eventdata*self.gain
