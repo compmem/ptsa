@@ -200,6 +200,8 @@ class RawBinaryEEG(DataWrapper):
 
 # data array subclass of recarray
 class DataArray(N.recarray):
+    """ Class that extends the record array so that it's easy to filter
+    your records based on various conditions.  """
     def __new__(subtype, data, dtype=None, copy=True):
         # When data is an DataArray
         if isinstance(data, DataArray):
@@ -237,8 +239,10 @@ class DataArray(N.recarray):
 
     def filter(self,filterStr,iterate=False):
         """
-        Run filterInd and return its application to the events.
-        """
+        Run filterInd and return its application to the records. 
+
+	Note that this does not make a copy of the data, it only
+	slices it."""
         # get the filter index
         ind = self.filterIndex(filterStr,iterate)
 
@@ -306,6 +310,9 @@ class DataArray(N.recarray):
         return self.__class__(N.rec.fromarrays(arrays,names=names))
 
 class Events(DataArray):
+    """Class to hold EEG events.  The record fields must include both
+eegsrc and eegoffset so that the class can know how to retrieve data
+for each event."""
     def getDataMS(self,channel,DurationMS,OffsetMS,BufferMS,resampledRate=None,filtFreq=None,filtType='stop',filtOrder=4,keepBuffer=False):
         """
         Return the requested range of data for each event by using the
@@ -352,9 +359,6 @@ class Events(DataArray):
 	# force uniform samplerate, so if no resampledRate is
 	# provided, fix to samplerate of first event.
 
-	# return (events, time) InfoArray with samplerate
-	#return InfoArray(eventdata,info={'samplerate':eventdata[0].info['samplerate']})
-	
 	# return (events, time) ndarray with samplerate
 	return newdat
 		
