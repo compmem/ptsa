@@ -16,17 +16,20 @@ import pdb
 
 class DataWrapper:
     """
-    Base class to provide interface to timeseries data.
+    Base class to provide interface to timeseries data.  
     """
     def getDataMS(self,channels,eventOffsets,DurationMS,OffsetMS,BufferMS,resampledRate=None,filtFreq=None,filtType='stop',filtOrder=4,keepBuffer=False):
-        pass
+        raise RuntimeError("You must use a child class that overloads the getDataMS method.")
 
 class RawBinaryEEG(DataWrapper):
     """
     Interface to data stored in binary format with a separate file for
-    each channel.
+    each channel.  
     """
     def __init__(self,dataroot,samplerate=None,format='int16',gain=1):
+        """Initialize the interface to the data.  You must specify the
+        dataroot, which is a string that contains the path to and
+        root, up to the channel numbers, where the data are stored."""
         # set up the basic params of the data
         self.dataroot = dataroot
         self.samplerate = samplerate
@@ -82,9 +85,25 @@ class RawBinaryEEG(DataWrapper):
         return params
         
 
-    def getDataMS(self,channel,eventOffsets,DurationMS,OffsetMS,BufferMS,resampledRate=None,filtFreq=None,filtType='stop',filtOrder=4,keepBuffer=False):
+    def getDataMS(self,channel,eventOffsets,DurationMS,OffsetMS,BufferMS,
+                  resampledRate=None,filtFreq=None,filtType='stop',filtOrder=4,keepBuffer=False):
         """
-        Return an EEGArray of data for the specified channel,events,and durations.
+        Return an dictionary containing data for the specified channel
+        in the form [events,duration].
+
+        INPUT ARGS:
+
+        channel: Channel to load data from
+        eventOffsets: Array of even offsets (in samples) into the data, specifying each event time
+        DurationMS: Duration in ms of the data to return.
+        OffsetMS: Amount in ms to offset that data around the event.
+        BufferMS: Extra buffer to add when doing filtering to avoid edge effects.
+        resampledRate: New samplerate to resample the data to after loading.
+        filtFreq: Frequency specification for filter (depends on the filter type.
+        filtType: Type of filter to run on the data.
+        filtOrder: Order of the filter.
+        keepBuffer: Whether to keep the buffer when returning the data.
+        
         """
         # set event durations from rate
         duration = int(N.fix((DurationMS+(2*BufferMS))*self.samplerate/1000.))
