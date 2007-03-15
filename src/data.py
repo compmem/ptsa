@@ -566,6 +566,10 @@ class DataDict(BaseDict):
 	bufLen is 0, no action is performed."""
 	# see if remove the anything
 	if self.bufLen>0:
+	    # make sure it's a list
+	    fields = N.asarray(fields)
+	    if len(fields.shape)==0:
+		fields = [fields]
 	    for field in fields:
 		# remove the buffer
 		self[field] = self[field].take(range(self.bufLen,

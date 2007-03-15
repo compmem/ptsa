@@ -109,7 +109,8 @@ def phasePow2d(freq,dat,samplerate,width):
 
 
 
-def tfPhasePow(freqs,dat,axis=-1,width=5,downsample=None,keepBuffer=False,verbose=False):
+def tfPhasePow(freqs,dat,axis=-1,width=5,downsample=None,keepBuffer=False,
+	       verbose=False,phaseOnly=False,powOnly=False):
     """Calculate phase and power over time with a Morlet wavelet.
 
     You can optionally pass in downsample, which is the samplerate to
@@ -142,18 +143,24 @@ def tfPhasePow(freqs,dat,axis=-1,width=5,downsample=None,keepBuffer=False,verbos
 	phase,power = phasePow2d(freq,eegdat,dat.samplerate,width)
         
         # reshape back do original data shape
-        phase = reshapeFrom2D(phase,axis,origshape)
-        power = reshapeFrom2D(power,axis,origshape)
+	if not powOnly:
+	    phase = reshapeFrom2D(phase,axis,origshape)
+	if not phaseOnly:
+	    power = reshapeFrom2D(power,axis,origshape)
 
 	# see if allocate
 	if len(phaseAll) == 0:
-	    phaseAll = N.empty(N.concatenate(([len(freqs)],phase.shape)),
-			       dtype=phase.dtype)
-	    powerAll = N.empty(N.concatenate(([len(freqs)],power.shape)),
-			       dtype=power.dtype)
+	    if not powOnly:
+		phaseAll = N.empty(N.concatenate(([len(freqs)],phase.shape)),
+				   dtype=phase.dtype)
+	    if not phaseOnly:
+		powerAll = N.empty(N.concatenate(([len(freqs)],power.shape)),
+				   dtype=power.dtype)
         # insert into all
-        phaseAll[f] = phase
-        powerAll[f] = power
+	if not powOnly:
+	    phaseAll[f] = phase
+	if not phaseOnly:
+	    powerAll[f] = power
 
     if verbose:
 	sys.stdout.write('\n')
@@ -180,14 +187,16 @@ def tfPhasePow(freqs,dat,axis=-1,width=5,downsample=None,keepBuffer=False,verbos
         # set the decimation ratio
         dmate = int(N.round(samplerate/downsample))
 
-        # must log transform powerAll before decimating
-        powerAll[powerAll<=0] = N.finfo(powerAll.dtype).eps
-        powerAll = N.log10(powerAll)
-        powerAll = decimate(powerAll,dmate,axis=taxis);
-        powerAll = N.power(10,powerAll)
+	if not phaseOnly:
+	    # must log transform powerAll before decimating
+	    powerAll[powerAll<=0] = N.finfo(powerAll.dtype).eps
+	    powerAll = N.log10(powerAll)
+	    powerAll = decimate(powerAll,dmate,axis=taxis);
+	    powerAll = N.power(10,powerAll)
 
-        # decimate the unwraped phase, then wrap it back
-        phaseAll = N.mod(decimate(N.unwrap(phaseAll),dmate)+N.pi,2*N.pi)-N.pi;
+	if not powOnly:
+	    # decimate the unwraped phase, then wrap it back
+	    phaseAll = N.mod(decimate(N.unwrap(phaseAll),dmate)+N.pi,2*N.pi)-N.pi;
 
 	# redo the time and reset the samplerate
 	samplerate = downsample
@@ -208,9 +217,7 @@ def tfPhasePow(freqs,dat,axis=-1,width=5,downsample=None,keepBuffer=False,verbos
 	    sys.stdout.flush()
 
     # make dictinary of results
-    res = {'phase': phaseAll,
-	   'power': powerAll,
-	   'freqs': freqs,
+    res = {'freqs': freqs,
 	   'width': width,
 	   'samplerate': samplerate,
 	   'time': timeRange,
@@ -218,11 +225,22 @@ def tfPhasePow(freqs,dat,axis=-1,width=5,downsample=None,keepBuffer=False,verbos
 	   'DurationMS': dat.DurationMS,
 	   'BufferMS': dat.BufferMS,
 	   'bufLen': buffer}
+    if not powOnly:
+	res['phase'] = phaseAll
+    if not phaseOnly:
+	res['power'] = powerAll
+	   
     res = DataDict(res)
 
     # see if remove the buffer
     if not keepBuffer:
-	res.removeBuffer(['phase','power'],axis=taxis)
+	toRemove = []
+	if not powOnly:
+	    toRemove.append('phase')
+	if not phaseOnly:
+	    toRemove.append('power')
+	res.removeBuffer(toRemove,axis=taxis)
     
     # return the results
     return res
+
