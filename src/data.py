@@ -14,6 +14,10 @@ import filter
 
 import pdb
 
+# Define exceptions:
+class DataException(Exception): pass
+class EventsMatFileError(DataException): pass
+
 class DataWrapper:
     """
     Base class to provide interface to timeseries data.  
@@ -367,6 +371,10 @@ def createEventsFromMatFile(matfile):
     Matlab mat file."""
     # load the mat file
     mat = loadmat(matfile)
+
+    if 'events' not in mat.keys():
+        raise EventsMatFileError, "\nError processing the Matlab file: %s\nThis file must contain an events structure with the name \"events\" (case sensitive)!\n(All other content of the file is ignored.)" % matfile 
+    
 
     # get num events
     numEvents = len(mat['events'])
