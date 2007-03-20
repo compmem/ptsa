@@ -14,6 +14,8 @@ import filter
 
 import pdb
 
+import re
+
 # Define exceptions:
 class DataException(Exception): pass
 class EventsMatFileError(DataException): pass
@@ -226,15 +228,19 @@ class DataArray(N.recarray):
         if not iterate:
             # vectorize, so replace fields
             for k in self.dtype.names:
-                filterStr = filterStr.replace(k,'self.'+k)
-
+                # prepend "self." to fields in event structure
+                # RE makes sure to not replace substrings
+                filterStr = re.sub(r'\b'+k+r'\b','self.'+k,filterStr)
+                
             # eval to set the boolean indices
             ind = eval(filterStr)
         else:
             # must iterate over each one to get indices
             for k in self.dtype.names:
-                filterStr = filterStr.replace(k,'self.'+k+'[i]')
-
+                # prepend "self." and append "[i]" to fields in event structure
+                # RE makes sure to not replace substrings
+                filterStr = re.sub(r'\b'+k+r'\b','self.'+k+'[i]',filterStr)
+                
             # apply filter to each item
             ind = [eval(filterStr) for i in xrange(self.len())]
 
