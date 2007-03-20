@@ -9,15 +9,10 @@ import os
 import glob
 import string
 import struct 
-
 import filter
-
 import pdb
-
 import cPickle
-
 import re
-
 import sys
 
 # Define exceptions:
