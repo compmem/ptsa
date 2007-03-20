@@ -14,11 +14,16 @@ import filter
 
 import pdb
 
+import cPickle
+
 import re
+
+import sys
 
 # Define exceptions:
 class DataException(Exception): pass
 class EventsMatFileError(DataException): pass
+class FilterStringError(DataException): pass
 
 class DataWrapper:
     """
@@ -224,6 +229,7 @@ class DataArray(N.recarray):
         your test.  For example, if you want to perform a string.find
         on a field in the events.
         """
+        
         # see if must iterate or vectorize
         if not iterate:
             # vectorize, so replace fields
@@ -233,7 +239,10 @@ class DataArray(N.recarray):
                 filterStr = re.sub(r'\b'+k+r'\b','self.'+k,filterStr)
                 
             # eval to set the boolean indices
-            ind = eval(filterStr)
+            try:
+                ind = eval(filterStr)
+            except:
+                raise FilterStringError, str(sys.exc_info()[0])+"\n"+str(sys.exc_info()[1])+"\nThe filter string is not a valid Python expression!\nExample string:\n\'(var1==0) & (var2<=0)\'"
         else:
             # must iterate over each one to get indices
             for k in self.dtype.names:
@@ -242,7 +251,10 @@ class DataArray(N.recarray):
                 filterStr = re.sub(r'\b'+k+r'\b','self.'+k+'[i]',filterStr)
                 
             # apply filter to each item
-            ind = [eval(filterStr) for i in xrange(self.len())]
+            try:
+                ind = eval(filterStr)
+            except:
+                raise FilterStringError, str(sys.exc_info()[0])+"\n"+str(sys.exc_info()[1])+"\nThe filter string is not a valid Python expression!\nExample string:\n\'(var1==0) & (var2<=0)\'"
 
         # return the ind as an array
         return N.asarray(ind)
@@ -433,7 +445,8 @@ def createEventsFromMatFile(matfile):
 
 # BaseDict code from: 
 #   http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/473790
-import cPickle
+# import cPickle
+# import moved to top of file
 
 class BaseDict(dict):
     '''
