@@ -1,5 +1,6 @@
 import unittest
 
-import pyeeg.data
+import pyeeg
+
 
 

@@ -326,6 +326,43 @@ class DataArray(N.recarray):
         # return the new recarray
         return self.__class__(N.rec.fromarrays(arrays,names=names))
 
+    # we need to make sure and return an our custom class if it's a
+    # single record, this will ensure we can still call our custom
+    # methods
+    def __getitem__(self, indx):
+        obj = N.ndarray.__getitem__(self, indx)
+        if (isinstance(obj, N.ndarray) and obj.dtype.isbuiltin):
+            return obj.view(N.ndarray)
+	elif isinstance(obj, N.record):
+	    # return record as our custom recarray
+	    return self.__class__(obj)
+        return obj
+
+
+# class EventRecord(N.record):
+#     """Class to allow for accessing EEG data from a single record."""
+#     def getDataMS(self,channel,DurationMS,OffsetMS,BufferMS,resampledRate=None,filtFreq=None,filtType='stop',filtOrder=4,keepBuffer=False):
+# 	"""
+#         Return the requested range of data for each event by using the
+#         proper data retrieval mechanism for each event.
+
+#         The result will be a dictionary with an EEG array of
+#         dimensions (events,time) for the data and also some
+#         information about the data returned.  """
+# 	# get the data
+# 	newdat = self['eegsrc'].getDataMS(channel,
+# 					  self['eegoffset'],
+# 					  DurationMS,
+# 					  OffsetMS,
+# 					  BufferMS,
+# 					  resampledRate,
+# 					  filtFreq,
+# 					  filtType,
+# 					  filtOrder,
+# 					  keepBuffer)
+# 	return newdat
+
+	
 class Events(DataArray):
     """Class to hold EEG events.  The record fields must include both
 eegsrc and eegoffset so that the class can know how to retrieve data
@@ -378,7 +415,8 @@ for each event."""
 
 	# return (events, time) ndarray with samplerate
 	return newdat
-		
+
+	
 def createEventsFromMatFile(matfile):
     """Create an events data array from an events structure saved in a
     Matlab mat file."""
