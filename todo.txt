@@ -1,0 +1,42 @@
+
+What do we want in pyeeg?
+
+Testing of code.
+
+Save to files.  For right now we will just save to pickle files using
+the numpy.dump and numpy.save.  The negative of this is that they are
+not very portable (sometimes you can not move them to different
+machines.)
+
+Redo fancy 3D scalp and intracranial plots using VTK (for
+publications and other fun stuph.)
+
+Circular stats, for analyzing phase info.
+
+Simple stats, such as bootstraps/permutation tests.  The wilcox tests
+in scipy are kind of not ideal.  However, we can use rpy for any stats
+we really care about.
+
+Add in EMD and Hilbert-Huang Transform.
+
+Frequency flows analysis.
+
+Maybe add in multitaper at some point, but probably not.
+
+Methods for extracting sync pulses and aligning events.
+
+Artifact removal (blink detection, ...)
+
+Minor events indexing bug.
+
+
+Basic workflow:
+
+ - We have a bunch of subjects who performed some task.
+ - Events for each subject, allow us to access the eeg data.
+ - Calculate phase and power for eeg, saving to file (for now, we'll
+ - save to dictionaries, eventually netCDF)
+ - Run stats on power values.
+ - Plot/display results.
+
+

@@ -208,15 +208,6 @@ class RawBinaryEEG(DataWrapper):
 class DataArray(N.recarray):
     """ Class that extends the record array so that it's easy to filter
     your records based on various conditions.  """
-    def __new__(subtype, data, dtype=None, copy=True):
-        # When data is an DataArray
-        if isinstance(data, DataArray):
-            if not copy and dtype==data.dtype:
-                return data.view(subtype)
-            else:
-                return data.astype(dtype).view(subtype)
-        return N.array(data).view(subtype)
-
     def filterIndex(self,filterStr,iterate=False):
         """
         Return the boolean index to filter events based on a filter
@@ -326,17 +317,6 @@ class DataArray(N.recarray):
         # return the new recarray
         return self.__class__(N.rec.fromarrays(arrays,names=names))
 
-    # we need to make sure and return an our custom class if it's a
-    # single record, this will ensure we can still call our custom
-    # methods
-    def __getitem__(self, indx):
-        obj = N.ndarray.__getitem__(self, indx)
-        if (isinstance(obj, N.ndarray) and obj.dtype.isbuiltin):
-            return obj.view(N.ndarray)
-	elif isinstance(obj, N.record):
-	    # return record as our custom recarray
-	    return self.__class__(obj)
-        return obj
 
 
 # class EventRecord(N.record):
@@ -416,6 +396,19 @@ for each event."""
 	# return (events, time) ndarray with samplerate
 	return newdat
 
+    # we need to make sure and return an our custom class if it's a
+    # single record, this will ensure we can still call our custom
+    # methods
+    def __getitem__(self, indx):
+        obj = N.ndarray.__getitem__(self, indx)
+        if (isinstance(obj, N.ndarray) and obj.dtype.isbuiltin):
+            return obj.view(N.ndarray)
+	elif isinstance(obj, N.record):
+	    # return record as our custom recarray XXX Eventually this
+	    # should return a EventRecord instance.
+	    return self.__class__(obj)
+        return obj
+
 	
 def createEventsFromMatFile(matfile):
     """Create an events data array from an events structure saved in a
@@ -470,9 +463,11 @@ def createEventsFromMatFile(matfile):
 
     # see if process into DataArray or Events
     if hasEEGInfo:
-	newrec = Events(newrec)
+	#newrec = Events(newrec)
+	newrec = newrec.view(Events)
     else:
-	newrec = DataArray(newrec)
+	#newrec = DataArray(newrec)
+	newrec = newrec.view(DataArray)
     return newrec
 
 
