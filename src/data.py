@@ -396,18 +396,18 @@ for each event."""
 	# return (events, time) ndarray with samplerate
 	return newdat
 
-    # we need to make sure and return an our custom class if it's a
-    # single record, this will ensure we can still call our custom
-    # methods
-    def __getitem__(self, indx):
-        obj = N.ndarray.__getitem__(self, indx)
-        if (isinstance(obj, N.ndarray) and obj.dtype.isbuiltin):
-            return obj.view(N.ndarray)
-	elif isinstance(obj, N.record):
-	    # return record as our custom recarray XXX Eventually this
-	    # should return a EventRecord instance.
-	    return self.__class__(obj)
-        return obj
+#     # we need to make sure and return an our custom class if it's a
+#     # single record, this will ensure we can still call our custom
+#     # methods
+#     def __getitem__(self, indx):
+#         obj = N.ndarray.__getitem__(self, indx)
+#         if (isinstance(obj, N.ndarray) and obj.dtype.isbuiltin):
+#             return obj.view(N.ndarray)
+# 	elif isinstance(obj, N.record):
+# 	    # return record as our custom recarray XXX Eventually this
+# 	    # should return a EventRecord instance.
+# 	    return self.__class__(obj)
+#         return obj
 
 	
 def createEventsFromMatFile(matfile):
