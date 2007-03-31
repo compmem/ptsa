@@ -1,7 +1,7 @@
-from scipy.signal import butter
-from numpy import asarray
+from scipy.signal import butter, cheby1, firwin, lfilter
+from numpy import asarray, vstack, hstack, eye, ones, zeros, linalg, newaxis, r_, flipud, convolve, matrix
 
-from helper import reshapeTo2D,reshapeFrom2D
+from helper import reshapeTo2D, reshapeFrom2D
 
 def buttfilt(dat,freqRange,sampleRate,filtType,order,axis=-1):
     """Wrapper for a Butterworth filter.
@@ -36,7 +36,8 @@ def buttfilt(dat,freqRange,sampleRate,filtType,order,axis=-1):
 # Code for decimate from http://www.bigbold.com/snippets/posts/show/1209
 ######
 
-from scipy.signal import cheby1, firwin, lfilter
+# from scipy.signal import cheby1, firwin, lfilter
+# this import is now at the top of the file 
 
 def decimate(x, q, n=None, ftype='iir', axis=-1):
     """Downsample the signal x by an integer factor q, using an order n filter
@@ -95,9 +96,10 @@ def decimate(x, q, n=None, ftype='iir', axis=-1):
 # Code for filtfilt from http://www.scipy.org/Cookbook/FiltFilt
 ############
 
-from numpy import vstack, hstack, eye, ones, zeros, linalg, \
-newaxis, r_, flipud, convolve, matrix
-from scipy.signal import lfilter
+# from numpy import vstack, hstack, eye, ones, zeros, linalg, \
+# newaxis, r_, flipud, convolve, matrix
+# from scipy.signal import lfilter
+# imports now at top of file
 
 def lfilter_zi(b,a):
     #compute the zi state from the filter parameters. see [Gust96].

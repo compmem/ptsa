@@ -1,5 +1,5 @@
-from pylab import *
-from helper import pol2cart,cart2pol,deg2rad
+import pylab as PL
+from helper import pol2cart, cart2pol, deg2rad
 from griddata import griddata
 
 def topoplot(splot=None,headCenter=(0,0),noseDir=0.,noseDirRadians=False,headRad=0.5,plotHead=True,elecs=None,elecsRadians=False,elecsCol='black',valsToPlot=None,headCol='black',headLineWidth=3,noseLineWidth=2,earLineWidth=2,contCols='black',contWidth=0.5,numConts=15,contStyle='-',gridRes=400,colmap=None,axisProp='off',plotMask='linear'):
@@ -29,23 +29,23 @@ def topoplot(splot=None,headCenter=(0,0),noseDir=0.,noseDirRadians=False,headRad
     plotMask: the mask around the plotted values. 'linear' conects the outer electrodes with straight lines, 'circular' draws a circle around the outer electrodes, and 'square' (or any other value) draws a square around the electrodes"""
 
     # If no colormap is specified, use default colormap:
-    if colmap is None: colmap = get_cmap()
+    if colmap is None: colmap = PL.get_cmap()
     if splot is not None: # subplot to add the topoplot to is given
         a=splot
     else: # a new subplot is created
-        a=subplot(1,1,1, aspect='equal')
-    axis(axisProp)
+        a=PL.subplot(1,1,1, aspect='equal')
+    PL.axis(axisProp)
     if plotHead:
         # Set up head
-        head = Circle(headCenter,headRad,fill=False,linewidth=headLineWidth,edgecolor=headCol)
+        head = PL.Circle(headCenter,headRad,fill=False,linewidth=headLineWidth,edgecolor=headCol)
         # Nose:
         noseWidth = 0.18*headRad
         # Distance from the center of the head to the point where the nose touches the outline of the head: 
-        noseDist = math.cos(math.asin((noseWidth/2)/headRad))*headRad
+        noseDist = PL.math.cos(PL.math.asin((noseWidth/2)/headRad))*headRad
         # Distance from the center of the head to the tip of the nose:
         noseTipDist = 1.15*headRad
         # Convert to polar coordinates for rotating:
-        nosePolarTheta,nosePolarRadius=cart2pol(array([-noseWidth/2,0,noseWidth/2]),array([noseDist,noseTipDist,noseDist]))
+        nosePolarTheta,nosePolarRadius=cart2pol(PL.array([-noseWidth/2,0,noseWidth/2]),PL.array([noseDist,noseTipDist,noseDist]))
         if noseDirRadians:
             nosePolarTheta=nosePolarTheta+noseDir
         else:
@@ -55,11 +55,11 @@ def topoplot(splot=None,headCenter=(0,0),noseDir=0.,noseDirRadians=False,headRad
         # Move nose with head:
         noseX = noseX + headCenter[0]
         noseY = noseY + headCenter[1]
-        nose = Line2D(noseX,noseY,color=headCol,linewidth=noseLineWidth,solid_joinstyle='round',solid_capstyle='round')
+        nose = PL.Line2D(noseX,noseY,color=headCol,linewidth=noseLineWidth,solid_joinstyle='round',solid_capstyle='round')
         # Ears:
         q = .04 # ear lengthening
-        earX = array([.497-.005,.510,.518,.5299,.5419,.54,.547,.532,.510,.489-.005])*(headRad/0.5)#+headCenter[0]
-        earY = array([q+.0555,q+.0775,q+.0783,q+.0746,q+.0555,-.0055,-.0932,-.1313,-.1384,-.1199])*(headRad/0.5)#+headCenter[1]
+        earX = PL.array([.497-.005,.510,.518,.5299,.5419,.54,.547,.532,.510,.489-.005])*(headRad/0.5)#+headCenter[0]
+        earY = PL.array([q+.0555,q+.0775,q+.0783,q+.0746,q+.0555,-.0055,-.0932,-.1313,-.1384,-.1199])*(headRad/0.5)#+headCenter[1]
         # Convert to polar coordinates for rotating:
         earPolarThetaRight,earPolarRadiusRight=cart2pol(earX,earY)
         earPolarThetaLeft,earPolarRadiusLeft=cart2pol(-earX,earY)
@@ -80,8 +80,8 @@ def topoplot(splot=None,headCenter=(0,0),noseDir=0.,noseDirRadians=False,headRad
         earXLeft = earXLeft + headCenter[0]
         earYLeft = earYLeft + headCenter[1]
         
-        earRight = Line2D(earXRight,earYRight,color=headCol,linewidth=earLineWidth,solid_joinstyle='round',solid_capstyle='round')
-        earLeft = Line2D(earXLeft,earYLeft,color=headCol,linewidth=earLineWidth,solid_joinstyle='round',solid_capstyle='round')
+        earRight = PL.Line2D(earXRight,earYRight,color=headCol,linewidth=earLineWidth,solid_joinstyle='round',solid_capstyle='round')
+        earLeft = PL.Line2D(earXLeft,earYLeft,color=headCol,linewidth=earLineWidth,solid_joinstyle='round',solid_capstyle='round')
         
         a.add_artist(head)
         a.add_artist(nose)
@@ -90,8 +90,8 @@ def topoplot(splot=None,headCenter=(0,0),noseDir=0.,noseDirRadians=False,headRad
 
     if elecs is None:
         if splot is None:
-            xlim(-headRad*1.2+headCenter[0],headRad*1.2+headCenter[0])
-            ylim(-headRad*1.2+headCenter[1],headRad*1.2+headCenter[1]) 
+            PL.xlim(-headRad*1.2+headCenter[0],headRad*1.2+headCenter[0])
+            PL.ylim(-headRad*1.2+headCenter[1],headRad*1.2+headCenter[1]) 
         return("No electrode locations specified!")
     
     # Convert & rotate electrode locations:
@@ -113,11 +113,11 @@ def topoplot(splot=None,headCenter=(0,0),noseDir=0.,noseDirRadians=False,headRad
     y = y + headCenter[1]
 
     if elecsCol is not None: # plot electrodes
-        plot(x,y,markerfacecolor=elecsCol,marker='o',linestyle='')
-
+        PL.plot(x,y,markerfacecolor=elecsCol,marker='o',linestyle='')
+        
     if valsToPlot is None:
         return('No values to plot specified!')
-    if size(valsToPlot) != size(elecs,1):
+    if PL.size(valsToPlot) != PL.size(elecs,1):
         return('Numer of values to plot is different from number of electrodes -- no values have been plotted!')
     
     z = valsToPlot
@@ -126,7 +126,7 @@ def topoplot(splot=None,headCenter=(0,0),noseDir=0.,noseDirRadians=False,headRad
     nx = round(gridRes*plotRad)
     ny = round(gridRes*plotRad)
     # now set up the grid:
-    xi, yi = meshgrid(linspace(-plotRad,plotRad,nx),linspace(-plotRad,plotRad,ny))
+    xi, yi = PL.meshgrid(PL.linspace(-plotRad,plotRad,nx),PL.linspace(-plotRad,plotRad,ny))
     # and move the center to coincide with the center of the head:
     xi = xi + headCenter[0]
     yi = yi + headCenter[1]
@@ -142,21 +142,21 @@ def topoplot(splot=None,headCenter=(0,0),noseDir=0.,noseDirRadians=False,headRad
         if plotMask=='circular':
             # the interpolated array doesn't know about its position in space
             # hence we need to subtract head center from xi & xi to calculate the mask
-            mask = (sqrt(pow(xi-headCenter[0],2) + pow(yi-headCenter[1],2)) > plotRad)
+            mask = (PL.sqrt(pow(xi-headCenter[0],2) + pow(yi-headCenter[1],2)) > plotRad)
             zi[mask] = 0
         # other masks may be added here and can be defined as shown for the circular mask
         # all other plotMask values result in no mask which results in showing interpolated
         # values for the square surrounding the head.
     
     # make contour lines:
-    contour(xi,yi,zi,numConts,linewidths=contWidth,linestyle=contStyle,colors=contCols)
+    PL.contour(xi,yi,zi,numConts,linewidths=contWidth,linestyle=contStyle,colors=contCols)
     # make countour color patches:
-    contourf(xi,yi,zi,numConts,cmap=colmap)
+    PL.contourf(xi,yi,zi,numConts,cmap=colmap)
     
 
 def showTopo(a=None,headCenter=(0,0),noseDir=0.,noseDirRadians=False,headRad=0.5,plotHead=True,elecs=(0,0),elecsRadians=False,valsToPlot=None,headCol='black',headLineWidth=3,noseLineWidth=2,earLineWidth=2,contCols='black',gridRes=250,colmap=None,elecsCol='black',numConts=15,contWidth=0.5,contStyle='-'):
     topoplot(a,headCenter,noseDir,noseDirRadians,headRad,plotHead,elecs,elecsRadians,valsToPlot,headCol,headLineWidth,noseLineWidth,earLineWidth,contCols,gridRes,colmap,elecsCol,numConts,contWidth,contStyle)
-    show()
+    PL.show()
 
 
   

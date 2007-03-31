@@ -1,4 +1,5 @@
-from plotting import *
+from pylab import load, rand, figure, xlim, ylim, show
+from plotting import topoplot
 
 def getElecs():
     # read in testLocs.dat that was generated in Matlab as follows:
@@ -7,7 +8,8 @@ def getElecs():
     # tmp = [locs.theta; locs.radius];
     # save testLocs.dat tmp -ascii
     locs=load("testLocs.dat")
-    theta=locs[0]+90
+    theta=-locs[0]+90
+    
     #theta=deg2rad(theta)
     radius=locs[1]#*(headRad/0.5)
     #x,y=pol2cart(theta,radius,radians=False)
