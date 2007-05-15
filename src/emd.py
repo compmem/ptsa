@@ -115,7 +115,7 @@ al. (2003)."""
         # Special case: if there is just one max, then entire spline
         # is that number
         #s=repmat(data(maxInds),size(data));
-        s = N.ones(len(data))*data(maxInds)
+        s = N.ones(len(data))*data[maxInds]
         return s
 
     # Start points
