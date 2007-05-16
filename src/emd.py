@@ -4,6 +4,7 @@ Empirical Mode Decomposition
 
 import numpy as N
 import scipy.interpolate
+import scipy.signal
 
 import pdb
 
@@ -218,7 +219,29 @@ def localmax(d):
 
 #%make sure beginning & end are not local maxes
 #%maxima([1 end])=false;
-  
+
+
+def calcIF(modes,samplerate):
+    """
+    Calculate the instantaneous frequency, amplitude, and phase of
+    each mode.
+    """
+
+    amp=N.zeros(modes.shape,N.float32);
+    phase=N.zeros(modes.shape,N.float32);
+
+    for m in range(len(modes)):
+        h=scipy.signal.hilbert(modes[m]);
+        amp[m,:]=N.abs(h);
+        phase[m,:]=N.angle(h);
+
+    # calc the freqs
+    f=N.diff(N.unwrap(phase[:,N.r_[0,0:len(modes[0])]]))/(2*N.pi)*samplerate
+
+    # clip the freqs so they don't go below zero
+    f = f.clip(0,f.max())
+
+    return f,amp,phase
 
 
 
