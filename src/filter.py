@@ -1,5 +1,5 @@
 from scipy.signal import butter, cheby1, firwin, lfilter
-from numpy import asarray, vstack, hstack, eye, ones, zeros, linalg, newaxis, r_, flipud, convolve, matrix
+from numpy import asarray, vstack, hstack, eye, ones, zeros, linalg, newaxis, r_, flipud, convolve, matrix, array
 
 from helper import reshapeTo2D, reshapeFrom2D
 
@@ -123,7 +123,7 @@ def lfilter_zi(b,a):
     for i in range(len(zi_matrix)):
       zi_return.append(float(zi_matrix[i][0]))
 
-    return zi_return
+    return array(zi_return)
 
 
 
@@ -153,16 +153,9 @@ def filtfilt(b,a,x):
     #in the case of one go we only need one of the extrems 
     # both are needed for filtfilt
 
-    for i in range(len(zi)):
-      zi[i]=zi[i]*s[0]
-
-
-    (y,zf)=lfilter(b,a,s,-1,zi)
-
-    for i in range(len(zi)):
-      zi[i]=zi[i]*y[-1]
-
-    (y,zf)=lfilter(b,a,flipud(y),-1,zi)
+    (y,zf)=lfilter(b,a,s,-1,zi*s[0])
+    
+    (y,zf)=lfilter(b,a,flipud(y),-1,zi*y[-1])
 
     return flipud(y[edge-1:-edge+1])
 
