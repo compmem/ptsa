@@ -229,17 +229,23 @@ def calcIF(modes,samplerate):
 
     amp=N.zeros(modes.shape,N.float32);
     phase=N.zeros(modes.shape,N.float32);
+    f=N.zeros(modes.shape,N.float32);
 
     for m in range(len(modes)):
         h=scipy.signal.hilbert(modes[m]);
         amp[m,:]=N.abs(h);
         phase[m,:]=N.angle(h);
+        f[m,:] = N.r_[N.nan, 
+                      0.5*(N.angle(-h[2:]*N.conj(h[0:-2]))+N.pi)/(2*N.pi) * samplerate,
+                      N.nan]
 
-    # calc the freqs
-    f=N.diff(N.unwrap(phase[:,N.r_[0,0:len(modes[0])]]))/(2*N.pi)*samplerate
+        #f(m,:) = [nan 0.5*(angle(-h(t+1).*conj(h(t-1)))+pi)/(2*pi) * sr nan];
+    
+    # calc the freqs (old way)
+    #f=N.diff(N.unwrap(phase[:,N.r_[0,0:len(modes[0])]]))/(2*N.pi)*samplerate
 
     # clip the freqs so they don't go below zero
-    f = f.clip(0,f.max())
+    #f = f.clip(0,f.max())
 
     return f,amp,phase
 
