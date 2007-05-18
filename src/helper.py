@@ -47,6 +47,23 @@ def reshapeFrom2D(data,axis,dshape):
     ret = ret.copy()
     return ret
 
+def repeat_to_match_dims(x,y,axis=-1):
+    
+    rnk = len(y.shape)
+    
+    # convert negative axis to positive axis
+    if axis < 0: 
+        axis = axis + rnk
+
+    for d in range(axis)+range(axis+1,rnk):
+        # add the dimension
+        x = N.expand_dims(x,d)
+        # repeat to fill that dim
+        x = x.repeat(y.shape[d],d)
+
+    return x
+
+
 def deg2rad(degrees):
     """Convert degrees to radians."""
     return degrees/180.*N.math.pi

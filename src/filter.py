@@ -1,7 +1,9 @@
 from scipy.signal import butter, cheby1, firwin, lfilter
-from numpy import asarray, vstack, hstack, eye, ones, zeros, linalg, newaxis, r_, flipud, convolve, matrix, array
+from numpy import asarray, vstack, hstack, eye, ones, zeros, linalg, newaxis, r_, flipud, convolve, matrix, array,concatenate
 
-from helper import reshapeTo2D, reshapeFrom2D
+from helper import reshapeTo2D, reshapeFrom2D, repeat_to_match_dims
+
+import pdb
 
 def buttfilt(dat,freqRange,sampleRate,filtType,order,axis=-1):
     """Wrapper for a Butterworth filter.
@@ -33,7 +35,7 @@ def buttfilt(dat,freqRange,sampleRate,filtType,order,axis=-1):
     return dat
 
 ######
-# Code for decimate from http://www.bigbold.com/snippets/posts/show/1209
+# Code for decimate modified from http://www.bigbold.com/snippets/posts/show/1209
 ######
 
 # from scipy.signal import cheby1, firwin, lfilter
@@ -121,12 +123,9 @@ def lfilter_zi(b,a):
 
     #convert the result into a regular array (not a matrix)
     for i in range(len(zi_matrix)):
-      zi_return.append(float(zi_matrix[i][0]))
+        zi_return.append(float(zi_matrix[i][0]))
 
     return array(zi_return)
-
-
-
 
 def filtfilt(b,a,x):
     #For now only accepting 1d arrays
@@ -160,6 +159,53 @@ def filtfilt(b,a,x):
     return flipud(y[edge-1:-edge+1])
 
 
+
+def filtfilt2(b,a,x,axis=-1):
+    # trying to accept N-dimensional arrays
+
+    # calculate the edge needed
+    ntaps=max(len(a),len(b))
+    edge=ntaps*3
+
+    #x must be bigger than edge
+    if x.shape[axis] < edge:
+        raise ValueError, "Input vector needs to be bigger than 3 * max(len(a),len(b)."
+
+    # fill out b if necessary
+    if len(a)!=len(b):
+        b=r_[b,zeros(len(a)-len(b))]
+
+    # calculate the initial conditions scaling factor
+    zi=lfilter_zi(b,a)
+
+    #Grow the signal to have edges for stabilizing 
+    #the filter with inverted replicas of the signal
+    #s=r_[2*x[0]-x[edge:1:-1],x,2*x[-1]-x[-1:-edge:-1]]
+    
+    bRange = range(edge,1,-1)
+    sBeg = 2*x.take([0],axis).repeat(len(bRange),axis) - x.take(bRange,axis)
+    eRange = range(-1,-edge,-1)
+    sEnd = 2*x.take([-1],axis).repeat(len(eRange),axis) - x.take(eRange,axis)
+
+    s = concatenate((sBeg,x,sEnd),axis)
+
+    #in the case of one go we only need one of the extremes 
+    # both are needed for filtfilt
+
+    # peform filter in forward direction
+    sBeg = s.take([0],axis).repeat(len(zi),axis)
+    ziBeg = repeat_to_match_dims(zi,sBeg,axis) * sBeg
+    (y,zf)=lfilter(b,a,s,axis,ziBeg)
+
+    # perform filter in reverse direction
+    sEnd = y.take([-1],axis).repeat(len(zi),axis)
+    ziEnd = repeat_to_match_dims(zi,sEnd,axis) * sEnd
+    (y,zf)=lfilter(b,a,y.take(range(y.shape[axis]-1,-1,-1),axis),axis,ziEnd)
+
+    # flip it back
+    y = y.take(range(y.shape[axis]-1,-1,-1),axis)
+    return y.take(range(edge-1,y.shape[axis]-edge+1),axis)
+    
 
 # if __name__=='__main__':
 
