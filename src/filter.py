@@ -29,6 +29,7 @@ def buttfilt(dat,freqRange,sampleRate,filtType,order,axis=-1):
     # loop over final dimension
     for i in xrange(dat.shape[0]):
         dat[i] = filtfilt(b,a,dat[i])
+    #dat = filtfilt2(b,a,dat)
 
     # reshape the data back
     dat = reshapeFrom2D(dat,axis,origshape)
@@ -84,6 +85,7 @@ def decimate(x, q, n=None, ftype='iir', axis=-1):
         # loop over final dimension
         for i in xrange(y.shape[0]):
             y[i] = filtfilt(b,a,y[i])
+        #y = filtfilt2(b,a,y)
 
         # reshape the data back
         y = reshapeFrom2D(y,axis,origshape)
