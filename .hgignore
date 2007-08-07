@@ -1,0 +1,8 @@
+syntax: glob
+*.orig
+*~
+*.py[co]
+
+syntax: regexp
+.*\#.*\#$
+
