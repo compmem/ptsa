@@ -20,7 +20,7 @@ execfile('src/versionString.py')
 setup(name='pyeeg', 
       version=vstr, 
       package_dir={"pyeeg":"src"},
-      packages=['pyeeg'],
+      packages=['pyeeg','pyeeg.tests'],
       author=['Per B. Sederberg, Christoph T. Weidemann'],
       maintainer=['Per B. Sederberg'],
       maintainer_email=['psederberg@gmail.com'],
