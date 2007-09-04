@@ -1,5 +1,7 @@
+# local imports
+import filter
 
-# necessary global imports
+# global imports
 import numpy as N
 
 from scipy.io import loadmat
@@ -9,18 +11,18 @@ import os
 import glob
 import string
 import struct 
-import filter
-import pdb
 import cPickle
 import re
 import sys
+
+import pdb
 
 # Define exceptions:
 class DataException(Exception): pass
 class EventsMatFileError(DataException): pass
 class FilterStringError(DataException): pass
 
-class DataWrapper:
+class DataWrapper(object):
     """
     Base class to provide interface to timeseries data.  
     """
@@ -637,5 +639,148 @@ class DataDict(BaseDict):
 	    self.bufLen = 0
 
 
+class EegTimeSeries(object):
+    """
+    Holds timeseries data.  
+
+    Keeps track of time dimension, samplerate, buffer, offset, duration, time.
+    """
+    def __init__(self,data,samplerate,tdim=-1,offsetMS=None,offset=None,bufferMS=None,buffer=None):
+        """
+        """
+        # set the initial values
+        self.data = data
+        self.samplerate = samplerate
+        self.dtype = data.dtype
+        self.shape = data.shape
+        self.ndim = len(data.shape)
+        
+        # get the time dimension
+        if tdim >= 0:
+            # use it
+            self.tdim = tdim
+        else:
+            # turn it into a positive dim
+            self.tdim = tdim + self.ndim
+
+        # set the durations
+        # set the offset (for events)
+        if not offset is None:
+            # set offsetMS from offset
+            self.offset = offset
+            self.offsetMS = float(offset)*1000./self.samplerate
+        elif not offsetMS is None:
+            # set the offset from the MS
+            self.offsetMS = offsetMS
+            self.offset = int(N.round(float(offsetMS)*self.samplerate/1000.))
+        else:
+            # default to no offset
+            self.offset = 0
+            self.offsetMS = 0
+                
+        # set the buffer
+        if not buffer is None:
+            # set bufferMS from buffer
+            self.buffer = buffer
+            self.bufferMS = float(buffer)*1000./self.samplerate
+        elif not bufferMS is None:
+            # set the buffer from the MS
+            self.bufferMS = bufferMS
+            self.buffer = int(N.round(float(bufferMS)*self.samplerate/1000.))
+        else:
+            # default to no buffer
+            self.buffer = 0
+            self.bufferMS = 0
+
+        # set the duration (does not include the buffer)
+        self.durationMS = (self.shape[self.tdim]-2*self.buffer)*1000./self.samplerate
+
+        # set the time range
+        self.trangeMS = N.linspace(self.offsetMS-self.bufferMS,
+                                   self.offsetMS+self.durationMS+self.bufferMS,
+                                   self.shape[self.tdim])
+
+            
+    def __getitem__(self, item):
+        """
+        :Parameters:
+            item : ``slice``
+                The slice of the data to take.
+        
+        :Returns: ``numpy.ndarray``
+        """
+        return self.data[item]
+        
+    def __setitem__(self, item, value):
+        """
+        :Parameters:
+            item : ``slice``
+                The slice of the data to write to
+            value : A single value or array of type ``self.dtype``
+                The value to be set.
+        
+        :Returns: ``None``
+        """
+        self.data[item] = value
+
+    def removeBuffer(self):
+	"""Use the information contained in the time series to remove the
+	buffer reset the time range.  If buffer is 0, no action is
+	performed."""
+	# see if remove the anything
+	if self.buffer>0:
+            # remove the buffer
+            self.data = self.data.take(range(self.buffer,
+                                             self.shape[self.tdim]-self.buffer),self.tdim)
+
+            # reset buffer to indicate it was removed
+	    self.buffer = 0
+            self.bufferMS = 0
+
+	    # set the time range with no buffer
+	    self.trange = N.linspace(self.offsetMS-self.bufferMS,
+                                     self.offsetMS+self.durationMS+self.bufferMS,
+                                     self.shape[self.tdim])
 
 
+    def filter(self,freqRange,filtType='stop',order=4):
+        """
+        Filter the data using a Butterworth filter.
+        """
+        self.data = filter.buttfilt(self.data,freqRange,self.samplerate,filtType,
+                                    order,axis=self.tdim)
+
+    def resample(self,resampledRate,window):
+        """
+        Resample the data and reset all the time ranges.  
+        """
+        # resample the data
+        newLength = N.fix(self.data.shape[self.tdim]*resampledRate/float(self.samplerate))
+        self.data = resample(self.data,newLength,axis=self.tdim,window=window)
+
+        # set the new offset and buffer lengths
+        self.buffer = int(N.round(float(self.buffer)*resampledRate/float(self.samplerate)))
+        self.offset = int(N.round(float(self.offset)*resampledRate/float(self.samplerate)))
+
+        # set the new samplerate
+        self.samplerate = resampledRate
+
+    def decimate(self,resampledRate, order=None, ftype='iir'):
+        """
+        Decimate the data and reset the time ranges.
+        """
+
+        # set the downfact
+        downfact = int(N.round(samplerate/resampledRate))
+
+        # do the decimation
+        self.data = decimate(self.data,downfact, n=order, ftype=ftype, axis=self.tdim)
+
+        # set the new offset and buffer lengths
+        self.buffer = int(N.round(float(self.buffer)*resampledRate/float(self.samplerate)))
+        self.offset = int(N.round(float(self.offset)*resampledRate/float(self.samplerate)))
+
+        # set the new samplerate
+        self.samplerate = resampledRate
+
+                 
