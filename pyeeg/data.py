@@ -737,10 +737,14 @@ class EegTimeSeries(object):
 	    self.buffer = 0
             self.bufferMS = 0
 
+            # reset the shape
+            self.shape = self.data.shape
+
 	    # set the time range with no buffer
-	    self.trange = N.linspace(self.offsetMS-self.bufferMS,
-                                     self.offsetMS+self.durationMS+self.bufferMS,
-                                     self.shape[self.tdim])
+	    self.trangeMS = N.linspace(self.offsetMS-self.bufferMS,
+                                       self.offsetMS+self.durationMS+self.bufferMS,
+                                       self.shape[self.tdim])
+
 
 
     def filter(self,freqRange,filtType='stop',order=4):
@@ -765,16 +769,25 @@ class EegTimeSeries(object):
         # set the new samplerate
         self.samplerate = resampledRate
 
+        # set the new shape
+        self.shape = self.data.shape
+
+        # set the time range with no buffer
+        self.trangeMS = N.linspace(self.offsetMS-self.bufferMS,
+                                   self.offsetMS+self.durationMS+self.bufferMS,
+                                   self.shape[self.tdim])
+
+
     def decimate(self,resampledRate, order=None, ftype='iir'):
         """
         Decimate the data and reset the time ranges.
         """
 
         # set the downfact
-        downfact = int(N.round(samplerate/resampledRate))
+        downfact = int(N.round(float(self.samplerate)/resampledRate))
 
         # do the decimation
-        self.data = decimate(self.data,downfact, n=order, ftype=ftype, axis=self.tdim)
+        self.data = filter.decimate(self.data,downfact, n=order, ftype=ftype, axis=self.tdim)
 
         # set the new offset and buffer lengths
         self.buffer = int(N.round(float(self.buffer)*resampledRate/float(self.samplerate)))
@@ -783,4 +796,11 @@ class EegTimeSeries(object):
         # set the new samplerate
         self.samplerate = resampledRate
 
+        # set the new shape
+        self.shape = self.data.shape
+
+        # set the time range with no buffer
+        self.trangeMS = N.linspace(self.offsetMS-self.bufferMS,
+                                   self.offsetMS+self.durationMS+self.bufferMS,
+                                   self.shape[self.tdim])
                  

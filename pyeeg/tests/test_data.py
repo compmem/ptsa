@@ -88,21 +88,42 @@ class test_EegTimeSeries(NumpyTestCase):
         self.assertEquals(ts.offsetMS, offsetMS)
         self.assertEquals(ts.durationMS, durMS)
         N.testing.assert_equal(ts.trangeMS[:], N.linspace(offsetMS-bufferMS,offsetMS+durMS+bufferMS,self.dat200.shape[-1]))
-
-        
         
     def test_removeBuffer(self):
-        pass
+        srate = 200
+        bufferMS = 1000
+        buffer = 200
+        numsamp = 4*200
+        ts = EegTimeSeries(self.dat200,srate,bufferMS=bufferMS)
+        startDurMS = ts.durationMS
+        ts.removeBuffer()
+        self.assertEquals(ts.durationMS,startDurMS)
+        self.assertEquals(ts.shape[ts.tdim],numsamp-2*buffer)
+
     def test_getitem(self):
-        pass
+        ts = EegTimeSeries(self.dat200,200)
+        N.testing.assert_equal(ts[11:42],self.dat200[11:42])
+
     def test_setitem(self):
-        pass
+        ts = EegTimeSeries(self.dat200,200)
+        x = N.arange(10)
+        ts[11:11+10] = x
+        N.testing.assert_equal(ts[11:11+10],x[:])
+
     def test_filter(self):
         pass
     def test_resample(self):
         pass
     def test_decimate(self):
-        pass
+        ts200 = EegTimeSeries(self.dat200,200,bufferMS=1000)
+        ts50 = EegTimeSeries(self.dat50,50,bufferMS=1000)
+        ts200.decimate(50)
+        ts200.removeBuffer()
+        ts50.removeBuffer()
+        self.assertEquals(ts200.durationMS,ts50.durationMS)
+        N.testing.assert_equal(ts200.shape[:],ts50.shape[:])
+        N.testing.assert_equal(ts200.trangeMS[:],ts50.trangeMS[:])
+        N.testing.assert_almost_equal(ts200.data[:],ts50.data[:])
 
 # test RawBinaryEEG
 
