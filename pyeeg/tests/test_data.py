@@ -123,7 +123,7 @@ class test_EegTimeSeries(NumpyTestCase):
         self.assertEquals(ts200.durationMS,ts50.durationMS)
         N.testing.assert_equal(ts200.shape[:],ts50.shape[:])
         N.testing.assert_equal(ts200.trangeMS[:],ts50.trangeMS[:])
-        N.testing.assert_almost_equal(ts200.data[:],ts50.data[:])
+        N.testing.assert_array_almost_equal(ts200.data[90:110],ts50.data[90:110],decimal=2)
 
 # test RawBinaryEEG
 
