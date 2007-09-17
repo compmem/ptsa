@@ -754,9 +754,11 @@ class EegTimeSeries(object):
         self.data = filter.buttfilt(self.data,freqRange,self.samplerate,filtType,
                                     order,axis=self.tdim)
 
-    def resample(self,resampledRate,window):
+    def resample(self,resampledRate,window=None):
         """
-        Resample the data and reset all the time ranges.  
+        Resample the data and reset all the time ranges.  Uses the
+        resample function from scipy.  This method seems to be more
+        accurate than the decimate method.
         """
         # resample the data
         newLength = N.fix(self.data.shape[self.tdim]*resampledRate/float(self.samplerate))

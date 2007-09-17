@@ -3,20 +3,22 @@ from numpy.testing import NumpyTest, NumpyTestCase
 
 from pyeeg import EegTimeSeries
 
-class test_Template(NumpyTestCase):
+# from numpy.testing import NumpyTest, NumpyTestCase
 
-    def setUp(self): pass
-        #print "TestCase initialization..."
+# class test_Template(NumpyTestCase):
 
-    def test_foo(self): pass
-        #print "testing foo"
+#     def setUp(self): pass
+#         #print "TestCase initialization..."
 
-    def test_bar(self): pass
-        #print "testing bar"
+#     def test_foo(self): pass
+#         #print "testing foo"
+
+#     def test_bar(self): pass
+#         #print "testing bar"
       
 
-if __name__ == '__main__':
-    NumpyTest.main()
+# if __name__ == '__main__':
+#     NumpyTest.main()
 
 # test TimeSeries
 class test_EegTimeSeries(NumpyTestCase):
@@ -112,8 +114,6 @@ class test_EegTimeSeries(NumpyTestCase):
 
     def test_filter(self):
         pass
-    def test_resample(self):
-        pass
     def test_decimate(self):
         ts200 = EegTimeSeries(self.dat200,200,bufferMS=1000)
         ts50 = EegTimeSeries(self.dat50,50,bufferMS=1000)
@@ -123,19 +123,26 @@ class test_EegTimeSeries(NumpyTestCase):
         self.assertEquals(ts200.durationMS,ts50.durationMS)
         N.testing.assert_equal(ts200.shape[:],ts50.shape[:])
         N.testing.assert_equal(ts200.trangeMS[:],ts50.trangeMS[:])
-        N.testing.assert_array_almost_equal(ts200.data[90:110],ts50.data[90:110],decimal=2)
+        N.testing.assert_array_almost_equal(ts200.data[:],ts50.data[:],decimal=2)
+    def test_resample(self):
+        ts200 = EegTimeSeries(self.dat200,200,bufferMS=1000)
+        ts50 = EegTimeSeries(self.dat50,50,bufferMS=1000)
+        ts200.resample(50)
+        ts200.removeBuffer()
+        ts50.removeBuffer()
+        self.assertEquals(ts200.durationMS,ts50.durationMS)
+        N.testing.assert_equal(ts200.shape[:],ts50.shape[:])
+        N.testing.assert_equal(ts200.trangeMS[:],ts50.trangeMS[:])
+        N.testing.assert_array_almost_equal(ts200.data[:],ts50.data[:],decimal=6)
 
 # test RawBinaryEEG
 
 # load data from file
-
-# with resampling
-
-# without resampling
 
 # make sure the time range is correct
 
 # make sure we get the expected number of samples
 
 
-
+if __name__ == '__main__':
+    NumpyTest.main()
