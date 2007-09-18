@@ -114,6 +114,7 @@ class test_EegTimeSeries(NumpyTestCase):
 
     def test_filter(self):
         pass
+
     def test_decimate(self):
         ts200 = EegTimeSeries(self.dat200,200,bufferMS=1000)
         ts50 = EegTimeSeries(self.dat50,50,bufferMS=1000)

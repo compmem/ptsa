@@ -114,6 +114,7 @@ class RawBinaryEEG(DataWrapper):
         
         """
         # set event durations from rate
+        # XXX figure out if we need fix or round XXX
         duration = int(N.fix((DurationMS+(2*BufferMS))*self.samplerate/1000.))
         offset = int(N.fix((OffsetMS-BufferMS)*self.samplerate/1000.))
         buffer = int(N.fix((BufferMS)*self.samplerate/1000.))
@@ -156,8 +157,12 @@ class RawBinaryEEG(DataWrapper):
 	    # append it to the events
 	    eventdata.append(data)
 
-	# make it an array
-	eventdata = N.array(eventdata)
+	# make it a timeseries
+        eventdata = EegTimeSeries(N.array(eventdata),
+                                  self.samplerate,
+                                  tdim=-1,
+                                  offset=offset,
+                                  buffer=buffer)
 
 	# turn the data into an EEGArray
         #eventdata = InfoArray(eventdata,info={'samplerate':self.samplerate})
@@ -165,46 +170,23 @@ class RawBinaryEEG(DataWrapper):
 	# filter if desired
 	if not filtFreq is None:
 	    # filter that data
-	    eventdata = filter.buttfilt(eventdata,filtFreq,self.samplerate,filtType,filtOrder)
+            eventdata.filter(filtFreq,filtType=filtType,order=filtOrder)
 
-	# decimate if desired
+	# resample if desired
 	samplerate = self.samplerate
-	if not resampledRate is None and not resampledRate == self.samplerate:
+	if not resampledRate is None and not resampledRate == eventdata.samplerate:
 	    # resample the data
-	    newLength = N.fix(eventdata.shape[1]*resampledRate/float(self.samplerate))
-	    eventdata = resample(eventdata,newLength,axis=1)
-	    
-	    # set the new buffer length
-	    buffer = int(N.fix(buffer*resampledRate/float(self.samplerate)))
-	    
-	    # set the new samplerate
-	    samplerate = resampledRate
+            eventdata.resample(resampledRate)
 
         # remove the buffer and set the time range
-	if buffer > 0 and not keepBuffer:
+	if eventdata.buffer > 0 and not keepBuffer:
 	    # remove the buffer
-	    eventdata = eventdata[:,buffer:-buffer]
-	    # set the time range with no buffer
-	    timeRange = N.linspace(OffsetMS,OffsetMS+DurationMS,eventdata.shape[1])
-	    # reset buffer to indicate it was removed
-	    buffer = 0
-	else:
-	    # keep the buffer, but set the time range
-	    timeRange = N.linspace(OffsetMS-BufferMS,
-				   OffsetMS+DurationMS+BufferMS,
-				   eventdata.shape[1])
+            eventdata.removeBuffer()
+
         # multiply by the gain and return
-	eventdata = eventdata*self.gain
+	eventdata.data = eventdata.data*self.gain
 	
-	# make dictinary of results
-	res = {'data': eventdata, 
-	       'samplerate': samplerate,
-	       'time': timeRange,
-	       'OffsetMS': OffsetMS,
-	       'DurationMS': DurationMS,
-	       'BufferMS': BufferMS,
-	       'bufLen': buffer}
-        return DataDict(res)
+        return eventdata
 
 # data array subclass of recarray
 class DataArray(N.recarray):
@@ -360,12 +342,35 @@ for each event."""
 	# get ready to load dat
 	eventdata = []
         
-	# could be sped up by get unique event sources first
-	
-	if len(self.shape)==0:
+        if len(self.shape)==0:
 	    events = [self]
 	else:
 	    events = self
+
+        # speed up by getting unique event sources first
+        usources = N.unique1d(events['eegsrc'])
+
+        # loop over unique sources
+        for src in usources:
+            # get the eventOffsets from that source
+            ind = events['eegsrc']==src
+            evOffsets = events['eegoffset'][ind]
+                                      
+            # get the timeseries for those events
+            newdat = src.getDataMS(channel,
+                                   evOffsets,
+                                   DurationMS,
+                                   OffsetMS,
+                                   BufferMS,
+                                   resampledRate,
+                                   filtFreq,
+                                   filtType,
+                                   filtOrder,
+                                   keepBuffer)
+
+            # see if concatenate
+
+
 	# loop over events
 	for evNo,ev in enumerate(events):
 	    # get the eeg
@@ -639,6 +644,129 @@ class DataDict(BaseDict):
 	    self.bufLen = 0
 
 
+##############################
+# New dimensioned data classes
+##############################
+
+class Dim(object):
+    def __init__(self,name,data,units=None):
+        """
+        """
+        self.name = name
+        self.data = N.asarray(data)
+        self.units = units
+        self.allind = N.ones(self.data.shape,N.bool)
+
+    def copy(self):
+        return Dim(self.name,self.data.copy(),self.units)
+
+    def __getitem__(self, item):
+        """
+        :Parameters:
+            item : ``slice``
+                The slice of the data to take.
+        
+        :Returns: ``numpy.ndarray``
+        """
+        return Dim(self.name,self.data.copy()[item],self.units)
+        #return self.data[item]
+        
+    def __setitem__(self, item, value):
+        """
+        :Parameters:
+            item : ``slice``
+                The slice of the data to write to
+            value : A single value or array of type ``self.dtype``
+                The value to be set.
+        
+        :Returns: ``None``
+        """
+        self.data[item] = value
+
+    def __lt__(self, other):
+        return self.data < other
+    def __le__(self, other):
+        return self.data <= other
+    def __eq__(self, other):
+        return self.data == other
+    def __ne__(self, other):
+        return self.data != other
+    def __gt__(self, other):
+        return self.data > other
+    def __ge__(self, other):
+        return self.data >= other
+
+
+class Dims(object):
+    """
+    """
+    def __init__(self,dims):
+        """
+        """
+        self.names = [dim.name for dim in dims]
+        self.dims = dims
+
+    def index(self,name):
+        return self.names.index(name)
+
+    def __getitem__(self, item):
+        """
+        :Parameters:
+            item : ``slice``
+                The slice of the data to take.
+        
+        :Returns: ``numpy.ndarray``
+        """
+        # find the item in the list of names
+        return self.dims[self.index(item)]
+
+    def __iter__(self):
+        return self.dims.__iter__()
+
+class DimData(object):
+    """
+    Dimensioned data class.
+    """
+    def __init__(self,data,dims):
+        """
+        Data with defined dimensions.
+        """
+        # make sure the num dims match the shape of the data
+        if len(data.shape) != len(dims):
+            # raise error
+            raise ValueError, "The length of dims must match the length of the data shape."
+
+        self.data = data
+        self.dims = Dims(dims)
+    
+    def select(self,**kwargs):
+        """
+        Return a copy of the data filtered with the select conditions.
+
+        data.select(time=data['time']>0,events=data['events'].recalled==True)
+        """
+        # get starting indicies
+        ind = [dim.allind for dim in self.dims]
+
+        # loop over the kwargs
+        for key,value in kwargs.iteritems():
+            # get the proper dimension to cull
+            d = self.dims.index(key)
+            ind[d] = ind[d] & value
+
+        # create the final master index
+        m_ind = N.ix_(*ind)
+
+        # set up the new data
+        newdat = self.data[m_ind]
+
+        # index the dims
+        newdims = [dim[ind[d]] for dim,d in zip(self.dims,range(len(ind)))]
+        
+        # make the new DimData
+        return DimData(newdat,newdims)
+
+        
 class EegTimeSeries(object):
     """
     Holds timeseries data.  
