@@ -659,6 +659,19 @@ class Dim(object):
 
     def copy(self):
         return Dim(self.name,self.data.copy(),self.units)
+    
+    def __str__(self):
+        outstr = '%s: %s .. %s %s' % (self.name,
+                                      self.data[0],
+                                      self.data[-1],
+                                      self.units)
+        return outstr
+
+    def __repr__(self):
+        outstr = 'Dim(%s,\n\t%s,\n\tunits=%s)' % (self.name.__repr__(),
+                                                  self.data.__repr__(),
+                                                  self.units.__repr__())
+        return outstr
 
     def __getitem__(self, item):
         """
@@ -712,16 +725,35 @@ class Dims(object):
     def __getitem__(self, item):
         """
         :Parameters:
-            item : ``slice``
-                The slice of the data to take.
+            item : ``index``
+                The index into the list.
         
-        :Returns: ``numpy.ndarray``
+        :Returns: ``Dim``
         """
-        # find the item in the list of names
-        return self.dims[self.index(item)]
+        # see if we're looking up by index
+        if isinstance(item,str):
+            item = self.index(item)
+
+        # return the index into the list
+        return self.dims[item]
 
     def __iter__(self):
         return self.dims.__iter__()
+
+    def __str__(self):
+        # loop over dimensions
+        outstr = ''
+        for dim in self.dims:
+            if len(outstr) > 0:
+                outstr += '\n'
+            outstr += str(dim)
+        return outstr
+    def __repr__(self):
+        outstr = 'Dims('
+        outstr += self.dims.__repr__()
+        outstr += ')'
+        return outstr
+
 
 class DimData(object):
     """
@@ -737,8 +769,51 @@ class DimData(object):
             raise ValueError, "The length of dims must match the length of the data shape."
 
         self.data = data
-        self.dims = Dims(dims)
-    
+        if isinstance(dims,Dims):
+            self.dims = dims
+        else:
+            # turn the list into a Dims class
+            self.dims = Dims(dims)
+
+        # describe the data
+        self.dtype = data.dtype
+        self.shape = data.shape
+        self.ndim = len(data.shape)
+
+    def dim(self,name):
+        """
+        Return the numerical index (axis) of the named dimension.
+        """
+        return self.dims.index(name)
+
+    def __getitem__(self,item):
+        """
+        :Parameters:
+            item : ``slice``
+                The slice of the data to take.
+        
+        :Returns: ``numpy.ndarray``
+        """
+        if isinstance(item,str):
+            # return the dim data
+            return self.dims[item].data
+        else:
+            # return the slice into the data
+            return self.data[item]
+
+    def __setitem__(self, item, value):
+        """
+        :Parameters:
+            item : ``slice``
+                The slice of the data to write to
+            value : A single value or array of type ``self.dtype``
+                The value to be set.
+        
+        :Returns: ``None``
+        """
+        self.data[item] = value
+
+        
     def select(self,**kwargs):
         """
         Return a copy of the data filtered with the select conditions.
@@ -766,8 +841,31 @@ class DimData(object):
         # make the new DimData
         return DimData(newdat,newdims)
 
+class EegTimeSeries(DimData):
+    """
+    Class to hold EEG timeseries data.
+    """
+    def __init__(self,data,dims,samplerate,tdim=-1):
+        """
+        """
+        # call the base class init
+        DimData.__init__(self,data,dims)
         
-class EegTimeSeries(object):
+        # set the timeseries-specific information
+        self.samplerate = samplerate
+        
+        # get the time dimension
+        if tdim >= 0:
+            # use it
+            self.tdim = tdim
+        else:
+            # turn it into a positive dim
+            self.tdim = tdim + self.ndim
+        
+        # set the offset and buffer information
+        
+        
+class EegTimeSeries_old(object):
     """
     Holds timeseries data.  
 
