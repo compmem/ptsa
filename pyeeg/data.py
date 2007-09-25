@@ -496,6 +496,12 @@ class Dim(object):
 
     def copy(self):
         return Dim(self.name,self.data.copy(),self.units)
+
+    def extend(self,other):
+        if type(self) != type(other):
+            raise "Can only concatenate the same type of data."
+
+        return Dim(self.name,N.concatenate((self.data,other.data),axis=0),self.units)
     
     def __str__(self):
         outstr = '%s: %s .. %s %s' % (self.name,
@@ -592,6 +598,7 @@ class Dims(object):
         outstr += ')'
         return outstr
 
+
 class DimData(object):
     """
     Dimensioned data class.
@@ -664,16 +671,14 @@ class DimData(object):
         """
         Return a copy of the data filtered with the select conditions.
 
+        data.select('time>0','events.recalled==True')
+        or
         data.select(time=data['time']>0,events=data['events'].recalled==True)
+        or 
+        data.select('time>kwargs['t']','events.recalled==kwargs['val']',t=0,val=True)
         """
         # get starting indicies
         ind = [dim.allind for dim in self.dims]
-
-        # put the kwargs that are not in the named dimensions into the
-        # workspace.  that way we can use them in the filtering
-#         for key in kwargs.keys():
-#             if key not in self.dims.names:
-#                 exec(key + ' = kwargs["'+key+'"]')
 
         # process the args
         for arg in args:
@@ -715,6 +720,21 @@ class DimData(object):
         
         # make the new DimData
         return DimData(newdat,newdims)
+
+    def extend(self,other,dim):
+        """
+        Method to concatenate two DimData instances over a given dimension.
+        """
+        # set the new dat
+        newdat = N.concatenate((self.data,other.data),axis=dim)
+
+        # set the new dims
+        newdims = [dim for dim in self.dims]
+        newdims[dim] = newdims[dim].extend(other.dims[dim])
+
+        # return the new data
+        return DimData(newdat,newdims)
+
 
 class EegTimeSeries(DimData):
     """
