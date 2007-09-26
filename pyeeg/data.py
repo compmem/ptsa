@@ -115,9 +115,9 @@ class RawBinaryEEG(DataWrapper):
         """
         # set event durations from rate
         # XXX figure out if we need fix or round XXX
-        duration = int(N.fix((DurationMS+(2*BufferMS))*self.samplerate/1000.))
-        offset = int(N.fix((OffsetMS-BufferMS)*self.samplerate/1000.))
-        buffer = int(N.fix((BufferMS)*self.samplerate/1000.))
+        buffer = int(N.ceil(BufferMS*self.samplerate/1000.))
+        duration = int(N.ceil(DurationMS*self.samplerate/1000.)) + 2*buffer
+        offset = int(N.ceil(OffsetMS*self.samplerate/1000.)) + buffer
 
         # determine the file
 	eegfname = '%s.%03i' % (self.dataroot,channel)
@@ -740,7 +740,7 @@ class EegTimeSeries(DimData):
     """
     Class to hold EEG timeseries data.
     """
-    def __init__(self,data,dims,samplerate,tdim=-1):
+    def __init__(self,data,dims,samplerate,tdim=-1,bufferMS=None,buffer=None):
         """
         """
         # call the base class init
