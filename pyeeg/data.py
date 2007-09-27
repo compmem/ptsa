@@ -115,9 +115,24 @@ class RawBinaryEEG(DataWrapper):
         """
         # set event durations from rate
         # XXX figure out if we need fix or round XXX
-        buffer = int(N.ceil(BufferMS*self.samplerate/1000.))
-        duration = int(N.ceil(DurationMS*self.samplerate/1000.)) + 2*buffer
-        offset = int(N.ceil(OffsetMS*self.samplerate/1000.)) + buffer
+        # get the samplesize in ms
+        samplesize = 1000./self.samplerate
+        # get the number of buffer samples
+        buffer = int(N.ceil(BufferMS/samplesize))
+        # calculate the offset samples that contains the desired offsetMS
+        offset = int(N.ceil((N.abs(OffsetMS)-samplesize*.5)/samplesize)*N.sign(OffsetMS))
+
+        # finally get the duration necessary to cover the desired span
+        duration = int(N.ceil((DurationMS+OffsetMS - samplesize*.5)/samplesize)) - offset + 1
+        
+        # add in the buffer
+        duration += 2*buffer
+        offset -= buffer
+
+#         # calculate the duration samples that contain the desired ending point
+#         buffer = int(N.ceil(BufferMS*self.samplerate/1000.))
+#         duration = int(N.ceil(DurationMS*self.samplerate/1000.)) + 2*buffer
+#         offset = int(N.ceil(OffsetMS*self.samplerate/1000.)) + buffer
 
         # determine the file
 	eegfname = '%s.%03i' % (self.dataroot,channel)
@@ -157,8 +172,16 @@ class RawBinaryEEG(DataWrapper):
 	    # append it to the events
 	    eventdata.append(data)
 
+        # calc the time range in MS
+        sampStart = offset*samplesize
+        sampEnd = sampStart + (duration-1)*samplesize
+        timeRange = N.linspace(sampStart,sampEnd,duration)
+
 	# make it a timeseries
+        dims = [Dim('eventOffsets', eventOffsets, 'samples'),
+                Dim('time',timeRange,'ms')]
         eventdata = EegTimeSeries(N.array(eventdata),
+                                  dims,
                                   self.samplerate,
                                   tdim=-1,
                                   offset=offset,
