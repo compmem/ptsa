@@ -93,7 +93,7 @@ class RawBinaryEEG(DataWrapper):
         return params
         
 
-    def getDataMS(self,channel,eventOffsets,DurationMS,OffsetMS,BufferMS,
+    def getDataMS(self,channel,eventInfo,DurationMS,OffsetMS,BufferMS,
                   resampledRate=None,filtFreq=None,filtType='stop',filtOrder=4,keepBuffer=False):
         """
         Return an dictionary containing data for the specified channel
@@ -148,6 +148,9 @@ class RawBinaryEEG(DataWrapper):
                 
 	# loop over events
 	eventdata = []
+        # get the eventOffsets
+        if isinstance(eventInfo,Events):
+            eventOffsets = eventInfo['eegoffset']
 	eventOffsets = N.asarray(eventOffsets)
 	if len(eventOffsets.shape)==0:
 	    eventOffsets = [eventOffsets]
@@ -177,8 +180,12 @@ class RawBinaryEEG(DataWrapper):
         timeRange = N.linspace(sampStart,sampEnd,duration)
 
 	# make it a timeseries
-        dims = [Dim('eventOffsets', eventOffsets, 'samples'),
-                Dim('time',timeRange,'ms')]
+        if isinstance(eventInfo,Events):
+            dims = [Dim('event', eventInfo, 'event'),
+                    Dim('time',timeRange,'ms')]
+        else:
+            dims = [Dim('eventOffsets', eventOffsets, 'samples'),
+                    Dim('time',timeRange,'ms')]
         eventdata = EegTimeSeries(N.array(eventdata),
                                   dims,
                                   self.samplerate,
@@ -319,31 +326,6 @@ class DataArray(N.recarray):
         # return the new recarray
         return self.__class__(N.rec.fromarrays(arrays,names=names))
 
-
-
-# class EventRecord(N.record):
-#     """Class to allow for accessing EEG data from a single record."""
-#     def getDataMS(self,channel,DurationMS,OffsetMS,BufferMS,resampledRate=None,filtFreq=None,filtType='stop',filtOrder=4,keepBuffer=False):
-# 	"""
-#         Return the requested range of data for each event by using the
-#         proper data retrieval mechanism for each event.
-
-#         The result will be a dictionary with an EEG array of
-#         dimensions (events,time) for the data and also some
-#         information about the data returned.  """
-# 	# get the data
-# 	newdat = self['eegsrc'].getDataMS(channel,
-# 					  self['eegoffset'],
-# 					  DurationMS,
-# 					  OffsetMS,
-# 					  BufferMS,
-# 					  resampledRate,
-# 					  filtFreq,
-# 					  filtType,
-# 					  filtOrder,
-# 					  keepBuffer)
-# 	return newdat
-
 	
 class Events(DataArray):
     """Class to hold EEG events.  The record fields must include both
@@ -358,7 +340,7 @@ for each event."""
         dimensions (events,time) for the data and also some
         information about the data returned.  """
 	# get ready to load dat
-	eventdata = []
+	eventdata = None
         
         if len(self.shape)==0:
 	    events = [self]
@@ -373,10 +355,11 @@ for each event."""
             # get the eventOffsets from that source
             ind = events['eegsrc']==src
             evOffsets = events['eegoffset'][ind]
+            srcEvents = events[ind]
                                       
             # get the timeseries for those events
             newdat = src.getDataMS(channel,
-                                   evOffsets,
+                                   srcEvents,
                                    DurationMS,
                                    OffsetMS,
                                    BufferMS,
@@ -387,7 +370,12 @@ for each event."""
                                    keepBuffer)
 
             # see if concatenate
-
+            if eventdata is None:
+                # start the new eventdata
+                eventdata = newdat
+            else:
+                # append it to the existing
+                eventdata.extend(newdat,0)
 
 	# loop over events
 	for evNo,ev in enumerate(events):
@@ -880,172 +868,3 @@ class EegTimeSeries(DimData):
         # set the new shape
         self.shape = self.data.shape
 
-
-        
-class EegTimeSeries_old(object):
-    """
-    Holds timeseries data.  
-
-    Keeps track of time dimension, samplerate, buffer, offset, duration, time.
-    """
-    def __init__(self,data,samplerate,tdim=-1,offsetMS=None,offset=None,bufferMS=None,buffer=None):
-        """
-        """
-        # set the initial values
-        self.data = data
-        self.samplerate = samplerate
-        self.dtype = data.dtype
-        self.shape = data.shape
-        self.ndim = len(data.shape)
-        
-        # get the time dimension
-        if tdim >= 0:
-            # use it
-            self.tdim = tdim
-        else:
-            # turn it into a positive dim
-            self.tdim = tdim + self.ndim
-
-        # set the durations
-        # set the offset (for events)
-        if not offset is None:
-            # set offsetMS from offset
-            self.offset = offset
-            self.offsetMS = float(offset)*1000./self.samplerate
-        elif not offsetMS is None:
-            # set the offset from the MS
-            self.offsetMS = offsetMS
-            self.offset = int(N.round(float(offsetMS)*self.samplerate/1000.))
-        else:
-            # default to no offset
-            self.offset = 0
-            self.offsetMS = 0
-                
-        # set the buffer
-        if not buffer is None:
-            # set bufferMS from buffer
-            self.buffer = buffer
-            self.bufferMS = float(buffer)*1000./self.samplerate
-        elif not bufferMS is None:
-            # set the buffer from the MS
-            self.bufferMS = bufferMS
-            self.buffer = int(N.round(float(bufferMS)*self.samplerate/1000.))
-        else:
-            # default to no buffer
-            self.buffer = 0
-            self.bufferMS = 0
-
-        # set the duration (does not include the buffer)
-        self.durationMS = (self.shape[self.tdim]-2*self.buffer)*1000./self.samplerate
-
-        # set the time range
-        self.trangeMS = N.linspace(self.offsetMS-self.bufferMS,
-                                   self.offsetMS+self.durationMS+self.bufferMS,
-                                   self.shape[self.tdim])
-
-            
-    def __getitem__(self, item):
-        """
-        :Parameters:
-            item : ``slice``
-                The slice of the data to take.
-        
-        :Returns: ``numpy.ndarray``
-        """
-        return self.data[item]
-        
-    def __setitem__(self, item, value):
-        """
-        :Parameters:
-            item : ``slice``
-                The slice of the data to write to
-            value : A single value or array of type ``self.dtype``
-                The value to be set.
-        
-        :Returns: ``None``
-        """
-        self.data[item] = value
-
-    def removeBuffer(self):
-	"""Use the information contained in the time series to remove the
-	buffer reset the time range.  If buffer is 0, no action is
-	performed."""
-	# see if remove the anything
-	if self.buffer>0:
-            # remove the buffer
-            self.data = self.data.take(range(self.buffer,
-                                             self.shape[self.tdim]-self.buffer),self.tdim)
-
-            # reset buffer to indicate it was removed
-	    self.buffer = 0
-            self.bufferMS = 0
-
-            # reset the shape
-            self.shape = self.data.shape
-
-	    # set the time range with no buffer
-	    self.trangeMS = N.linspace(self.offsetMS-self.bufferMS,
-                                       self.offsetMS+self.durationMS+self.bufferMS,
-                                       self.shape[self.tdim])
-
-
-
-    def filter(self,freqRange,filtType='stop',order=4):
-        """
-        Filter the data using a Butterworth filter.
-        """
-        self.data = filter.buttfilt(self.data,freqRange,self.samplerate,filtType,
-                                    order,axis=self.tdim)
-
-    def resample(self,resampledRate,window=None):
-        """
-        Resample the data and reset all the time ranges.  Uses the
-        resample function from scipy.  This method seems to be more
-        accurate than the decimate method.
-        """
-        # resample the data
-        newLength = N.fix(self.data.shape[self.tdim]*resampledRate/float(self.samplerate))
-        self.data = resample(self.data,newLength,axis=self.tdim,window=window)
-
-        # set the new offset and buffer lengths
-        self.buffer = int(N.round(float(self.buffer)*resampledRate/float(self.samplerate)))
-        self.offset = int(N.round(float(self.offset)*resampledRate/float(self.samplerate)))
-
-        # set the new samplerate
-        self.samplerate = resampledRate
-
-        # set the new shape
-        self.shape = self.data.shape
-
-        # set the time range with no buffer
-        self.trangeMS = N.linspace(self.offsetMS-self.bufferMS,
-                                   self.offsetMS+self.durationMS+self.bufferMS,
-                                   self.shape[self.tdim])
-
-
-    def decimate(self,resampledRate, order=None, ftype='iir'):
-        """
-        Decimate the data and reset the time ranges.
-        """
-
-        # set the downfact
-        downfact = int(N.round(float(self.samplerate)/resampledRate))
-
-        # do the decimation
-        self.data = filter.decimate(self.data,downfact, n=order, ftype=ftype, axis=self.tdim)
-
-        # set the new offset and buffer lengths
-        self.buffer = int(N.round(float(self.buffer)*resampledRate/float(self.samplerate)))
-        self.offset = int(N.round(float(self.offset)*resampledRate/float(self.samplerate)))
-
-        # set the new samplerate
-        self.samplerate = resampledRate
-
-        # set the new shape
-        self.shape = self.data.shape
-
-        # set the time range with no buffer
-        self.trangeMS = N.linspace(self.offsetMS-self.bufferMS,
-                                   self.offsetMS+self.durationMS+self.bufferMS,
-                                   self.shape[self.tdim])
-                 
