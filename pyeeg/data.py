@@ -114,7 +114,6 @@ class RawBinaryEEG(DataWrapper):
         
         """
         # set event durations from rate
-        # XXX figure out if we need fix or round XXX
         # get the samplesize in ms
         samplesize = 1000./self.samplerate
         # get the number of buffer samples
@@ -184,11 +183,7 @@ class RawBinaryEEG(DataWrapper):
                                   dims,
                                   self.samplerate,
                                   tdim=-1,
-                                  offset=offset,
                                   buffer=buffer)
-
-	# turn the data into an EEGArray
-        #eventdata = InfoArray(eventdata,info={'samplerate':self.samplerate})
 
 	# filter if desired
 	if not filtFreq is None:
@@ -604,6 +599,18 @@ class Dims(object):
         # return the index into the list
         return self.dims[item]
 
+    def __setitem__(self, item, value):
+        """
+        :Parameters:
+            item : ``slice``
+                The slice of the data to write to
+            value : A single value or array of type ``self.dtype``
+                The value to be set.
+        
+        :Returns: ``None``
+        """
+        self.dims[item] = value
+
     def __iter__(self):
         return self.dims.__iter__()
 
@@ -763,7 +770,7 @@ class EegTimeSeries(DimData):
     """
     Class to hold EEG timeseries data.
     """
-    def __init__(self,data,dims,samplerate,tdim=-1,bufferMS=None,buffer=None):
+    def __init__(self,data,dims,samplerate,tdim=-1,buffer=None):
         """
         """
         # call the base class init
@@ -780,8 +787,96 @@ class EegTimeSeries(DimData):
             # turn it into a positive dim
             self.tdim = tdim + self.ndim
         
-        # set the offset and buffer information
-        
+        # set the buffer information
+        self.buffer = buffer
+
+    def removeBuffer(self):
+	"""Use the information contained in the time series to remove the
+	buffer reset the time range.  If buffer is 0, no action is
+	performed."""
+	# see if remove the anything
+	if self.buffer>0:
+            # remove the buffer from the data
+            self.data = self.data.take(range(self.buffer,
+                                             self.shape[self.tdim]-self.buffer),self.tdim)
+
+            # remove the buffer from the tdim
+            self.dims[self.tdim] = self.dims[self.tdim][self.buffer:self.shape[self.tdim]-self.buffer]
+
+            # reset buffer to indicate it was removed
+	    self.buffer = 0
+
+            # reset the shape
+            self.shape = self.data.shape
+
+    def filter(self,freqRange,filtType='stop',order=4):
+        """
+        Filter the data using a Butterworth filter.
+        """
+        self.data = filter.buttfilt(self.data,freqRange,self.samplerate,filtType,
+                                    order,axis=self.tdim)
+
+    def resample(self,resampledRate,window=None):
+        """
+        Resample the data and reset all the time ranges.  Uses the
+        resample function from scipy.  This method seems to be more
+        accurate than the decimate method.
+        """
+        # resample the data
+        timeRange = self.dims[self.tdim].data
+        newLength = int(N.round(self.data.shape[self.tdim]*resampledRate/float(self.samplerate)))
+        self.data,newTimeRange = resample(self.data,newLength,t=timeRange,axis=self.tdim,window=window)
+
+#         # resample the tdim
+#         # calc the time range in MS
+#         timeRange = self.dims[self.tdim].data
+#         samplesize = N.abs(timeRange[0]-timeRange[1])
+#         newsamplesize = samplesize*self.samplerate/resampledRate
+#         adjustment = (newsamplesize - samplesize)/2.
+#         sampStart = timeRange[0] + adjustment
+#         sampEnd = timeRange[-1] - adjustment
+#         newTimeRange = N.linspace(sampStart,sampEnd,newLength)
+
+        # set the time dimension
+        self.dims[self.tdim].data = newTimeRange
+
+        # set the new offset and buffer lengths
+        self.buffer = int(N.round(float(self.buffer)*resampledRate/float(self.samplerate)))
+
+        # set the new samplerate
+        self.samplerate = resampledRate
+
+        # set the new shape
+        self.shape = self.data.shape
+
+
+    def decimate(self,resampledRate, order=None, ftype='iir'):
+        """
+        Decimate the data and reset the time ranges.
+        """
+
+        # set the downfact
+        downfact = int(N.round(float(self.samplerate)/resampledRate))
+
+        # do the decimation
+        self.data = filter.decimate(self.data,downfact, n=order, ftype=ftype, axis=self.tdim)
+
+        # set the new offset and buffer lengths
+        self.buffer = int(N.round(float(self.buffer)*resampledRate/float(self.samplerate)))
+        self.offset = int(N.round(float(self.offset)*resampledRate/float(self.samplerate)))
+
+        # set the new samplerate
+        self.samplerate = resampledRate
+
+        # set the new shape
+        self.shape = self.data.shape
+
+        # set the time range with no buffer
+        self.trangeMS = N.linspace(self.offsetMS-self.bufferMS,
+                                   self.offsetMS+self.durationMS+self.bufferMS,
+                                   self.shape[self.tdim])
+                 
+
         
 class EegTimeSeries_old(object):
     """
