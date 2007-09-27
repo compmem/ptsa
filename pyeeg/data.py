@@ -377,37 +377,39 @@ for each event."""
                 # append it to the existing
                 eventdata.extend(newdat,0)
 
-	# loop over events
-	for evNo,ev in enumerate(events):
-	    # get the eeg
-	    newdat = ev['eegsrc'].getDataMS(channel,
-					    ev['eegoffset'],
-					    DurationMS,
-					    OffsetMS,
-					    BufferMS,
-					    resampledRate,
-					    filtFreq,
-					    filtType,
-					    filtOrder,
-					    keepBuffer)
+        return eventdata
 
-	    # allocate if necessary
-	    if len(eventdata) == 0:
-		# make ndarray with events by time
-		eventdata = N.empty((len(events),newdat['data'].shape[1]),
-				    dtype=newdat['data'].dtype)
+# 	# loop over events
+# 	for evNo,ev in enumerate(events):
+# 	    # get the eeg
+# 	    newdat = ev['eegsrc'].getDataMS(channel,
+# 					    ev['eegoffset'],
+# 					    DurationMS,
+# 					    OffsetMS,
+# 					    BufferMS,
+# 					    resampledRate,
+# 					    filtFreq,
+# 					    filtType,
+# 					    filtOrder,
+# 					    keepBuffer)
 
-	    # fill up the eventdata
-	    eventdata[evNo,:] = newdat['data'][0,:]
+# 	    # allocate if necessary
+# 	    if len(eventdata) == 0:
+# 		# make ndarray with events by time
+# 		eventdata = N.empty((len(events),newdat['data'].shape[1]),
+# 				    dtype=newdat['data'].dtype)
 
-	# set the newdat to hold all the data
-	newdat['data'] = eventdata
+# 	    # fill up the eventdata
+# 	    eventdata[evNo,:] = newdat['data'][0,:]
 
-	# force uniform samplerate, so if no resampledRate is
-	# provided, fix to samplerate of first event.
+# 	# set the newdat to hold all the data
+# 	newdat['data'] = eventdata
 
-	# return (events, time) ndarray with samplerate
-	return newdat
+# 	# force uniform samplerate, so if no resampledRate is
+# 	# provided, fix to samplerate of first event.
+
+# 	# return (events, time) ndarray with samplerate
+# 	return newdat
 
 #     # we need to make sure and return an our custom class if it's a
 #     # single record, this will ensure we can still call our custom
