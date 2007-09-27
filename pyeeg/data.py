@@ -510,7 +510,6 @@ class Dim(object):
         self.name = name
         self.data = N.asarray(data)
         self.units = units
-        self.allind = N.ones(self.data.shape,N.bool)
 
     def copy(self):
         return Dim(self.name,self.data.copy(),self.units)
@@ -584,6 +583,9 @@ class Dims(object):
     def index(self,name):
         return self.names.index(name)
 
+    def copy(self):
+        return Dims([dim.copy() for dim in self.dims])
+
     def __getitem__(self, item):
         """
         :Parameters:
@@ -640,11 +642,7 @@ class DimData(object):
         """
         Data with defined dimensions.
         """
-        # make sure the num dims match the shape of the data
-        if len(data.shape) != len(dims):
-            # raise error
-            raise ValueError, "The length of dims must match the length of the data shape."
-
+        # set the data and dims
         self.data = data
         if isinstance(dims,Dims):
             self.dims = dims
@@ -652,14 +650,31 @@ class DimData(object):
             # turn the list into a Dims class
             self.dims = Dims(dims)
 
+        # make sure the num dims match the shape of the data
+        if len(data.shape) != len(self.dims.dims):
+            # raise error
+            raise ValueError, "The length of dims must match the length of the data shape."
+
         # set the unit
         self.unit = unit
 
-        # describe the data
-        self.dtype = data.dtype
-        self.shape = data.shape
-        self.ndim = len(data.shape)
+        self._reset_data_stats()
 
+    def _reset_data_stats(self):
+        """
+        """
+        # describe the data
+        self.dtype = self.data.dtype
+        self.shape = self.data.shape
+        self.ndim = len(self.shape)
+
+    def copy(self):
+        """
+        """
+        newdata = self.data.copy()
+        newdims = self.dims.copy()
+        return DimData(newdata,newdims,self.unit)
+        
     def dim(self,name):
         """
         Return the numerical index (axis) of the named dimension.
@@ -708,7 +723,7 @@ class DimData(object):
         data.select('time>kwargs['t']','events.recalled==kwargs['val']',t=0,val=True)
         """
         # get starting indicies
-        ind = [dim.allind for dim in self.dims]
+        ind = [N.ones(dim.data.shape,N.bool) for dim in self.dims]
 
         # process the args
         for arg in args:
@@ -749,7 +764,11 @@ class DimData(object):
         newdims = [dim[ind[d]] for dim,d in zip(self.dims,range(len(ind)))]
         
         # make the new DimData
-        return DimData(newdat,newdims)
+        newDimData = self.copy()
+        newDimData.data = newdat
+        newDimData.dims = newdims
+        newDimData._reset_data_stats()
+        return newDimData
 
     def extend(self,other,dim):
         """
@@ -762,19 +781,23 @@ class DimData(object):
         newdims = [dim for dim in self.dims]
         newdims[dim] = newdims[dim].extend(other.dims[dim])
 
-        # return the new data
-        return DimData(newdat,newdims)
+        # make the new DimData
+        newDimData = self.copy()
+        newDimData.data = newdat
+        newDimData.dims = newdims
+        newDimData._reset_data_stats()
+        return newDimData
 
 
 class EegTimeSeries(DimData):
     """
     Class to hold EEG timeseries data.
     """
-    def __init__(self,data,dims,samplerate,tdim=-1,buffer=None):
+    def __init__(self,data,dims,samplerate,unit=None,tdim=-1,buffer=None):
         """
         """
         # call the base class init
-        DimData.__init__(self,data,dims)
+        DimData.__init__(self,data,dims,unit)
         
         # set the timeseries-specific information
         self.samplerate = samplerate
@@ -789,6 +812,14 @@ class EegTimeSeries(DimData):
         
         # set the buffer information
         self.buffer = buffer
+
+    def copy(self):
+        """
+        """
+        newdata = self.data.copy()
+        newdims = self.dims.copy()
+        return EegTimeSeries(newdata,newdims,self.samplerate,
+                             unit=self.unit,tdim=self.tdim,buffer=self.buffer)
 
     def removeBuffer(self):
 	"""Use the information contained in the time series to remove the
@@ -822,7 +853,7 @@ class EegTimeSeries(DimData):
         resample function from scipy.  This method seems to be more
         accurate than the decimate method.
         """
-        # resample the data
+        # resample the data, getting new time range
         timeRange = self.dims[self.tdim].data
         newLength = int(N.round(self.data.shape[self.tdim]*resampledRate/float(self.samplerate)))
         self.data,newTimeRange = resample(self.data,newLength,t=timeRange,axis=self.tdim,window=window)
@@ -840,7 +871,7 @@ class EegTimeSeries(DimData):
         # set the time dimension
         self.dims[self.tdim].data = newTimeRange
 
-        # set the new offset and buffer lengths
+        # set the new buffer lengths
         self.buffer = int(N.round(float(self.buffer)*resampledRate/float(self.samplerate)))
 
         # set the new samplerate
@@ -849,33 +880,6 @@ class EegTimeSeries(DimData):
         # set the new shape
         self.shape = self.data.shape
 
-
-    def decimate(self,resampledRate, order=None, ftype='iir'):
-        """
-        Decimate the data and reset the time ranges.
-        """
-
-        # set the downfact
-        downfact = int(N.round(float(self.samplerate)/resampledRate))
-
-        # do the decimation
-        self.data = filter.decimate(self.data,downfact, n=order, ftype=ftype, axis=self.tdim)
-
-        # set the new offset and buffer lengths
-        self.buffer = int(N.round(float(self.buffer)*resampledRate/float(self.samplerate)))
-        self.offset = int(N.round(float(self.offset)*resampledRate/float(self.samplerate)))
-
-        # set the new samplerate
-        self.samplerate = resampledRate
-
-        # set the new shape
-        self.shape = self.data.shape
-
-        # set the time range with no buffer
-        self.trangeMS = N.linspace(self.offsetMS-self.bufferMS,
-                                   self.offsetMS+self.durationMS+self.bufferMS,
-                                   self.shape[self.tdim])
-                 
 
         
 class EegTimeSeries_old(object):
