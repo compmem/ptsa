@@ -567,7 +567,15 @@ class Dims(object):
     def __init__(self,dims):
         """
         """
+        # save the names list and a regexp for it
         self.names = [dim.name for dim in dims]
+        regexpNames = '\\b'+'\\b|\\b'.join(self.names)+'\\b'
+        self.namesRE = re.compile(regexpNames)
+
+        regexpNameOnly = '(?<!.)\\b' + '\\b(?!.)|(?<!.)\\b'.join(self.names) + '\\b(?!.)'
+        self.nameOnlyRE = re.compile(regexpNameOnly)
+
+        # set the dims
         self.dims = dims
 
     def index(self,name):
@@ -680,8 +688,14 @@ class DimData(object):
         :Returns: ``numpy.ndarray``
         """
         if isinstance(item,str):
-            # call select
-            return self.select(item)
+            # see if it's just a single dimension name
+            res = self.dims.nameOnlyRE.search(item)
+            if res:
+                # we have a single name, so return the data from it
+                return self.dims[res.group()].data
+            else:
+                # call select
+                return self.select(item)
         if isinstance(item,tuple):
             # call select
             return self.select(*item)
@@ -756,7 +770,7 @@ class DimData(object):
         # make the new DimData
         newDimData = self.copy()
         newDimData.data = newdat
-        newDimData.dims = newdims
+        newDimData.dims = Dims(newdims)
         newDimData._reset_data_stats()
         return newDimData
 
@@ -774,7 +788,7 @@ class DimData(object):
         # make the new DimData
         newDimData = self.copy()
         newDimData.data = newdat
-        newDimData.dims = newdims
+        newDimData.dims = Dims(newdims)
         newDimData._reset_data_stats()
         return newDimData
 
