@@ -768,7 +768,7 @@ class DimData(object):
         newdat = N.concatenate((self.data,other.data),axis=dim)
 
         # set the new dims
-        newdims = [dim for dim in self.dims]
+        newdims = self.dims.copy()
         newdims[dim] = newdims[dim].extend(other.dims[dim])
 
         # make the new DimData
