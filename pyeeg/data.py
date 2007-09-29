@@ -768,6 +768,8 @@ class DimData(object):
         newdims = [dim[ind[d]] for dim,d in zip(self.dims,range(len(ind)))]
         
         # make the new DimData
+        # by doing this as a copy it makes sure that we return the
+        # child class as opposed to the parent
         newDimData = self.copy()
         newDimData.data = newdat
         newDimData.dims = Dims(newdims)
@@ -776,7 +778,7 @@ class DimData(object):
 
     def extend(self,other,dim):
         """
-        Method to concatenate two DimData instances over a given dimension.
+        Concatenate two data instances by extending over a given dimension.
         """
         # set the new dat
         newdat = N.concatenate((self.data,other.data),axis=dim)
@@ -797,7 +799,7 @@ class EegTimeSeries(DimData):
     """
     Class to hold EEG timeseries data.
     """
-    def __init__(self,data,dims,samplerate,unit=None,tdim=-1,buffer=None):
+    def __init__(self,data,dims,samplerate,unit=None,tdim=-1,buffer=0):
         """
         """
         # call the base class init

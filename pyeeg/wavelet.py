@@ -4,7 +4,7 @@ import sys
 
 from filter import decimate
 from helper import reshapeTo2D,reshapeFrom2D
-from data import DataDict
+from data import EegTimeSeries
 
 def morlet(freq,t,width):
     """ Generate a Morlet wavelet for specified frequncy for times t.
@@ -230,7 +230,8 @@ def tfPhasePow(freqs,dat,axis=-1,width=5,downsample=None,keepBuffer=False,
     if not phaseOnly:
 	res['power'] = powerAll
 	   
-    res = DataDict(res)
+    #res = DataDict(res) 
+    # XXX Replace with EegTimeSeries XXX
 
     # see if remove the buffer
     if not keepBuffer:
