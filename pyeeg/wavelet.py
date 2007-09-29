@@ -107,10 +107,27 @@ def phasePow2d(freq,dat,samplerate,width):
 
     return phase,power
 
+def calcPhasePow(freqs,tseries,width=5,downsample=None,keepBuffer=False,
+                 verbose=False,phaseOnly=False,powOnly=False):
+    """
+    Calculate phase and/or power on an EegTimeSeries, returning new
+    EegTimeSeries instances.
+    """
+    # first get the phase and power as desired
+    res = tfPhasePow(freqs,tseries.data,axis=tseries.tdim,width=width,
+                     verbose=verbose,phaseOnly=phaseOnly,powOnly=powOnly)
+    
+    # turn them into timeseries
+    if powOnly:
+        powerAll = res
+    elif phaseOnly:
+        phaseAll = res
+    else:
+        phaseAll,powerAll = res
 
+    
 
-def tfPhasePow(freqs,dat,axis=-1,width=5,downsample=None,keepBuffer=False,
-	       verbose=False,phaseOnly=False,powOnly=False):
+def tfPhasePow(freqs,dat,axis=-1,width=5,verbose=False,phaseOnly=False,powOnly=False):
     """Calculate phase and power over time with a Morlet wavelet.
 
     You can optionally pass in downsample, which is the samplerate to
@@ -121,8 +138,8 @@ def tfPhasePow(freqs,dat,axis=-1,width=5,downsample=None,keepBuffer=False,
     decimation have edge effects."""
     
     # reshape the data to 2D with time on the 2nd dimension
-    origshape = dat.data.shape
-    eegdat = reshapeTo2D(dat.data,axis)
+    origshape = dat
+    eegdat = reshapeTo2D(dat,axis)
 
     # allocate
     phaseAll = []
@@ -165,83 +182,91 @@ def tfPhasePow(freqs,dat,axis=-1,width=5,downsample=None,keepBuffer=False,
     if verbose:
 	sys.stdout.write('\n')
 
-    # convert negative axis to positive axis
-    rnk = len(origshape)
+    if powOnly:
+        return powerAll
+    elif phaseOnly:
+        return phaseAll
+    else:
+        return phaseAll,powerAll
+
+
+#     # convert negative axis to positive axis
+#     rnk = len(origshape)
     
-    # set time axis, used for decimation
-    taxis = axis
-    if taxis < 0: 
-	taxis = taxis + rnk
+#     # set time axis, used for decimation
+#     taxis = axis
+#     if taxis < 0: 
+# 	taxis = taxis + rnk
 	
-    # add one b/c of new freq dim at beginning
-    taxis = taxis + 1
+#     # add one b/c of new freq dim at beginning
+#     taxis = taxis + 1
 
-    # see if decimate
-    samplerate = dat.samplerate
-    timeRange = dat.time
-    buffer = dat.bufLen
-    if not downsample is None and downsample != samplerate:
-	if verbose:
-	    sys.stdout.write('Decimating...')
-	    sys.stdout.flush()
-        # set the decimation ratio
-        dmate = int(N.round(samplerate/downsample))
+#     # see if decimate
+#     samplerate = dat.samplerate
+#     timeRange = dat.time
+#     buffer = dat.bufLen
+#     if not downsample is None and downsample != samplerate:
+# 	if verbose:
+# 	    sys.stdout.write('Decimating...')
+# 	    sys.stdout.flush()
+#         # set the decimation ratio
+#         dmate = int(N.round(samplerate/downsample))
 
-	if not phaseOnly:
-	    # must log transform powerAll before decimating
-	    powerAll[powerAll<=0] = N.finfo(powerAll.dtype).eps
-	    powerAll = N.log10(powerAll)
-	    powerAll = decimate(powerAll,dmate,axis=taxis);
-	    powerAll = N.power(10,powerAll)
+# 	if not phaseOnly:
+# 	    # must log transform powerAll before decimating
+# 	    powerAll[powerAll<=0] = N.finfo(powerAll.dtype).eps
+# 	    powerAll = N.log10(powerAll)
+# 	    powerAll = decimate(powerAll,dmate,axis=taxis);
+# 	    powerAll = N.power(10,powerAll)
 
-	if not powOnly:
-	    # decimate the unwraped phase, then wrap it back
-	    phaseAll = N.mod(decimate(N.unwrap(phaseAll),dmate)+N.pi,2*N.pi)-N.pi;
+# 	if not powOnly:
+# 	    # decimate the unwraped phase, then wrap it back
+# 	    phaseAll = N.mod(decimate(N.unwrap(phaseAll),dmate)+N.pi,2*N.pi)-N.pi;
 
-	# redo the time and reset the samplerate
-	samplerate = downsample
-	if dat.bufLen > 0:
-	    # redo using the buffer
-	    timeRange = N.linspace(dat.OffsetMS-dat.BufferMS,
-				   dat.OffsetMS+dat.DurationMS+dat.BufferMS,
-				   phaseAll.shape[taxis])
-	    # reset the buffer
-	    buffer = int(N.fix((dat.BufferMS)*samplerate/1000.))
-	else:
-	    # redo with no buffer
-	    timeRange = N.linspace(dat.OffsetMS,
-				   dat.OffsetMS+dat.DurationMS,
-				   phaseAll.shape[taxis])
-	if verbose:
-	    sys.stdout.write('Done!\n')
-	    sys.stdout.flush()
+# 	# redo the time and reset the samplerate
+# 	samplerate = downsample
+# 	if dat.bufLen > 0:
+# 	    # redo using the buffer
+# 	    timeRange = N.linspace(dat.OffsetMS-dat.BufferMS,
+# 				   dat.OffsetMS+dat.DurationMS+dat.BufferMS,
+# 				   phaseAll.shape[taxis])
+# 	    # reset the buffer
+# 	    buffer = int(N.fix((dat.BufferMS)*samplerate/1000.))
+# 	else:
+# 	    # redo with no buffer
+# 	    timeRange = N.linspace(dat.OffsetMS,
+# 				   dat.OffsetMS+dat.DurationMS,
+# 				   phaseAll.shape[taxis])
+# 	if verbose:
+# 	    sys.stdout.write('Done!\n')
+# 	    sys.stdout.flush()
 
-    # make dictinary of results
-    res = {'freqs': freqs,
-	   'width': width,
-	   'samplerate': samplerate,
-	   'time': timeRange,
-	   'OffsetMS': dat.OffsetMS,
-	   'DurationMS': dat.DurationMS,
-	   'BufferMS': dat.BufferMS,
-	   'bufLen': buffer}
-    if not powOnly:
-	res['phase'] = phaseAll
-    if not phaseOnly:
-	res['power'] = powerAll
+#     # make dictinary of results
+#     res = {'freqs': freqs,
+# 	   'width': width,
+# 	   'samplerate': samplerate,
+# 	   'time': timeRange,
+# 	   'OffsetMS': dat.OffsetMS,
+# 	   'DurationMS': dat.DurationMS,
+# 	   'BufferMS': dat.BufferMS,
+# 	   'bufLen': buffer}
+#     if not powOnly:
+# 	res['phase'] = phaseAll
+#     if not phaseOnly:
+# 	res['power'] = powerAll
 	   
-    #res = DataDict(res) 
-    # XXX Replace with EegTimeSeries XXX
+#     #res = DataDict(res) 
+#     # XXX Replace with EegTimeSeries XXX
 
-    # see if remove the buffer
-    if not keepBuffer:
-	toRemove = []
-	if not powOnly:
-	    toRemove.append('phase')
-	if not phaseOnly:
-	    toRemove.append('power')
-	res.removeBuffer(toRemove,axis=taxis)
+#     # see if remove the buffer
+#     if not keepBuffer:
+# 	toRemove = []
+# 	if not powOnly:
+# 	    toRemove.append('phase')
+# 	if not phaseOnly:
+# 	    toRemove.append('power')
+# 	res.removeBuffer(toRemove,axis=taxis)
     
-    # return the results
-    return res
+#     # return the results
+#     return res
 
