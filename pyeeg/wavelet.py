@@ -119,12 +119,25 @@ def calcPhasePow(freqs,tseries,width=5,downsample=None,keepBuffer=False,
     
     # turn them into timeseries
     if powOnly:
+        # get the power matrix
         powerAll = res
+        
+        # turn into a timeseries
+        
     elif phaseOnly:
+        # get the phase matrix
         phaseAll = res
     else:
+        # get the phase and power matrixes
         phaseAll,powerAll = res
 
+    # see if downsample
+    if not downsample is None:
+
+        pass
+
+    # see if remove buffer
+        
     
 
 def tfPhasePow(freqs,dat,axis=-1,width=5,verbose=False,phaseOnly=False,powOnly=False):
