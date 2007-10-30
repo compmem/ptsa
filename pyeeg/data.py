@@ -507,6 +507,8 @@ class Dim(object):
     def extend(self,other):
         if type(self) != type(other):
             raise "Can only concatenate the same type of data."
+        if self.units != other.units:
+            raise "Can only concatenate data with the same units."
 
         return Dim(self.name,N.concatenate((self.data,other.data),axis=0),self.units)
     

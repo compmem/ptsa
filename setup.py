@@ -6,7 +6,7 @@ import os
 import sys
 
 # get the version loaded as vstr
-execfile('src/versionString.py')
+execfile('pyeeg/versionString.py')
 
 # # set up the data files
 # site_packages_dir = os.path.join(get_config_var('BINLIBDEST'), 'site-packages')
