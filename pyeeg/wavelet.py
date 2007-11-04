@@ -4,7 +4,7 @@ import sys
 
 from filter import decimate
 from helper import reshapeTo2D,reshapeFrom2D
-from data import EegTimeSeries
+from data import EegTimeSeries,Dim,Dims
 
 def morlet(freq,t,width):
     """ Generate a Morlet wavelet for specified frequncy for times t.
@@ -107,29 +107,34 @@ def phasePow2d(freq,dat,samplerate,width):
 
     return phase,power
 
-def calcPhasePow(freqs,tseries,width=5,downsample=None,keepBuffer=False,
-                 verbose=False,phaseOnly=False,powOnly=False):
+def tsPhasePow(freqs,tseries,width=5,downsample=None,keepBuffer=False,
+               verbose=False,phaseOnly=False,powOnly=False):
     """
     Calculate phase and/or power on an EegTimeSeries, returning new
     EegTimeSeries instances.
     """
     # first get the phase and power as desired
-    res = tfPhasePow(freqs,tseries.data,axis=tseries.tdim,width=width,
-                     verbose=verbose,phaseOnly=phaseOnly,powOnly=powOnly)
-    
+    res = calcPhasePow(freqs,tseries.data,axis=tseries.tdim,width=width,
+                       verbose=verbose,phaseOnly=phaseOnly,powOnly=powOnly)
+
+    # handle the dims
+    tsdims = tseries.dims.copy()
+
+    # add in frequency dimension
+    freqDim = Dim('freq',freqs,'Hz')
+
     # turn them into timeseries
-    if powOnly:
-        # get the power matrix
-        powerAll = res
-        
+    if not phaseOnly:
         # turn into a timeseries
-        
-    elif phaseOnly:
+        powerAll = EegTimeSeries(res,newDims,
+                                 tseries.samplerate,unit='XXX get pow unit',
+                                 tdim=-1,buffer=tseries.buffer):
+    if not powOnly:
         # get the phase matrix
-        phaseAll = res
-    else:
-        # get the phase and power matrixes
-        phaseAll,powerAll = res
+        phaseAll = EegTimeSeries(res,newDims,
+                                 tseries.samplerate,unit='radians',
+                                 tdim=-1,buffer=tseries.buffer):
+    
 
     # see if downsample
     if not downsample is None:
@@ -140,7 +145,7 @@ def calcPhasePow(freqs,tseries,width=5,downsample=None,keepBuffer=False,
         
     
 
-def tfPhasePow(freqs,dat,axis=-1,width=5,verbose=False,phaseOnly=False,powOnly=False):
+def calcPhasePow(freqs,dat,axis=-1,width=5,verbose=False,phaseOnly=False,powOnly=False):
     """Calculate phase and power over time with a Morlet wavelet.
 
     You can optionally pass in downsample, which is the samplerate to

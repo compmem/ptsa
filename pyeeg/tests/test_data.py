@@ -2,7 +2,8 @@ import numpy as N
 import re
 from numpy.testing import NumpyTest, NumpyTestCase
 
-from pyeeg import Dim,Dims,DimData,EegTimeSeries,filter
+from pyeeg.data import Dim,Dims,DimData,EegTimeSeries
+from pyeeg import filter
 
 # from numpy.testing import NumpyTest, NumpyTestCase
 
