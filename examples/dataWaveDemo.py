@@ -5,8 +5,8 @@ import numpy as N
 import pylab
 import pdb
 
-import data
-import wavelet
+from pyeeg.data.events import createEventsFromMatFile
+from pyeeg import wavelet
 
 
 def testcase():
@@ -14,7 +14,7 @@ def testcase():
 
     # load events
     print "Loading events..."
-    ev = data.createEventsFromMatFile('/home1/per/eeg/free/CH012/events/events.mat')
+    ev = createEventsFromMatFile('/home1/per/eeg/free/CH012/events/events.mat')
     
     # split out two conditions (recalled and not recalled)
     rInd = ev.filterIndex('recalled==1')

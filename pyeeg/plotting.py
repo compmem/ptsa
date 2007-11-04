@@ -1,6 +1,9 @@
 import pylab as PL
 from helper import pol2cart, cart2pol, deg2rad
-from griddata import griddata
+try:
+    from griddata import griddata
+except:
+    print "griddata not installed.  No topoplots will be available."
 
 def topoplot(splot=None,headCenter=(0,0),noseDir=0.,noseDirRadians=False,headRad=0.5,plotHead=True,elecs=None,elecsRadians=False,elecsCol='black',valsToPlot=None,headCol='black',headLineWidth=3,noseLineWidth=2,earLineWidth=2,contCols='black',contWidth=0.5,numConts=15,contStyle='-',gridRes=400,colmap=None,axisProp='off',plotMask='linear'):
     """Plot a topographic map of the scalp in a 2-D circular view (looking down at the top of the head).

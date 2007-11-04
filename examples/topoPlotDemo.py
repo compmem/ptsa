@@ -1,5 +1,5 @@
 from pylab import load, rand, figure, xlim, ylim, show
-from plotting import topoplot
+from pyeeg.plotting import topoplot
 
 def getElecs():
     # read in testLocs.dat that was generated in Matlab as follows:
