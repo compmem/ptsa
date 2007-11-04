@@ -86,19 +86,25 @@ class Dims(object):
     def __init__(self,dims):
         """
         """
+        # set the dims
+        self.dims = dims
+
+    def _set_regexp(self):
         # save the names list and a regexp for it
-        self.names = [dim.name for dim in dims]
+        self.names = [dim.name for dim in self.dims]
         regexpNames = '\\b'+'\\b|\\b'.join(self.names)+'\\b'
         self.namesRE = re.compile(regexpNames)
 
         regexpNameOnly = '(?<!.)\\b' + '\\b(?!.)|(?<!.)\\b'.join(self.names) + '\\b(?!.)'
         self._nameOnlyRE = re.compile(regexpNameOnly)
 
-        # set the dims
-        self.dims = dims
-
     def index(self,name):
         return self.names.index(name)
+
+    def insert(self,index,dim):
+        """Insert a new Dim before index."""
+        self.dims.insert(index,dim)
+        self._set_regexp():
 
     def copy(self):
         return Dims([dim.copy() for dim in self.dims])

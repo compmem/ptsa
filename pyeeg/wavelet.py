@@ -122,7 +122,8 @@ def tsPhasePow(freqs,tseries,width=5,downsample=None,keepBuffer=False,
 
     # add in frequency dimension
     freqDim = Dim('freq',freqs,'Hz')
-
+    tsdims.insert(0,freqDim)
+    
     # turn them into timeseries
     if not phaseOnly:
         # turn into a timeseries
