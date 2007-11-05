@@ -50,8 +50,6 @@ def testcase():
                               filtFreq=filtFreq,
                               keepBuffer=True)
 
-    pdb.set_trace()
-    
     # recalled events
     rRes = wavelet.tsPhasePow(freqs,
 			      rEEG,
@@ -68,13 +66,11 @@ def testcase():
     print "Generating plots..."
     fig = 0
 
-    pdb.set_trace()
-
     # power spectrum
     fig+=1
     pylab.figure(fig)
-    pylab.plot(rRes['freqs'],N.squeeze(N.mean(rPow,1)),'r')
-    pylab.plot(nRes['freqs'],N.squeeze(N.mean(nPow,1)),'b')
+    pylab.plot(rRes['freq'],N.squeeze(N.mean(rPow,1)),'r')
+    pylab.plot(nRes['freq'],N.squeeze(N.mean(nPow,1)),'b')
     pylab.legend(('Recalled','Not Recalled'))
     pylab.xlabel('Frequency (Hz)')
     pylab.ylabel(r'Power ($log_{10}(mV^2)$)')
@@ -82,7 +78,7 @@ def testcase():
     # plot the diff in mean power
     fig+=1
     pylab.figure(fig)
-    pylab.contourf(rRes['time'],rRes['freqs'],rPow-nPow)
+    pylab.contourf(rRes['time'],rRes['freq'],rPow-nPow)
     pylab.colorbar()
     pylab.xlabel('Time (ms)')
     pylab.ylabel('Frequency (Hz)')

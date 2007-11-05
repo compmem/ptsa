@@ -6,6 +6,8 @@ from filter import decimate
 from helper import reshapeTo2D,reshapeFrom2D
 from data import EegTimeSeries,Dim,Dims
 
+import pdb
+
 def morlet(freq,t,width):
     """ Generate a Morlet wavelet for specified frequncy for times t.
 
@@ -204,7 +206,7 @@ def calcPhasePow(freqs,dat,samplerate,axis=-1,width=5,verbose=False,phaseOnly=Fa
 	    power = reshapeFrom2D(power,axis,origshape)
 
 	# see if allocate
-	if len(phaseAll) == 0:
+	if len(phaseAll) == 0 and len(powerAll) == 0:
 	    if not powOnly:
 		phaseAll = N.empty(N.concatenate(([len(freqs)],phase.shape)),
 				   dtype=phase.dtype)
