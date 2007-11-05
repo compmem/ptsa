@@ -3,6 +3,7 @@ from dimdata import DimData
 from pyeeg import filter
 
 from scipy.signal import resample
+import numpy as N
 
 class EegTimeSeries(DimData):
     """
