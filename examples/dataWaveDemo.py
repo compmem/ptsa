@@ -34,26 +34,32 @@ def testcase():
     bufferMS = 1000
     resampledRate = 200
     filtFreq = [58.0,62.0]
+
+    rEEG = ev[rInd].getDataMS(chan,
+                              durationMS,
+                              offsetMS,
+                              bufferMS,
+                              resampledRate,
+                              filtFreq=filtFreq,
+                              keepBuffer=True)
+    nEEG = ev[nInd].getDataMS(chan,
+                              durationMS,
+                              offsetMS,
+                              bufferMS,
+                              resampledRate,
+                              filtFreq=filtFreq,
+                              keepBuffer=True)
+
+    pdb.set_trace()
+    
     # recalled events
     rRes = wavelet.tsPhasePow(freqs,
-			      ev[rInd].getDataMS(chan,
-						 durationMS,
-						 offsetMS,
-						 bufferMS,
-						 resampledRate,
-						 filtFreq=filtFreq,
-						 keepBuffer=True),
-						 verbose=True,powOnly=True)
+			      rEEG,
+                              verbose=True,powOnly=True)
     # not recalled events
     nRes = wavelet.tsPhasePow(freqs,
-			      ev[nInd].getDataMS(chan,
-						 durationMS,
-						 offsetMS,
-						 bufferMS,
-						 resampledRate,
-						 filtFreq=filtFreq,
-						 keepBuffer=True),
-						 verbose=True,powOnly=True)
+			      nEEG,
+                              verbose=True,powOnly=True)
     
     # get mean power across events (axis=1)
     rPow = N.squeeze(N.mean(N.log10(rRes.data),1))
