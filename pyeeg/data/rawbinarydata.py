@@ -1,7 +1,7 @@
 
 # local imports
 from datawrapper import DataWrapper
-from events import Events
+from events import Events,DataArray
 from dimdata import Dim,Dims
 from eegtimeseries import EegTimeSeries
 
@@ -10,6 +10,7 @@ import numpy as N
 import string
 import struct
 import os
+from scipy.io import loadmat
 
 class RawBinaryEEG(DataWrapper):
     """
@@ -194,3 +195,66 @@ class RawBinaryEEG(DataWrapper):
 	eventdata.data = eventdata.data*self.gain
 	
         return eventdata
+
+
+def createEventsFromMatFile(matfile):
+    """Create an events data array from an events structure saved in a
+    Matlab mat file."""
+    # load the mat file
+    mat = loadmat(matfile)
+
+    if 'events' not in mat.keys():
+        raise "\nError processing the Matlab file: %s\nThis file must contain an events structure with the name \"events\" (case sensitive)!\n(All other content of the file is ignored.)" % matfile 
+    
+    # get num events
+    numEvents = len(mat['events'])
+
+    # determine the fieldnames and formats
+    fields = mat['events'][0]._fieldnames
+    
+    # create list with array for each field
+    data = []
+    hasEEGInfo = False
+    for f,field in enumerate(fields):
+	# handle special cases
+	if field == 'eegfile':
+	    # we have eeg info
+	    hasEEGInfo = True
+
+	    # get unique files
+	    eegfiles = N.unique(map(lambda x: str(x.eegfile),mat['events']))
+	    
+	    # make dictionary of data wrapers for the eeg files
+	    efile_dict = {}
+	    for eegfile in eegfiles:
+		efile_dict[eegfile] = RawBinaryEEG(eegfile)
+
+	    # Handle when the eegfile field is blank
+	    efile_dict[''] = None
+	
+	    # set the eegfile to the correct data wrapper
+	    newdat = N.array(map(lambda x: efile_dict[str(x.__getattribute__(field))],
+				 mat['events']))
+			
+	    # change field name to eegsrc
+	    fields[f] = 'eegsrc'
+	else:
+	    # get the data in normal fashion
+	    newdat = N.array(map(lambda x: x.__getattribute__(field),mat['events']))
+
+	# append the data
+	data.append(newdat)
+
+    # allocate for new array
+    newrec = N.rec.fromarrays(data,names=fields)
+
+    # see if process into DataArray or Events
+    if hasEEGInfo:
+	#newrec = Events(newrec)
+	newrec = newrec.view(Events)
+    else:
+	#newrec = DataArray(newrec)
+	newrec = newrec.view(DataArray)
+    return newrec
+
+

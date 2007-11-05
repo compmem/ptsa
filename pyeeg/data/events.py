@@ -2,21 +2,16 @@
 # global imports
 import numpy as N
 
-from scipy.io import loadmat
-from scipy.signal import resample
-
 import string
 import re
 import sys
 
-from rawbinarydata import RawBinaryEeg
-
 #import pdb
 
 # Define exceptions:
-class DataException(Exception): pass
-class EventsMatFileError(DataException): pass
-class FilterStringError(DataException): pass
+# class DataException(Exception): pass
+# class EventsMatFileError(DataException): pass
+# class FilterStringError(DataException): pass
 
 # data array subclass of recarray
 class DataArray(N.recarray):
@@ -42,7 +37,7 @@ class DataArray(N.recarray):
             try:
                 ind = eval(filterStr)
             except:
-                raise FilterStringError, str(sys.exc_info()[0])+"\n"+str(sys.exc_info()[1])+"\nThe filter string is not a valid Python expression!\nExample string:\n\'(var1==0) & (var2<=0)\'"
+                raise str(sys.exc_info()[0])+"\n"+str(sys.exc_info()[1])+"\nThe filter string is not a valid Python expression!\nExample string:\n\'(var1==0) & (var2<=0)\'"
         else:
             # must iterate over each one to get indices
             for k in self.dtype.names:
@@ -54,7 +49,7 @@ class DataArray(N.recarray):
             try:
                 ind = eval(filterStr)
             except:
-                raise FilterStringError, str(sys.exc_info()[0])+"\n"+str(sys.exc_info()[1])+"\nThe filter string is not a valid Python expression!\nExample string:\n\'(var1==0) & (var2<=0)\'"
+                raise str(sys.exc_info()[0])+"\n"+str(sys.exc_info()[1])+"\nThe filter string is not a valid Python expression!\nExample string:\n\'(var1==0) & (var2<=0)\'"
 
         # return the ind as an array
         return N.asarray(ind)
@@ -230,65 +225,4 @@ for each event."""
 #         return obj
 
 	
-def createEventsFromMatFile(matfile):
-    """Create an events data array from an events structure saved in a
-    Matlab mat file."""
-    # load the mat file
-    mat = loadmat(matfile)
-
-    if 'events' not in mat.keys():
-        raise EventsMatFileError, "\nError processing the Matlab file: %s\nThis file must contain an events structure with the name \"events\" (case sensitive)!\n(All other content of the file is ignored.)" % matfile 
-    
-    # get num events
-    numEvents = len(mat['events'])
-
-    # determine the fieldnames and formats
-    fields = mat['events'][0]._fieldnames
-    
-    # create list with array for each field
-    data = []
-    hasEEGInfo = False
-    for f,field in enumerate(fields):
-	# handle special cases
-	if field == 'eegfile':
-	    # we have eeg info
-	    hasEEGInfo = True
-
-	    # get unique files
-	    eegfiles = N.unique(map(lambda x: str(x.eegfile),mat['events']))
-	    
-	    # make dictionary of data wrapers for the eeg files
-	    efile_dict = {}
-	    for eegfile in eegfiles:
-		efile_dict[eegfile] = RawBinaryEEG(eegfile)
-
-	    # Handle when the eegfile field is blank
-	    efile_dict[''] = None
-	
-	    # set the eegfile to the correct data wrapper
-	    newdat = N.array(map(lambda x: efile_dict[str(x.__getattribute__(field))],
-				 mat['events']))
-			
-	    # change field name to eegsrc
-	    fields[f] = 'eegsrc'
-	else:
-	    # get the data in normal fashion
-	    newdat = N.array(map(lambda x: x.__getattribute__(field),mat['events']))
-
-	# append the data
-	data.append(newdat)
-
-    # allocate for new array
-    newrec = N.rec.fromarrays(data,names=fields)
-
-    # see if process into DataArray or Events
-    if hasEEGInfo:
-	#newrec = Events(newrec)
-	newrec = newrec.view(Events)
-    else:
-	#newrec = DataArray(newrec)
-	newrec = newrec.view(DataArray)
-    return newrec
-
-
 
