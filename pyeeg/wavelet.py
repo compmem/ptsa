@@ -176,7 +176,7 @@ def calcPhasePow(freqs,dat,samplerate,axis=-1,width=5,verbose=False,phaseOnly=Fa
     decimation have edge effects."""
     
     # reshape the data to 2D with time on the 2nd dimension
-    origshape = dat
+    origshape = dat.shape
     eegdat = reshapeTo2D(dat,axis)
 
     # allocate
