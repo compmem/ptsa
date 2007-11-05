@@ -104,7 +104,7 @@ class Dims(object):
     def insert(self,index,dim):
         """Insert a new Dim before index."""
         self.dims.insert(index,dim)
-        self._set_regexp():
+        self._set_regexp()
 
     def copy(self):
         return Dims([dim.copy() for dim in self.dims])

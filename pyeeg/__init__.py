@@ -3,11 +3,11 @@ PyEEG - The Python EEG toolbox.
 """
 
 
-from data import DataArray,DataWrapper,Events,RawBinaryEEG,createEventsFromMatFile
-from data.dimdata import Dim,Dims,DimData,EegTimeSeries
+#from data import DataWrapper,Events,RawBinaryEEG,createEventsFromMatFile
+from data import Dim,Dims,DimData,EegTimeSeries
 from filter import buttfilt, filtfilt
 from plotting import topoplot
-from wavelet import tfPhasePow,phasePow1d,phasePow2d
+from wavelet import tsPhasePow,phasePow1d,phasePow2d
 from version import versionAtLeast,versionWithin
 
 #__all__ = [data,filter,plotting,wavelet]

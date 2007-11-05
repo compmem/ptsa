@@ -133,7 +133,7 @@ def tsPhasePow(freqs,tseries,width=5,resample=None,keepBuffer=False,
         # see if resample
         if resample:
             # must take log before the resample
-            powerAll.data[powerAll.data<=0] = N.finfo.powerAll.data.dtype).eps
+            powerAll.data[powerAll.data<=0] = N.finfo(powerAll.data.dtype).eps
             powerAll.data = N.log10(powerAll.data)
             powerAll.resample(resample)
             powerAll.data = N.power(10,powerAll.data)

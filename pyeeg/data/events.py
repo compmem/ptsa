@@ -9,6 +9,8 @@ import string
 import re
 import sys
 
+from rawbinarydata import RawBinaryEeg
+
 #import pdb
 
 # Define exceptions:
