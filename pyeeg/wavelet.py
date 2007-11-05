@@ -114,7 +114,7 @@ def tsPhasePow(freqs,tseries,width=5,resample=None,keepBuffer=False,
     EegTimeSeries instances.
     """
     # first get the phase and power as desired
-    res = calcPhasePow(freqs,tseries.data,axis=tseries.tdim,width=width,
+    res = calcPhasePow(freqs,tseries.data,tseries.samplerate,axis=tseries.tdim,width=width,
                        verbose=verbose,phaseOnly=phaseOnly,powOnly=powOnly)
 
     # handle the dims
@@ -165,7 +165,7 @@ def tsPhasePow(freqs,tseries,width=5,resample=None,keepBuffer=False,
         
     
 
-def calcPhasePow(freqs,dat,axis=-1,width=5,verbose=False,phaseOnly=False,powOnly=False):
+def calcPhasePow(freqs,dat,samplerate,axis=-1,width=5,verbose=False,phaseOnly=False,powOnly=False):
     """Calculate phase and power over time with a Morlet wavelet.
 
     You can optionally pass in downsample, which is the samplerate to
@@ -195,7 +195,7 @@ def calcPhasePow(freqs,dat,axis=-1,width=5,verbose=False,phaseOnly=False,powOnly
 	    sys.stdout.write('%g ' % (freq))
 	    sys.stdout.flush()
 	# get the phase and power for that freq
-	phase,power = phasePow2d(freq,eegdat,dat.samplerate,width)
+	phase,power = phasePow2d(freq,eegdat,samplerate,width)
         
         # reshape back do original data shape
 	if not powOnly:
