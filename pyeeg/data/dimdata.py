@@ -89,6 +89,9 @@ class Dims(object):
         # set the dims
         self.dims = dims
 
+        # setup the regexp
+        self._set_regexp()
+
     def _set_regexp(self):
         # save the names list and a regexp for it
         self.names = [dim.name for dim in self.dims]
