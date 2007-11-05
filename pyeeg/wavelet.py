@@ -107,7 +107,7 @@ def phasePow2d(freq,dat,samplerate,width):
 
     return phase,power
 
-def tsPhasePow(freqs,tseries,width=5,downsample=None,keepBuffer=False,
+def tsPhasePow(freqs,tseries,width=5,resample=None,keepBuffer=False,
                verbose=False,phaseOnly=False,powOnly=False):
     """
     Calculate phase and/or power on an EegTimeSeries, returning new
@@ -127,22 +127,41 @@ def tsPhasePow(freqs,tseries,width=5,downsample=None,keepBuffer=False,
     # turn them into timeseries
     if not phaseOnly:
         # turn into a timeseries
-        powerAll = EegTimeSeries(res,newDims,
+        powerAll = EegTimeSeries(res,tsdims,
                                  tseries.samplerate,unit='XXX get pow unit',
-                                 tdim=-1,buffer=tseries.buffer):
+                                 tdim=-1,buffer=tseries.buffer)
+        # see if resample
+        if resample:
+            # must take log before the resample
+            powerAll.data[powerAll.data<=0] = N.finfo.powerAll.data.dtype).eps
+            powerAll.data = N.log10(powerAll.data)
+            powerAll.resample(resample)
+            powerAll.data = N.power(10,powerAll.data)
+        # see if remove buffer
+        if not keepBuffer:
+            powerAll.removeBuffer()
+
     if not powOnly:
         # get the phase matrix
-        phaseAll = EegTimeSeries(res,newDims,
+        phaseAll = EegTimeSeries(res,tsdims,
                                  tseries.samplerate,unit='radians',
-                                 tdim=-1,buffer=tseries.buffer):
-    
+                                 tdim=-1,buffer=tseries.buffer)
+        if resample:
+            # must unwrap before resampling
+            phaseAll.data = N.unwrap(phaseAll.data)
+            phaseAll.resample(resample)
+            phaseAll.data = N.mod(phaseAll.data+N.pi,2*N.pi)-N.pi;            
+        # see if remove buffer
+        if not keepBuffer:
+            phaseAll.removeBuffer()
 
-    # see if downsample
-    if not downsample is None:
-
-        pass
-
-    # see if remove buffer
+    # see what to return
+    if powOnly:
+        return powerAll
+    elif phaseOnly:
+        return phaseAll
+    else:
+        return phaseAll,powerAll
         
     
 

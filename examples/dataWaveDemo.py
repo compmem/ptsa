@@ -35,7 +35,7 @@ def testcase():
     resampledRate = 200
     filtFreq = [58.0,62.0]
     # recalled events
-    rRes = wavelet.tfPhasePow(freqs,
+    rRes = wavelet.tsPhasePow(freqs,
 			      ev[rInd].getDataMS(chan,
 						 durationMS,
 						 offsetMS,
@@ -45,7 +45,7 @@ def testcase():
 						 keepBuffer=True),
 						 verbose=True)
     # not recalled events
-    nRes = wavelet.tfPhasePow(freqs,
+    nRes = wavelet.tsPhasePow(freqs,
 			      ev[nInd].getDataMS(chan,
 						 durationMS,
 						 offsetMS,
