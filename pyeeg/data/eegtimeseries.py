@@ -1,6 +1,8 @@
 
 from dimdata import DimData
+from pyeeg import filter
 
+from scipy.signal import resample
 
 class EegTimeSeries(DimData):
     """
