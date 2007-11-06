@@ -66,6 +66,15 @@ def testcase():
     print "Generating plots..."
     fig = 0
 
+    # erp
+    fig+=1
+    pylab.figure(fig)
+    pylab.plot(rEEG['time'],rEEG.mean(axis=rEEG.dim('event')),'r')
+    pylab.plot(nEEG['time'],nEEG.mean(axis=nEEG.dim('event')),'b')
+    pylab.legend(('Recalled','Not Recalled'))
+    pylab.xlabel('Time (ms)')
+    pylab.ylabel('Voltage (mV)')
+
     # power spectrum
     fig+=1
     pylab.figure(fig)
