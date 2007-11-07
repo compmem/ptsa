@@ -27,7 +27,8 @@ class Dim(object):
         if self.units != other.units:
             raise "Can only concatenate data with the same units."
 
-        return Dim(self.name,N.concatenate((self.data,other.data),axis=0),self.units)
+        self.data = N.concatenate((self.data,other.data),axis=0)
+        #return Dim(self.name,N.concatenate((self.data,other.data),axis=0),self.units)
     
     def __str__(self):
         outstr = '%s: %s .. %s %s' % (self.name,
@@ -309,16 +310,18 @@ class DimData(object):
         Concatenate two data instances by extending over a given dimension.
         """
         # set the new dat
-        newdat = N.concatenate((self.data,other.data),axis=dim)
+        self.data = N.concatenate((self.data,other.data),axis=dim)
 
         # set the new dims
-        newdims = self.dims.copy()
-        newdims[dim] = newdims[dim].extend(other.dims[dim])
+        self.dims[dim].extend(other.dims[dim])
+        
+        #newdims = self.dims.copy()
+        #newdims[dim] = newdims[dim].extend(other.dims[dim])
 
-        # make the new DimData
-        newDimData = self.copy()
-        newDimData.data = newdat
-        newDimData.dims = Dims(newdims)
-        newDimData._reset_data_stats()
-        return newDimData
+#         # make the new DimData
+#         newDimData = self.copy()
+#         newDimData.data = newdat
+#         newDimData.dims = Dims(newdims)
+#         newDimData._reset_data_stats()
+#         return newDimData
 

@@ -177,7 +177,7 @@ for each event."""
                 eventdata = newdat
             else:
                 # append it to the existing
-                eventdata = eventdata.extend(newdat,0)
+                eventdata.extend(newdat,0)
 
         return eventdata
 
