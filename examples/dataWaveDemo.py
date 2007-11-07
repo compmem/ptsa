@@ -78,8 +78,8 @@ pylab.ylabel('Voltage (mV)')
 # power spectrum
 fig+=1
 pylab.figure(fig)
-pylab.plot(rRes['freq'],N.squeeze(N.mean(rPow,rPow.dim('event'))),'r')
-pylab.plot(nRes['freq'],N.squeeze(N.mean(nPow,nPow.dim('event'))),'b')
+pylab.plot(rRes['freq'],N.squeeze(N.mean(rPow,1)),'r')
+pylab.plot(nRes['freq'],N.squeeze(N.mean(nPow,1)),'b')
 pylab.legend(('Recalled','Not Recalled'))
 pylab.xlabel('Frequency (Hz)')
 pylab.ylabel(r'Power ($log_{10}(mV^2)$)')

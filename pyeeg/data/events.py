@@ -157,7 +157,7 @@ for each event."""
             evOffsets = events['eegoffset'][ind]
             srcEvents = events[ind]
 
-            print "Loading %d events from %s" % (ind.sum(),src)
+            #print "Loading %d events from %s" % (ind.sum(),src)
                                       
             # get the timeseries for those events
             newdat = src.getDataMS(channel,
@@ -177,7 +177,7 @@ for each event."""
                 eventdata = newdat
             else:
                 # append it to the existing
-                eventdata.extend(newdat,0)
+                eventdata = eventdata.extend(newdat,0)
 
         return eventdata
 
