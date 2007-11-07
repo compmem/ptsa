@@ -1,11 +1,11 @@
 
 % load events
 fprintf('Loading events...');
-ev = loadEvents('/home1/per/eeg/free/CH012/events/events.mat')
+ev = loadEvents('/home1/per/eeg/free/CH012/events/events.mat');
 
 % split out two conditions (recalled and not recalled)
-rInd = filterStruct(ev,'recalled==1');
-nInd = filterStruct(ev,'recalled==0');
+rInd = inStruct(ev,'recalled==1');
+nInd = inStruct(ev,'recalled==0');
 
 % get power for the events for a range of freqs
 
@@ -26,19 +26,19 @@ nEEG = gete_ms(chan,ev(nInd),durationMS,offsetMS,bufferMS,filtFreq,'stop',4,resa
 % power for recalled events
 rRes = getphasepow(chan,ev(rInd),durationMS,offsetMS,bufferMS,'freqs',freqs,...
                         'width',5,'filtfreq',filtFreq,'filttype','stop','filtorder',4,...
-                        'resampledrate',resampledRate,'powonly',1);
+                        'resampledrate',resampledRate,'powonly');
 nRes = getphasepow(chan,ev(nInd),durationMS,offsetMS,bufferMS,'freqs',freqs,...
                         'width',5,'filtfreq',filtFreq,'filttype','stop','filtorder',4,...
-                        'resampledrate',resampledRate,'powonly',1);
+                        'resampledrate',resampledRate,'powonly');
 
 % get mean power across events (axis=1)
 rPow = squeeze(mean(log10(rRes),1));
 nPow = squeeze(mean(log10(nRes),1));
 
 % times
-times = linspace(-500,2000,size(rEEG,3));
+times = linspace(-500,2000,size(rEEG,2));
 
-print 'Generating plots...'
+fprintf('Generating plots...')
 fig = 0;
 
 % erp
@@ -58,22 +58,22 @@ keyboard
 
 
 % power spectrum
-fig+=1
+fig=fig+1;
 figure(fig)
-plot(rRes['freq'],N.squeeze(N.mean(rPow,rPow.dim('event'))),'r')
-plot(nRes['freq'],N.squeeze(N.mean(nPow,nPow.dim('event'))),'b')
-legend(('Recalled','Not Recalled'))
+plot(freqs,N.squeeze(N.mean(rPow,rPow.dim('event'))),'r')
+plot(freqs,N.squeeze(N.mean(nPow,nPow.dim('event'))),'b')
+legend('Recalled','Not Recalled')
 xlabel('Frequency (Hz)')
-ylabel(r'Power ($log_{10}(mV^2)$)')
+ylabel('Power ($log_{10}(mV^2)$)')
 
 % plot the diff in mean power
-fig+=1
+fia=fig+1;
 figure(fig)
-contourf(rRes['time'],rRes['freq'],rPow-nPow)
+contourf(times,freqs,rPow-nPow)
 colorbar()
 xlabel('Time (ms)')
 ylabel('Frequency (Hz)')
-title('SME (diff in power) for channel %d' % (chan))
+%title('SME (diff in power) for channel %d' % (chan))
 
 
 
