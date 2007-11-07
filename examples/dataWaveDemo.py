@@ -9,95 +9,91 @@ from pyeeg.data.rawbinarydata import createEventsFromMatFile
 from pyeeg import wavelet
 
 
-def testcase():
-    # hypothetical test case
+# hypothetical test case
 
-    # load events
-    print "Loading events..."
-    ev = createEventsFromMatFile('/home1/per/eeg/free/CH012/events/events.mat')
-    
-    # split out two conditions (recalled and not recalled)
-    rInd = ev.filterIndex('recalled==1')
-    nInd = ev.filterIndex('recalled==0')
+# load events
+print "Loading events..."
+ev = createEventsFromMatFile('/home1/per/eeg/free/CH012/events/events.mat')
 
-    # do sample erp by getting raw eeg and doing an average for a
-    # single channel
+# split out two conditions (recalled and not recalled)
+rInd = ev.filterIndex('recalled==1')
+nInd = ev.filterIndex('recalled==0')
 
-    # get power for the events for a range of freqs
+# do sample erp by getting raw eeg and doing an average for a
+# single channel
 
-    # we leave the buffer on after getting the data, but pull it off
-    # in the call to tfPhasePow
-    freqs = range(2,81,2)
-    chan = 27
-    durationMS = 2500
-    offsetMS = -500
-    bufferMS = 1000
-    resampledRate = 200
-    filtFreq = [58.0,62.0]
+# get power for the events for a range of freqs
 
-    rEEG = ev[rInd].getDataMS(chan,
-                              durationMS,
-                              offsetMS,
-                              bufferMS,
-                              resampledRate,
-                              filtFreq=filtFreq,
-                              keepBuffer=True)
-    nEEG = ev[nInd].getDataMS(chan,
-                              durationMS,
-                              offsetMS,
-                              bufferMS,
-                              resampledRate,
-                              filtFreq=filtFreq,
-                              keepBuffer=True)
+# we leave the buffer on after getting the data, but pull it off
+# in the call to tsPhasePow
+freqs = range(2,81,2)
+chan = 27
+durationMS = 2500
+offsetMS = -500
+bufferMS = 1000
+resampledRate = 200
+filtFreq = [58.0,62.0]
 
-    # recalled events
-    rRes = wavelet.tsPhasePow(freqs,
-			      rEEG,
-                              verbose=True,powOnly=True)
-    # not recalled events
-    nRes = wavelet.tsPhasePow(freqs,
-			      nEEG,
-                              verbose=True,powOnly=True)
-    
-    # get mean power across events (axis=1)
-    rPow = N.squeeze(N.mean(N.log10(rRes.data),1))
-    nPow = N.squeeze(N.mean(N.log10(nRes.data),1))
+# load the eeg data
+rEEG = ev[rInd].getDataMS(chan,
+                          durationMS,
+                          offsetMS,
+                          bufferMS,
+                          resampledRate,
+                          filtFreq=filtFreq,
+                          keepBuffer=True)
+nEEG = ev[nInd].getDataMS(chan,
+                          durationMS,
+                          offsetMS,
+                          bufferMS,
+                          resampledRate,
+                          filtFreq=filtFreq,
+                          keepBuffer=True)
 
-    print "Generating plots..."
-    fig = 0
+# power for recalled events
+rRes = wavelet.tsPhasePow(freqs,
+                          rEEG,
+                          verbose=True,powOnly=True)
+# power for not recalled events
+nRes = wavelet.tsPhasePow(freqs,
+                          nEEG,
+                          verbose=True,powOnly=True)
 
-    # erp
-    fig+=1
-    pylab.figure(fig)
-    pylab.plot(rEEG['time'],rEEG.data.mean(axis=rEEG.dim('event')),'r')
-    pylab.plot(nEEG['time'],nEEG.data.mean(axis=nEEG.dim('event')),'b')
-    pylab.legend(('Recalled','Not Recalled'))
-    pylab.xlabel('Time (ms)')
-    pylab.ylabel('Voltage (mV)')
+# get mean power across events (axis=1)
+rPow = N.squeeze(N.mean(N.log10(rRes.data),rRes.dim('event')))
+nPow = N.squeeze(N.mean(N.log10(nRes.data),nRes.dim('event')))
 
-    # power spectrum
-    fig+=1
-    pylab.figure(fig)
-    pylab.plot(rRes['freq'],N.squeeze(N.mean(rPow,1)),'r')
-    pylab.plot(nRes['freq'],N.squeeze(N.mean(nPow,1)),'b')
-    pylab.legend(('Recalled','Not Recalled'))
-    pylab.xlabel('Frequency (Hz)')
-    pylab.ylabel(r'Power ($log_{10}(mV^2)$)')
+print "Generating plots..."
+fig = 0
 
-    # plot the diff in mean power
-    fig+=1
-    pylab.figure(fig)
-    pylab.contourf(rRes['time'],rRes['freq'],rPow-nPow)
-    pylab.colorbar()
-    pylab.xlabel('Time (ms)')
-    pylab.ylabel('Frequency (Hz)')
-    pylab.title('SME (diff in power) for channel %d' % (chan))
+# erp
+fig+=1
+pylab.figure(fig)
+pylab.plot(rEEG['time'],rEEG.data.mean(axis=rEEG.dim('event')),'r')
+pylab.plot(nEEG['time'],nEEG.data.mean(axis=nEEG.dim('event')),'b')
+pylab.legend(('Recalled','Not Recalled'))
+pylab.xlabel('Time (ms)')
+pylab.ylabel('Voltage (mV)')
 
-    # show the plots
-    pylab.show()
+# power spectrum
+fig+=1
+pylab.figure(fig)
+pylab.plot(rRes['freq'],N.squeeze(N.mean(rPow,rPow.dim('event'))),'r')
+pylab.plot(nRes['freq'],N.squeeze(N.mean(nPow,nPow.dim('event'))),'b')
+pylab.legend(('Recalled','Not Recalled'))
+pylab.xlabel('Frequency (Hz)')
+pylab.ylabel(r'Power ($log_{10}(mV^2)$)')
 
+# plot the diff in mean power
+fig+=1
+pylab.figure(fig)
+pylab.contourf(rRes['time'],rRes['freq'],rPow-nPow)
+pylab.colorbar()
+pylab.xlabel('Time (ms)')
+pylab.ylabel('Frequency (Hz)')
+pylab.title('SME (diff in power) for channel %d' % (chan))
 
+# show the plots
+pylab.show()
 
-# run the test case
-testcase()
 
