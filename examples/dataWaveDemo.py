@@ -69,8 +69,8 @@ def testcase():
     # erp
     fig+=1
     pylab.figure(fig)
-    pylab.plot(rEEG['time'],rEEG.mean(axis=rEEG.dim('event')),'r')
-    pylab.plot(nEEG['time'],nEEG.mean(axis=nEEG.dim('event')),'b')
+    pylab.plot(rEEG['time'],rEEG.data.mean(axis=rEEG.dim('event')),'r')
+    pylab.plot(nEEG['time'],nEEG.data.mean(axis=nEEG.dim('event')),'b')
     pylab.legend(('Recalled','Not Recalled'))
     pylab.xlabel('Time (ms)')
     pylab.ylabel('Voltage (mV)')
