@@ -13,7 +13,9 @@ from version import versionAtLeast,versionWithin
 #__all__ = [data,filter,plotting,wavelet]
 
 packages = ('pyeeg',
-            'pyeeg.tests')
+            'pyeeg.tests',
+            'pyeeg.data',
+            'pyeeg.data.tests')
 
 def _test(method, level, verbosity, flags):
     """
