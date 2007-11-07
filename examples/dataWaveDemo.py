@@ -16,6 +16,7 @@ print "Loading events..."
 ev = createEventsFromMatFile('/home1/per/eeg/free/CH012/events/events.mat')
 
 # split out two conditions (recalled and not recalled)
+print "Filtering events..."
 rInd = ev.filterIndex('recalled==1')
 nInd = ev.filterIndex('recalled==0')
 
@@ -35,6 +36,7 @@ resampledRate = 200
 filtFreq = [58.0,62.0]
 
 # load the eeg data
+print "Loading EEG data..."
 rEEG = ev[rInd].getDataMS(chan,
                           durationMS,
                           offsetMS,
@@ -51,6 +53,7 @@ nEEG = ev[nInd].getDataMS(chan,
                           keepBuffer=True)
 
 # power for recalled events
+print "Calculating power..."
 rRes = wavelet.tsPhasePow(freqs,
                           rEEG,
                           verbose=True,powOnly=True)
@@ -60,6 +63,7 @@ nRes = wavelet.tsPhasePow(freqs,
                           verbose=True,powOnly=True)
 
 # get mean power across events (axis=1)
+print "Taking mean power..."
 rPow = N.squeeze(N.mean(N.log10(rRes.data),rRes.dim('event')))
 nPow = N.squeeze(N.mean(N.log10(nRes.data),nRes.dim('event')))
 
