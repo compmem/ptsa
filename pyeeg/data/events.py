@@ -156,6 +156,8 @@ for each event."""
             ind = events['eegsrc']==src
             evOffsets = events['eegoffset'][ind]
             srcEvents = events[ind]
+
+            print "Loading %d events from %s" % (ind.sum(),src)
                                       
             # get the timeseries for those events
             newdat = src.getDataMS(channel,
