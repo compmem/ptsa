@@ -5,7 +5,6 @@ from numpy.testing import NumpyTest, NumpyTestCase
 from pyeeg.data import Dim,Dims,DimData
 from pyeeg import filter
 
-from testdata import TestData
 
 # from numpy.testing import NumpyTest, NumpyTestCase
 
@@ -23,6 +22,47 @@ from testdata import TestData
 
 # if __name__ == '__main__':
 #     NumpyTest.main()
+
+# I don't know why I can't just include this
+#from testdata import TestData
+
+class TestData():
+    def __init__(self):
+        # create 10 Hz sine waves at 200 and 50 Hz 4000ms long
+        numSecs = 4.
+        numPoints = int(numSecs*200.)
+        Hz = 10
+        d200_10 = N.sin(N.arange(numPoints,dtype=N.float)*2*N.pi*Hz*numSecs/numPoints)
+        Hz = 5
+        d200_5 = N.sin(N.arange(numPoints,dtype=N.float)*2*N.pi*Hz*numSecs/numPoints)
+        self.dat200 = N.array([d200_10,d200_5])
+        # calc the time range in MS
+        offset = -200
+        duration = numPoints
+        samplesize = 1000./200.
+        sampStart = offset*samplesize
+        sampEnd = sampStart + (duration-1)*samplesize
+        timeRange = N.linspace(sampStart,sampEnd,duration)
+        self.dims200 = [Dim('channel',N.arange(self.dat200.shape[0])),
+                        Dim('time',timeRange,'ms')]
+        
+        numSecs = 4.
+        numPoints = int(numSecs*50.)
+        Hz = 10
+        d50_10 = N.sin(N.arange(numPoints,dtype=N.float)*2*N.pi*Hz*numSecs/numPoints)
+        Hz = 5
+        d50_5 = N.sin(N.arange(numPoints,dtype=N.float)*2*N.pi*Hz*numSecs/numPoints)
+        self.dat50 = N.array([d50_10,d50_5])
+        # calc the time range in MS
+        offset = -50
+        duration = numPoints
+        samplesize = 1000./50.
+        sampStart = offset*samplesize
+        sampEnd = sampStart + (duration-1)*samplesize
+        timeRange = N.linspace(sampStart,sampEnd,duration)
+        self.dims50 = [Dim('channel',N.arange(self.dat50.shape[0])),
+                       Dim('time',timeRange,'ms')]
+ 
 
 
 # test Dim
@@ -175,14 +215,14 @@ class test_Dims(NumpyTestCase):
     def test_init(self):
         test1 = Dims(self.dims50)
         N.testing.assert_array_equal(test1.names, [dim.name for dim in self.dims50])
-        N.testing.assert_array_equal(test1.namesRE, re.compile('\\b'+'\\b|\\b'.join(test1.names)+'\\b'))
-        N.testing.assert_array_equal(test1.nameOnlyRE, re.compile('(?<!.)\\b' + '\\b(?!.)|(?<!.)\\b'.join(test1.names) + '\\b(?!.)'))
+        N.testing.assert_array_equal(test1._namesRE, re.compile('\\b'+'\\b|\\b'.join(test1.names)+'\\b'))
+        N.testing.assert_array_equal(test1._nameOnlyRE, re.compile('(?<!.)\\b' + '\\b(?!.)|(?<!.)\\b'.join(test1.names) + '\\b(?!.)'))
         N.testing.assert_array_equal(test1.dims,self.dims50)
         
         test2 = Dims(self.dims200)
         N.testing.assert_array_equal(test2.names, [dim.name for dim in self.dims50])
-        N.testing.assert_array_equal(test2.namesRE, re.compile('\\b'+'\\b|\\b'.join(test2.names)+'\\b'))
-        N.testing.assert_array_equal(test2.nameOnlyRE, re.compile('(?<!.)\\b' + '\\b(?!.)|(?<!.)\\b'.join(test2.names) + '\\b(?!.)'))
+        N.testing.assert_array_equal(test2._namesRE, re.compile('\\b'+'\\b|\\b'.join(test2.names)+'\\b'))
+        N.testing.assert_array_equal(test2._nameOnlyRE, re.compile('(?<!.)\\b' + '\\b(?!.)|(?<!.)\\b'.join(test2.names) + '\\b(?!.)'))
         N.testing.assert_array_equal(test2.dims,self.dims200)
 
     def test_index(self):
@@ -200,8 +240,8 @@ class test_Dims(NumpyTestCase):
             N.testing.assert_array_equal(dim.units,test2.dims[index].units)
         #N.testing.assert_array_equal([dim.units for dim in test1.dims],[dim.units for dim in test2.dims])
         N.testing.assert_array_equal(test1.names,test2.names)
-        N.testing.assert_array_equal(test1.namesRE,test2.namesRE)
-        N.testing.assert_array_equal(test1.nameOnlyRE,test2.nameOnlyRE)
+        N.testing.assert_array_equal(test1._namesRE,test2._namesRE)
+        N.testing.assert_array_equal(test1._nameOnlyRE,test2._nameOnlyRE)
         N.testing.assert_array_equal([test1.index(name) for name in test1.names],[test2.index(name) for name in test2.names])
         
 

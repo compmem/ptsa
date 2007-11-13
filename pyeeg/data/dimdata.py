@@ -97,7 +97,7 @@ class Dims(object):
         # save the names list and a regexp for it
         self.names = [dim.name for dim in self.dims]
         regexpNames = '\\b'+'\\b|\\b'.join(self.names)+'\\b'
-        self.namesRE = re.compile(regexpNames)
+        self._namesRE = re.compile(regexpNames)
 
         regexpNameOnly = '(?<!.)\\b' + '\\b(?!.)|(?<!.)\\b'.join(self.names) + '\\b(?!.)'
         self._nameOnlyRE = re.compile(regexpNameOnly)
