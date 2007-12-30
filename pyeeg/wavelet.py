@@ -334,11 +334,15 @@ def tsZtransPow(freqs,tseries,zTrans=True,width=5,resample=None,keepBuffer=False
 
     # Get the power (and optionally phase) for tseries:
     if toReturn == 'both':
-        phaseAll,powerAll = tsPhasePow(freqs,tseries,width,resample,keepBuffer,
-                                      verbose,toReturn,freqDimName)
+        phaseAll,powerAll = tsPhasePow(freqs=freqs,tseries=tseries,width=width,
+                                       resample=resample,keepBuffer=keepBuffer,
+                                       verbose=verbose,toReturn=toReturn,
+                                       freqDimName=freqDimName)
     else:
-        powerAll = tsPhasePow(freqs,tseries,width,resample,keepBuffer,verbose,
-                              toReturn,freqDimName)
+        powerAll = tsPhasePow(freqs=freqs,tseries=tseries,width=width,
+                              resample=resample,keepBuffer=keepBuffer,
+                              verbose=verbose,toReturn=toReturn,
+                              freqDimName=freqDimName)
 
     # Ensure power is positive and log10 transform:
     powerAll.data[powerAll.data<=0] = N.finfo(powerAll.data.dtype).eps
@@ -355,7 +359,8 @@ def tsZtransPow(freqs,tseries,zTrans=True,width=5,resample=None,keepBuffer=False
             raise ValueError("The ztrans tuple needs to conform to the\
             following format: (zmean,zstd). Where zmean and zstd are both\
             instances of DimData each with a single frequency dimension.\
-            The name of the dimension must be as specified in freqDimName.\
+            The name of the dimension must be as specified in freqDimName and\
+            the same frequency values as those in tseries must be used.\
             Invalid value: %s" % str(zTrans))
         elif zTrans[1].data.min() <= 0:
             raise ValueError("The zstd must be postive: zTrans[1].data.min() =\
@@ -364,21 +369,40 @@ def tsZtransPow(freqs,tseries,zTrans=True,width=5,resample=None,keepBuffer=False
         zstd = zTrans[1]
     else: # zmean and zstd must be calculated
         if isinstance(zTrans,EegTimeSeries):
-            # Get the power for the provided baseline timeseries:
+            # Get the power for the provided baseline time series:
             zpow = tsPhasePow(freqs=freqs,tseries=zTrans,width=width,
                               resample=resample,keepBuffer=False,verbose=verbose,
                               toReturn='pow',freqDimName=freqDimName)
+            zpow.data[zpow.data<=0] = N.finfo(zpow.data.dtype).eps
+            zpow.data = N.log10(zpow.data)
         else:
             # Copy the power for the entire time series:
             zpow = powerAll.copy()
-        # Now calculate zmean and zstd from zpow
-        zpow.removeBuffer()
-        zpow.data[zpow.data<=0] = N.finfo(zpow.data.dtype).eps
-        zpow.data = N.log10(zpow.data)
+            zpow.removeBuffer()
+        # Now calculate zmean from zpow:
         zmean = zpow.aggregate(freqDimName,N.mean,unit="mean log10 power",
                                dimval=False)
-        zstd = zpow.aggregate(freqDimName,N.std,unit="std of log10 power",
-                              dimval=False)
+        # For zstd aggregate does not work: that would produce std's of std's.
+        # To approximate one could aggregate with N.std over one dimension and
+        # with N.mean over the others. The below code calculates the exact std:
+        zstd = zmean.copy()
+        zstddata = powerAll.data.copy()
+        # We need to transpose the data array so that frequency is the first
+        # dimension. We store the new order of dimensions in totrans: 
+        totrans = range(len(zstddata.shape))
+        totrans[0] = powerAll.dim(freqDimName)
+        totrans[powerAll.dim(freqDimName)] = 0
+        # After the transpose, we need to reshape the array to a 2D array with
+        # frequency as the first dimension. We store the new shape in toreshape:
+        toreshape = [len(powerAll.dims[freqDimName].data), N.cumprod(N.array(zstddata.shape)[totrans[1:]])[-1]]
+        # Now we are ready to do the transpose & reshape:
+        zstddata = N.reshape(N.transpose(zstddata,totrans),toreshape)
+        # Now that zstddata is a 2D array, we can just take the std over the 2nd
+        # dimension to get the std for each frequency:
+        zstddata = N.std(zstddata,1)
+        zstd.data = zstddata
+        zstd.unit = "std of log10 power"
+
     # For the transformation {zmean,zstd}.data need to have a compatible shape.
     # Calculate the dimensions with which to reshape (all 1 except for the
     # frequency dimension):
