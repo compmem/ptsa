@@ -341,6 +341,22 @@ class test_DimData(NumpyTestCase):
         test1[0] = newVal
         N.testing.assert_array_equal(test1.data[0],newVal)
         
+    def test_find(self):
+        #CTW: minimal test ... there probably should be more 
+        test1 = DimData(self.dat200,self.dims200)
+        filterstring = 'time>0'
+        array1 = test1.select(filterstring).data
+        array2 = test1.data[test1.find(filterstring)]
+        N.testing.assert_array_equal(array1,array2)
+    
+    def test_data_ind(self):
+        #CTW: minimal test ... there probably should be more 
+        test1 = DimData(self.dat200,self.dims200)
+        filterstring = 'time>0'
+        array1 = test1.data[test1.find(filterstring)]
+        array2 = test1.data[test1.data_ind(filterstring)].reshape(array1.shape)
+        N.testing.assert_array_equal(array1,array2)
+    
     def test_select(self):
         #CTW: minimal test ... there probably should be more 
         test1 = DimData(self.dat200,self.dims200)
@@ -349,7 +365,62 @@ class test_DimData(NumpyTestCase):
     def test_extend(self):
         #CTW: Let's chat about this function. I think it's a bit dangerous, because it lets you do crazy stuff without complaining.
         pass
+    
+    def test_aggregate(self):
+        test1 = DimData(self.dat200,self.dims200)
+        test1_pos = test1.aggregate([],N.mean)
+        N.testing.assert_array_equal(test1.data,test1_pos.data)
+        N.testing.assert_array_equal(test1.dims.names,test1_pos.dims.names)
+        test1_neg = test1.aggregate(['channel','time'],N.mean,dimval=False)
+        N.testing.assert_array_equal(test1.data,test1_neg.data)
+        N.testing.assert_array_equal(test1.dims.names,test1_neg.dims.names)
 
+        test2a = test1.aggregate(['channel'],N.mean)
+        dimArray = []
+        for i,dim in enumerate(test1.dims):
+            if dim.name!='channel':
+                dimArray.append(dim)
+        test2b = DimData(N.mean(test1.data,test1.dim('channel')),dimArray)
+        test2c = test1.aggregate(['time'],N.mean,dimval=False)
+        N.testing.assert_array_equal(test2a.data,test2b.data)
+        N.testing.assert_array_equal(test2a.dims.names,test2b.dims.names)
+        N.testing.assert_array_equal(test2a.data,test2c.data)
+        N.testing.assert_array_equal(test2a.dims.names,test2c.dims.names)
+        
+        test3a = test1.aggregate(['time'],N.mean)
+        dimArray = []
+        for i,dim in enumerate(test1.dims):
+            if dim.name!='time':
+                dimArray.append(dim)
+        test3b = DimData(N.mean(test1.data,test1.dim('time')),dimArray)
+        test3c = test1.aggregate(['channel'],N.mean,dimval=False)
+        N.testing.assert_array_equal(test3a.data,test3b.data)
+        N.testing.assert_array_equal(test3a.dims.names,test3b.dims.names)
+        N.testing.assert_array_equal(test3a.data,test3c.data)
+        N.testing.assert_array_equal(test3a.dims.names,test3c.dims.names)
+        
+        test4a = test2a.aggregate(['time'],N.mean)
+        test4b = test2b.aggregate(['time'],N.mean)
+        test5a = test3a.aggregate(['channel'],N.mean)
+        test5b = test3b.aggregate(['channel'],N.mean)
+        test6a = test1.aggregate(['channel','time'],N.mean)
+        test6b = test1.aggregate(['time','channel'],N.mean)
+        test7 = test1.aggregate([],N.mean,dimval=False)
+        
+        N.testing.assert_array_equal(test4a.data,test4b.data)
+        N.testing.assert_array_equal(test4a.dims.names,test4b.dims.names)
+        N.testing.assert_array_equal(test5a.data,test5b.data)
+        N.testing.assert_array_equal(test5a.dims.names,test5b.dims.names)
+        N.testing.assert_array_almost_equal(test6a.data,test6b.data)
+        N.testing.assert_array_equal(test6a.dims.names,test6b.dims.names)
+        N.testing.assert_array_almost_equal(test4a.data,test5a.data)
+        N.testing.assert_array_equal(test4a.dims.names,test5a.dims.names)
+        N.testing.assert_array_almost_equal(test4b.data,test6a.data)
+        N.testing.assert_array_equal(test4b.dims.names,test6a.dims.names)
+        N.testing.assert_array_almost_equal(test6a.data,test7.data)
+        N.testing.assert_array_almost_equal(test6a.dims.names,test7.dims.names)
+
+        
 
 # test RawBinaryEEG
 

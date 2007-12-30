@@ -180,7 +180,7 @@ class DimData(object):
         # make sure the num dims match the shape of the data
         if len(data.shape) != len(self.dims.dims):
             # raise error
-            raise ValueError, "The length of dims must match the length of the data shape."
+            raise ValueError("The length of dims must match the length of the data shape.")
 
         # set the unit
         self.unit = unit
@@ -244,16 +244,10 @@ class DimData(object):
         """
         self.data[item] = value
 
-        
-    def select(self,*args,**kwargs):
+    def _select_ind(self,*args,**kwargs):
         """
-        Return a copy of the data filtered with the select conditions.
-
-        data.select('time>0','events.recalled==True')
-        or
-        data.select(time=data['time']>0,events=data['events'].recalled==True)
-        or 
-        data.select('time>kwargs['t']','events.recalled==kwargs['val']',t=0,val=True)
+        Returns a tuple of index arrays for the selected conditions and an array
+        of Boolean index arrays.     
         """
         # get starting indicies
         ind = [N.ones(dim.data.shape,N.bool) for dim in self.dims]
@@ -290,6 +284,65 @@ class DimData(object):
         # create the final master index
         m_ind = N.ix_(*ind)
 
+        return m_ind,ind
+
+    def find(self,*args,**kwargs):
+        """
+        Returns a tuple of index arrays for the selected conditions. 
+
+        data.find('time>0','events.recalled==True')
+        or
+        data.find(time=data['time']>0,events=data['events'].recalled==True)
+        or 
+        data.find('time>kwargs['t']','events.recalled==kwargs['val']',t=0,val=True)
+
+        data.data[ind], where ind is the return value of the find method and
+        data.select(filterstring).data return arrays with the same shapes and values,
+        provided that the same filterstring is used. However, the data array from the
+        select method belongs to a copy of the DimData instance and thus does not
+        support assignment of values for the orignal DimData instance -- e.g.,
+        data.data[ind] = data.data[ind] * 2.0.
+        For a Boolean index, see the data_ind method.
+        """
+        m_ind,ind = self._select_ind(*args,**kwargs)
+        return m_ind
+
+    def data_ind(self,*args,**kwargs):
+        """
+        Returns a tuple of Boolean index arrays for the selected conditions. 
+
+        data.data_ind('time>0','events.recalled==True')
+        or
+        data.data_ind(time=data['time']>0,events=data['events'].recalled==True)
+        or 
+        data.data_ind('time>kwargs['t']','events.recalled==kwargs['val']',t=0,val=True)
+
+        data.data[ind], where ind is the return value of the data_ind method and
+        data.select(filterstring).data return arrays with the same shapes and values,
+        provided that the same filterstring is used. However, the data array from the
+        select method belongs to a copy of the DimData instance and thus does not
+        support assignment of values for the orignal DimData instance -- e.g.,
+        data.data[ind] = data.data[ind] * 2.0.
+        For the actual index values rather than the Boolean index, see the find method.
+        """
+        m_ind = self.find(*args,**kwargs)
+        bool_ind = N.zeros(self.data.shape,N.bool)
+        bool_ind[m_ind] = True
+        return bool_ind
+        
+    def select(self,*args,**kwargs):
+        """
+        Return a copy of the data filtered with the select conditions.
+
+        data.select('time>0','events.recalled==True')
+        or
+        data.select(time=data['time']>0,events=data['events'].recalled==True)
+        or 
+        data.select('time>kwargs['t']','events.recalled==kwargs['val']',t=0,val=True)
+
+        To get a tuple of index arrays for the selected conditions use the find method.
+        """
+        m_ind,ind = self._select_ind(*args,**kwargs)
         # set up the new data
         newdat = self.data[m_ind]
 
@@ -324,4 +377,72 @@ class DimData(object):
 #         newDimData.dims = Dims(newdims)
 #         newDimData._reset_data_stats()
 #         return newDimData
+
+    def aggregate(self,dimnames,function,unit=None,dimval=True):
+        """
+        Return a copy of the data aggregated over the dimensions
+        specified in the list dimnames with the passed in
+        function. The aggregation is done sequentially over the passed
+        in dimensions in the order in which they are passed in. The
+        unit is set to None, unless otherwise specified, because the
+        transformation may change the unit.
+        
+        If dimval is False the aggregation is done over every
+        dimension EXCEPT those specified in dimnames. In this case the
+        data are aggregated over the not specified dimensions in the
+        order of the dimension index values.
+        """
+        # If a string is passed in instead of a list or an array, convert:
+        dimnames = N.atleast_1d(dimnames)
+        if len(N.shape(dimnames)) != 1:
+            raise ValueError("dimnames must be a 1-D list of dimension names.\
+            Invalid value for dimnames: %s " % str(dimnames))
+
+        # We need to work with a copy to ensure that we
+        # return the child class as opposed to the parent:
+        newDimData = self.copy()
+
+        # Get the dimension names for all dimension and the selected dimensions
+        # in a format suitable for generating a Boolean index of the dimensions
+        # over which to aggregate:
+        dn_all,dn_sel = N.ix_(newDimData.dims.names,dimnames)
+        
+        # Generate the Boolean aggregation dimension index contingent on dimval:
+        if dimval:
+            db = N.array(dn_all==dn_sel)
+            db = N.atleast_1d(db.any(1))
+        else:
+            db = N.array(dn_all!=dn_sel)
+            db = N.atleast_1d(db.all(1))
+
+        # If there are no dimensions to aggregate over, return a copy of self:
+        if not db.any():
+            return newDimData
+
+        # If dimnames is empty, len(db) will be 1 regardless of how many
+        # dimensions there are. In this case we need to repeat the single
+        # db value to make db the right length:
+        if len(db)==1:
+            db = db.repeat(len(newDimData.dims.names))
+
+        # Get the names of the dimensions over which to aggregate:
+        aggDimNames = N.array(newDimData.dims.names)[db]
+
+        # Apply function to each dimension of the data in turn: We need to do it
+        # in reverse order (i.e., starting with the last dimension) to preserve
+        # the dimension indices stored in newDimData.dim(dimname):
+        newdat = newDimData.data
+        for dimname in aggDimNames[::-1]:
+            newdat = function(newdat,newDimData.dim(dimname))
+
+        # Update newDimData:
+        newDimData.data = newdat
+        # The new dims are those not aggregated over:
+        newDims = Dims(list(N.array(newDimData.dims.copy().dims)[-db]))
+        newDimData.dims = newDims
+        # Clean up & return:
+        newDimData._reset_data_stats()
+        return newDimData
+
+
 

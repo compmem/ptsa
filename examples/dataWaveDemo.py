@@ -56,11 +56,11 @@ nEEG = ev[nInd].getDataMS(chan,
 print "Calculating power..."
 rRes = wavelet.tsPhasePow(freqs,
                           rEEG,
-                          verbose=True,powOnly=True)
+                          verbose=True,toReturn='pow')
 # power for not recalled events
 nRes = wavelet.tsPhasePow(freqs,
                           nEEG,
-                          verbose=True,powOnly=True)
+                          verbose=True,toReturn='pow')
 
 # get mean power across events (axis=1)
 print "Taking mean power..."

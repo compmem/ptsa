@@ -4,7 +4,7 @@ import sys
 
 from filter import decimate
 from helper import reshapeTo2D,reshapeFrom2D
-from data import EegTimeSeries,Dim,Dims
+from pyeeg.data import EegTimeSeries,Dim,Dims,DimData
 
 import pdb
 
@@ -110,40 +110,45 @@ def phasePow2d(freq,dat,samplerate,width):
     return phase,power
 
 def tsPhasePow(freqs,tseries,width=5,resample=None,keepBuffer=False,
-               verbose=False,phaseOnly=False,powOnly=False):
+               verbose=False,toReturn='both',freqDimName='freq'):
     """
     Calculate phase and/or power on an EegTimeSeries, returning new
     EegTimeSeries instances.
     """
+    if (toReturn != 'both') and (toReturn != 'pow') and (toReturn != 'phase'):
+        raise ValueError("toReturn must be \'pow\', \'phase\', or \'both\' to\
+        specify whether power, phase, or both should be  returned. Invalid\
+        value for toReturn: %s " % toReturn)
+    
     # first get the phase and power as desired
-    res = calcPhasePow(freqs,tseries.data,tseries.samplerate,axis=tseries.tdim,width=width,
-                       verbose=verbose,phaseOnly=phaseOnly,powOnly=powOnly)
+    res = calcPhasePow(freqs,tseries.data,tseries.samplerate,axis=tseries.tdim,
+                       width=width,verbose=verbose,toReturn=toReturn)
 
     # handle the dims
     tsdims = tseries.dims.copy()
 
     # add in frequency dimension
-    freqDim = Dim('freq',freqs,'Hz')
+    freqDim = Dim(freqDimName,freqs,'Hz')
     tsdims.insert(0,freqDim)
     
     # turn them into timeseries
-    if not phaseOnly:
+    if toReturn == 'pow' or toReturn == 'both':
         # turn into a timeseries
         powerAll = EegTimeSeries(res,tsdims,
                                  tseries.samplerate,unit='XXX get pow unit',
                                  tdim=-1,buffer=tseries.buffer)
+        powerAll.data[powerAll.data<=0] = N.finfo(powerAll.data.dtype).eps
         # see if resample
         if resample:
             # must take log before the resample
-            powerAll.data[powerAll.data<=0] = N.finfo(powerAll.data.dtype).eps
             powerAll.data = N.log10(powerAll.data)
             powerAll.resample(resample)
             powerAll.data = N.power(10,powerAll.data)
         # see if remove buffer
         if not keepBuffer:
             powerAll.removeBuffer()
-
-    if not powOnly:
+    
+    if toReturn == 'phase' or toReturn == 'both':
         # get the phase matrix
         phaseAll = EegTimeSeries(res,tsdims,
                                  tseries.samplerate,unit='radians',
@@ -156,18 +161,18 @@ def tsPhasePow(freqs,tseries,width=5,resample=None,keepBuffer=False,
         # see if remove buffer
         if not keepBuffer:
             phaseAll.removeBuffer()
-
+    
     # see what to return
-    if powOnly:
+    if toReturn == 'pow':
         return powerAll
-    elif phaseOnly:
+    elif toReturn == 'phase':
         return phaseAll
-    else:
+    elif toReturn == 'both':
         return phaseAll,powerAll
         
     
 
-def calcPhasePow(freqs,dat,samplerate,axis=-1,width=5,verbose=False,phaseOnly=False,powOnly=False):
+def calcPhasePow(freqs,dat,samplerate,axis=-1,width=5,verbose=False,toReturn='both'):
     """Calculate phase and power over time with a Morlet wavelet.
 
     You can optionally pass in downsample, which is the samplerate to
@@ -176,6 +181,9 @@ def calcPhasePow(freqs,dat,samplerate,axis=-1,width=5,verbose=False,phaseOnly=Fa
     As always, it is best to pass in extra signal (a buffer) on either
     side of the signal of interest because power calculations and
     decimation have edge effects."""
+
+    if toReturn != 'both' and toReturn != 'pow' and toReturn != 'phase':
+        raise ValueError("toReturn must be \'pow\', \'phase\', or \'both\' to specify whether power, phase, or both are returned. Invalid value: %s " % toReturn)
     
     # reshape the data to 2D with time on the 2nd dimension
     origshape = dat.shape
@@ -200,34 +208,35 @@ def calcPhasePow(freqs,dat,samplerate,axis=-1,width=5,verbose=False,phaseOnly=Fa
 	phase,power = phasePow2d(freq,eegdat,samplerate,width)
         
         # reshape back do original data shape
-	if not powOnly:
+	if toReturn == 'phase' or toReturn == 'both':
 	    phase = reshapeFrom2D(phase,axis,origshape)
-	if not phaseOnly:
+	if toReturn == 'pow' or toReturn == 'both':
 	    power = reshapeFrom2D(power,axis,origshape)
 
 	# see if allocate
 	if len(phaseAll) == 0 and len(powerAll) == 0:
-	    if not powOnly:
+	    if toReturn == 'phase' or toReturn == 'both':
 		phaseAll = N.empty(N.concatenate(([len(freqs)],phase.shape)),
 				   dtype=phase.dtype)
-	    if not phaseOnly:
+	    if toReturn == 'pow' or toReturn == 'both':
 		powerAll = N.empty(N.concatenate(([len(freqs)],power.shape)),
 				   dtype=power.dtype)
         # insert into all
-	if not powOnly:
+	if toReturn == 'phase' or toReturn == 'both':
 	    phaseAll[f] = phase
-	if not phaseOnly:
+	if toReturn == 'pow' or toReturn == 'both':
 	    powerAll[f] = power
 
     if verbose:
 	sys.stdout.write('\n')
 
-    if powOnly:
+    if toReturn == 'pow':
         return powerAll
-    elif phaseOnly:
+    elif toReturn == 'phase':
         return phaseAll
-    else:
+    elif toReturn == 'both':
         return phaseAll,powerAll
+
 
 
 #     # convert negative axis to positive axis
@@ -310,3 +319,79 @@ def calcPhasePow(freqs,dat,samplerate,axis=-1,width=5,verbose=False,phaseOnly=Fa
 #     # return the results
 #     return res
 
+def tsZtransPow(freqs,tseries,zTrans=True,width=5,resample=None,keepBuffer=False,
+                verbose=False,toReturn='both',freqDimName='freq'):
+    """
+    Calculate z-transformed power (and optionally phase) on an
+    EegTimeSeries, returning new EegTimeSeries instances.
+    """
+    if (toReturn != 'both') and (toReturn != 'pow'):
+        raise ValueError("toReturn must be \'pow\'or \'both\' to specify\
+        whether power only, or power and phase are returned. Only power is\
+        z-tranformed; if only phase and/or untransformed power is of interest,\
+        the function tsPhasePow() should be called directly. Invalid value for\
+        toReturn: %s" % toReturn)
+
+    # Get the power (and optionally phase) for tseries:
+    if toReturn == 'both':
+        phaseAll,powerAll = tsPhasePow(freqs,tseries,width,resample,keepBuffer,
+                                      verbose,toReturn,freqDimName)
+    else:
+        powerAll = tsPhasePow(freqs,tseries,width,resample,keepBuffer,verbose,
+                              toReturn,freqDimName)
+
+    # Ensure power is positive and log10 transform:
+    powerAll.data[powerAll.data<=0] = N.finfo(powerAll.data.dtype).eps
+    powerAll.data = N.log10(powerAll.data)
+
+    # Get zmean and zstd (DimData objects with a frequency dimension each):
+    if isinstance(zTrans,tuple): # zmean and zstd are passed as zTrans
+        if ((len(zTrans) != 2) or (not isinstance(zTrans[0],DimData)) or
+            (not isinstance(zTrans[1],DimData)) or (zTrans[0].ndim!=1) or
+            (zTrans[1].ndim!=1) or (zTrans[0].dims.names[0]!=freqDimName) or
+            (zTrans[1].dims.names[0]!=freqDimName) or
+            (zTrans[0][freqDimName].data!=powerAll[freqDimName].data) or 
+            (zTrans[1][freqDimName]!=powerAll[freqDimName].data)):
+            raise ValueError("The ztrans tuple needs to conform to the\
+            following format: (zmean,zstd). Where zmean and zstd are both\
+            instances of DimData each with a single frequency dimension.\
+            The name of the dimension must be as specified in freqDimName.\
+            Invalid value: %s" % str(zTrans))
+        elif zTrans[1].data.min() <= 0:
+            raise ValueError("The zstd must be postive: zTrans[1].data.min() =\
+            %f" % zTrans[1].data.min())
+        zmean = zTrans[0]
+        zstd = zTrans[1]
+    else: # zmean and zstd must be calculated
+        if isinstance(zTrans,EegTimeSeries):
+            # Get the power for the provided baseline timeseries:
+            zpow = tsPhasePow(freqs=freqs,tseries=zTrans,width=width,
+                              resample=resample,keepBuffer=False,verbose=verbose,
+                              toReturn='pow',freqDimName=freqDimName)
+        else:
+            # Copy the power for the entire time series:
+            zpow = powerAll.copy()
+        # Now calculate zmean and zstd from zpow
+        zpow.removeBuffer()
+        zpow.data[zpow.data<=0] = N.finfo(zpow.data.dtype).eps
+        zpow.data = N.log10(zpow.data)
+        zmean = zpow.aggregate(freqDimName,N.mean,unit="mean log10 power",
+                               dimval=False)
+        zstd = zpow.aggregate(freqDimName,N.std,unit="std of log10 power",
+                              dimval=False)
+    # For the transformation {zmean,zstd}.data need to have a compatible shape.
+    # Calculate the dimensions with which to reshape (all 1 except for the
+    # frequency dimension):
+    reshapedims = N.ones(len(powerAll.shape))
+    reshapedims[powerAll.dim(freqDimName)] = -1
+
+    # z transform using reshapedims to make the arrays compatible:
+    powerAll.data = powerAll.data - zmean.data.reshape(reshapedims)
+    powerAll.data = powerAll.data / zstd.data.reshape(reshapedims)
+
+    if toReturn == 'both':
+        return phaseAll,powerAll,(zmean,zstd)
+    else:
+        return powerAll,(zmean,zstd)
+        
+        
