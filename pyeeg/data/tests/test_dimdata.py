@@ -464,6 +464,39 @@ class test_DimData(NumpyTestCase):
         N.testing.assert_array_almost_equal(test6a.data,test7.data)
         N.testing.assert_array_almost_equal(test6a.dims.names,test7.dims.names)
 
+        test4D = DimData(self.randData4D,self.randDims4D)
+        test4D_pos = test4D.aggregate([],N.mean)
+        N.testing.assert_array_equal(test4D.data,test4D_pos.data)
+        N.testing.assert_array_equal(test4D.dims.names,test4D_pos.dims.names)
+        test4D_neg = test4D.aggregate(['subject','channel','condition','time'],
+                                    N.mean,dimval=False)
+        N.testing.assert_array_equal(test4D.data,test4D_neg.data)
+        N.testing.assert_array_equal(test4D.dims.names,test4D_neg.dims.names)
+
+        test4D_2a = test4D.aggregate(['condition'],N.mean)
+        dimArray = []
+        for i,dim in enumerate(test4D.dims):
+            if dim.name!='condition':
+                dimArray.append(dim)
+        test4D_2b = DimData(N.mean(test4D.data,test4D.dim('condition')),dimArray)
+        test4D_2c = test4D.aggregate(['subject','channel','time'],N.mean,dimval=False)
+        N.testing.assert_array_equal(test4D_2a.data,test4D_2b.data)
+        N.testing.assert_array_equal(test4D_2a.dims.names,test4D_2b.dims.names)
+        N.testing.assert_array_equal(test4D_2a.data,test4D_2c.data)
+        N.testing.assert_array_equal(test4D_2a.dims.names,test4D_2c.dims.names)
+
+        test4D_3a = test4D.aggregate(['channel','condition'],N.mean)
+        dimArray = []
+        for i,dim in enumerate(test4D.dims):
+            if (dim.name!='channel') and (dim.name!='condition'):
+                dimArray.append(dim)
+        test4D_3b = DimData(N.mean(N.mean(test4D.data,test4D.dim('condition')),test4D.dim('channel')),dimArray)
+        test4D_3c = test4D.aggregate(['subject','time'],N.mean,dimval=False)
+        N.testing.assert_array_equal(test4D_3a.data,test4D_3b.data)
+        N.testing.assert_array_equal(test4D_3a.dims.names,test4D_3b.dims.names)
+        N.testing.assert_array_equal(test4D_3a.data,test4D_3c.data)
+        N.testing.assert_array_equal(test4D_3a.dims.names,test4D_3c.dims.names)
+
         
     def test_margin(self):
         #test1 = DimData(self.dat200,self.dims200)
@@ -471,49 +504,79 @@ class test_DimData(NumpyTestCase):
         test1_1d_a = test1.margin('channel',N.mean)
         test1_nd_a = test1.aggregate('channel',N.mean,dimval=False)
         N.testing.assert_array_almost_equal(test1_1d_a.data,test1_nd_a.data)
+        self.assertEqual(test1_1d_a.dims[0].name,'channel')
+        N.testing.assert_array_equal(test1_1d_a.dims['channel'].data,test1.dims['channel'].data)
+        N.testing.assert_array_equal(test1_1d_a.dims['channel'].data,test1_nd_a.dims['channel'].data)
         
         test1_1d_b = test1.margin('subject',N.mean)
         test1_nd_b = test1.aggregate('subject',N.mean,dimval=False)
         N.testing.assert_array_almost_equal(test1_1d_b.data,test1_nd_b.data)
+        self.assertEqual(test1_1d_b.dims[0].name,'subject')
+        N.testing.assert_array_equal(test1_1d_b.dims['subject'].data,test1.dims['subject'].data)
+        N.testing.assert_array_equal(test1_1d_b.dims['subject'].data,test1_nd_b.dims['subject'].data)
 
         test1_1d_c = test1.margin('channel',N.std)
         test1_nd_c = test1.aggregate('time',N.std)
         test1_nd_c = test1_nd_c.aggregate('channel',N.mean,dimval=False)
         N.testing.assert_array_equal(N.round(test1_1d_c.data,2),N.round(test1_nd_c.data,2))
+        self.assertEqual(test1_1d_c.dims[0].name,'channel')
+        N.testing.assert_array_equal(test1_1d_c.dims['channel'].data,test1.dims['channel'].data)
+        N.testing.assert_array_equal(test1_1d_c.dims['channel'].data,test1_nd_c.dims['channel'].data)
         
         test1_1d_d = test1.margin('subject',N.std)
         test1_nd_d = test1.aggregate('time',N.std)
         test1_nd_d = test1_nd_d.aggregate('subject',N.mean,dimval=False)
         N.testing.assert_array_equal(N.round(test1_1d_d.data,2),N.round(test1_nd_d.data,2))
-        
+        self.assertEqual(test1_1d_d.dims[0].name,'subject')
+        N.testing.assert_array_equal(test1_1d_d.dims['subject'].data,test1.dims['subject'].data)
+        N.testing.assert_array_equal(test1_1d_d.dims['subject'].data,test1_nd_d.dims['subject'].data)
+
         
         test2 = DimData(self.randData4D,self.randDims4D)
         test2_1d_a = test2.margin('channel',N.mean)
         test2_nd_a = test2.aggregate('channel',N.mean,dimval=False)
         N.testing.assert_array_almost_equal(test2_1d_a.data,test2_nd_a.data)
-        
+        self.assertEqual(test2_1d_a.dims[0].name,'channel')
+        N.testing.assert_array_equal(test2_1d_a.dims['channel'].data,test2.dims['channel'].data)
+        N.testing.assert_array_equal(test2_1d_a.dims['channel'].data,test2_nd_a.dims['channel'].data)
+
         test2_1d_b = test2.margin('subject',N.mean)
         test2_nd_b = test2.aggregate('subject',N.mean,dimval=False)
         N.testing.assert_array_almost_equal(test2_1d_b.data,test2_nd_b.data)
+        self.assertEqual(test2_1d_b.dims[0].name,'subject')
+        N.testing.assert_array_equal(test2_1d_b.dims['subject'].data,test2.dims['subject'].data)
+        N.testing.assert_array_equal(test2_1d_b.dims['subject'].data,test2_nd_b.dims['subject'].data)
         
         test2_1d_c = test2.margin('condition',N.mean)
         test2_nd_c = test2.aggregate('condition',N.mean,dimval=False)
         N.testing.assert_array_almost_equal(test2_1d_c.data,test2_nd_c.data)
+        self.assertEqual(test2_1d_c.dims[0].name,'condition')
+        N.testing.assert_array_equal(test2_1d_c.dims['condition'].data,test2.dims['condition'].data)
+        N.testing.assert_array_equal(test2_1d_c.dims['condition'].data,test2_nd_c.dims['condition'].data)
 
         test2_1d_d = test2.margin('channel',N.std)
         test2_nd_d = test2.aggregate('time',N.std)
         test2_nd_d = test2_nd_d.aggregate('channel',N.mean,dimval=False)
         N.testing.assert_array_equal(N.round(test2_1d_d.data,2),N.round(test2_nd_d.data,2))
-        
+        self.assertEqual(test2_1d_d.dims[0].name,'channel')
+        N.testing.assert_array_equal(test2_1d_d.dims['channel'].data,test2.dims['channel'].data)
+        N.testing.assert_array_equal(test2_1d_d.dims['channel'].data,test2_nd_d.dims['channel'].data)
+
         test2_1d_e = test2.margin('subject',N.std)
         test2_nd_e = test2.aggregate('time',N.std)
         test2_nd_e = test2_nd_e.aggregate('subject',N.mean,dimval=False)
         N.testing.assert_array_equal(N.round(test2_1d_e.data,2),N.round(test2_nd_e.data,2))
+        self.assertEqual(test2_1d_e.dims[0].name,'subject')
+        N.testing.assert_array_equal(test2_1d_e.dims['subject'].data,test2.dims['subject'].data)
+        N.testing.assert_array_equal(test2_1d_e.dims['subject'].data,test2_nd_e.dims['subject'].data)
 
         test2_1d_f = test2.margin('condition',N.std)
         test2_nd_f = test2.aggregate('time',N.std)
         test2_nd_f = test2_nd_f.aggregate('condition',N.mean,dimval=False)
         N.testing.assert_array_equal(N.round(test2_1d_f.data,2),N.round(test2_nd_f.data,2))
+        self.assertEqual(test2_1d_f.dims[0].name,'condition')
+        N.testing.assert_array_equal(test2_1d_f.dims['condition'].data,test2.dims['condition'].data)
+        N.testing.assert_array_equal(test2_1d_f.dims['condition'].data,test2_nd_f.dims['condition'].data)
 
         
 
