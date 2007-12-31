@@ -62,7 +62,42 @@ class TestData():
         timeRange = N.linspace(sampStart,sampEnd,duration)
         self.dims50 = [Dim('channel',N.arange(self.dat50.shape[0])),
                        Dim('time',timeRange,'ms')]
- 
+        
+        
+        numSecs = 20.
+        numPoints = int(numSecs*200.)
+        numSubj = 3
+        numChans = 2
+        self.randData3D = N.random.random_sample((numSubj,numChans,numPoints))
+        # calc the time range in MS
+        offset = -200
+        duration = numPoints
+        samplesize = 1000./200.
+        sampStart = offset*samplesize
+        sampEnd = sampStart + (duration-1)*samplesize
+        timeRange = N.linspace(sampStart,sampEnd,duration)
+        self.randDims3D = [Dim('subject',N.arange(self.randData3D.shape[0])),
+                           Dim('channel',N.arange(self.randData3D.shape[1])),
+                           Dim('time',timeRange,'ms')]
+        
+        numSecs = 20.
+        numPoints = int(numSecs*200.)
+        numSubj = 10
+        numChans = 5
+        numConds = 4
+        self.randData4D = N.random.random_sample((numSubj,numChans,numConds,numPoints))
+        # calc the time range in MS
+        offset = -200
+        duration = numPoints
+        samplesize = 1000./200.
+        sampStart = offset*samplesize
+        sampEnd = sampStart + (duration-1)*samplesize
+        timeRange = N.linspace(sampStart,sampEnd,duration)
+        self.randDims4D = [Dim('subject',N.arange(self.randData4D.shape[0])),
+                           Dim('channel',N.arange(self.randData4D.shape[1])),
+                           Dim('condition',N.arange(self.randData4D.shape[2])),
+                           Dim('time',timeRange,'ms')]
+        
 
 
 # test Dim
@@ -266,7 +301,7 @@ class test_Dims(NumpyTestCase):
         self.assertEqual(len(test1[0].data),5)
 
     def test_iter(self):
-        #CTW: Not sure how best to test this. Also, this function just calls teh __iter__() function for lists, so a test here is probably not necessary.
+        #CTW: Not sure how best to test this. Also, this function just calls the __iter__() function for lists, so a test here is probably not necessary.
         pass
 
 # test DimData
@@ -277,6 +312,10 @@ class test_DimData(NumpyTestCase):
         self.dims200 = td.dims200
         self.dat50 = td.dat50
         self.dims50 = td.dims50
+        self.randData3D = td.randData3D
+        self.randDims3D = td.randDims3D
+        self.randData4D = td.randData4D
+        self.randDims4D = td.randDims4D
     
     def test_init(self):
         test1 = DimData(self.dat200,self.dims200,unit='dimDatUnit')
@@ -367,6 +406,11 @@ class test_DimData(NumpyTestCase):
         pass
     
     def test_aggregate(self):
+        # A lot of these tests will only work for certain functions
+        # (such as N.mean) where the result is not influenced by the
+        # order in which the aggregation is done. For some other
+        # functions (such as N.std) different orders of aggregation
+        # will produce different results (cf. docstring).
         test1 = DimData(self.dat200,self.dims200)
         test1_pos = test1.aggregate([],N.mean)
         N.testing.assert_array_equal(test1.data,test1_pos.data)
@@ -419,6 +463,57 @@ class test_DimData(NumpyTestCase):
         N.testing.assert_array_equal(test4b.dims.names,test6a.dims.names)
         N.testing.assert_array_almost_equal(test6a.data,test7.data)
         N.testing.assert_array_almost_equal(test6a.dims.names,test7.dims.names)
+
+        
+    def test_margin(self):
+        #test1 = DimData(self.dat200,self.dims200)
+        test1 = DimData(self.randData3D,self.randDims3D)
+        test1_1d_a = test1.margin('channel',N.mean)
+        test1_nd_a = test1.aggregate('channel',N.mean,dimval=False)
+        N.testing.assert_array_almost_equal(test1_1d_a.data,test1_nd_a.data)
+        
+        test1_1d_b = test1.margin('subject',N.mean)
+        test1_nd_b = test1.aggregate('subject',N.mean,dimval=False)
+        N.testing.assert_array_almost_equal(test1_1d_b.data,test1_nd_b.data)
+
+        test1_1d_c = test1.margin('channel',N.std)
+        test1_nd_c = test1.aggregate('time',N.std)
+        test1_nd_c = test1_nd_c.aggregate('channel',N.mean,dimval=False)
+        N.testing.assert_array_equal(N.round(test1_1d_c.data,2),N.round(test1_nd_c.data,2))
+        
+        test1_1d_d = test1.margin('subject',N.std)
+        test1_nd_d = test1.aggregate('time',N.std)
+        test1_nd_d = test1_nd_d.aggregate('subject',N.mean,dimval=False)
+        N.testing.assert_array_equal(N.round(test1_1d_d.data,2),N.round(test1_nd_d.data,2))
+        
+        
+        test2 = DimData(self.randData4D,self.randDims4D)
+        test2_1d_a = test2.margin('channel',N.mean)
+        test2_nd_a = test2.aggregate('channel',N.mean,dimval=False)
+        N.testing.assert_array_almost_equal(test2_1d_a.data,test2_nd_a.data)
+        
+        test2_1d_b = test2.margin('subject',N.mean)
+        test2_nd_b = test2.aggregate('subject',N.mean,dimval=False)
+        N.testing.assert_array_almost_equal(test2_1d_b.data,test2_nd_b.data)
+        
+        test2_1d_c = test2.margin('condition',N.mean)
+        test2_nd_c = test2.aggregate('condition',N.mean,dimval=False)
+        N.testing.assert_array_almost_equal(test2_1d_c.data,test2_nd_c.data)
+
+        test2_1d_d = test2.margin('channel',N.std)
+        test2_nd_d = test2.aggregate('time',N.std)
+        test2_nd_d = test2_nd_d.aggregate('channel',N.mean,dimval=False)
+        N.testing.assert_array_equal(N.round(test2_1d_d.data,2),N.round(test2_nd_d.data,2))
+        
+        test2_1d_e = test2.margin('subject',N.std)
+        test2_nd_e = test2.aggregate('time',N.std)
+        test2_nd_e = test2_nd_e.aggregate('subject',N.mean,dimval=False)
+        N.testing.assert_array_equal(N.round(test2_1d_e.data,2),N.round(test2_nd_e.data,2))
+
+        test2_1d_f = test2.margin('condition',N.std)
+        test2_nd_f = test2.aggregate('time',N.std)
+        test2_nd_f = test2_nd_f.aggregate('condition',N.mean,dimval=False)
+        N.testing.assert_array_equal(N.round(test2_1d_f.data,2),N.round(test2_nd_f.data,2))
 
         
 

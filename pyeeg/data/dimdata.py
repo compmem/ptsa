@@ -382,15 +382,45 @@ class DimData(object):
         """
         Return a copy of the data aggregated over the dimensions
         specified in the list dimnames with the passed in
-        function. The aggregation is done sequentially over the passed
-        in dimensions in the order in which they are passed in. The
-        unit is set to None, unless otherwise specified, because the
-        transformation may change the unit.
+        function. The function needs to take an array and a dimension
+        over which to apply it as an input (a suitable candidate is,
+        e.g., numpy.mean). The aggregation is done sequentially over
+        the passed in dimensions in the order in which they are passed
+        in. The unit is set to None, unless otherwise specified,
+        because the transformation may change the unit.
         
         If dimval is False the aggregation is done over every
         dimension EXCEPT those specified in dimnames. In this case the
         data are aggregated over the not specified dimensions in the
         order of the dimension index values.
+
+        *** WARNING: The sequential aggregation may not be appropriate
+        *** for all functions. E.g., when numpy.std is used to
+        *** aggregate over multiple dimensions, the result is a std of
+        *** (std's of ...)  std's. To aggregate the data over all but
+        *** one dimension non-sequentially, see the margin method.
+
+        If data is a DimData instance with dimensions A, B, C, and D:        
+
+        1) data.aggregate('A',numpy.mean) returns a DimData instance
+        with dimensions B, C, and D, that contain the mean across the
+        A dimension.
+
+        2) data.aggregate('B',numpy.mean,dimval=False) returns a
+        DimData instance with dimension B taking the mean across
+        dimensions A, C, and D.
+
+        3) data.aggregate(['A','C'],numpy.mean) returns a DimData
+        instance with dimensions B and D in which the mean was taken
+        across dimensions A and C in that order. Note that for some
+        functions (such as numpy.std) passing in ['A','C'] as dimnames
+        may produce a result different from passing in ['C','A'] in
+        which the aggregation takes place in the reverse order -- see
+        warning above!
+
+        4) data.aggregate(['B','D',numpy.mean,dimval=False]) produces
+        the same result as data.aggregate(['A','C'],numpy.mean) (see
+        above).
         """
         # If a string is passed in instead of a list or an array, convert:
         dimnames = N.atleast_1d(dimnames)
@@ -418,7 +448,7 @@ class DimData(object):
         # If there are no dimensions to aggregate over, return a copy of self:
         if not db.any():
             return newDimData
-
+        
         # If dimnames is empty, len(db) will be 1 regardless of how many
         # dimensions there are. In this case we need to repeat the single
         # db value to make db the right length:
@@ -440,6 +470,62 @@ class DimData(object):
         # The new dims are those not aggregated over:
         newDims = Dims(list(N.array(newDimData.dims.copy().dims)[-db]))
         newDimData.dims = newDims
+        newDimData.unit = unit
+        # Clean up & return:
+        newDimData._reset_data_stats()
+        return newDimData
+
+
+
+    def margin(self,dimname,function,unit=None):
+        """
+        Return a copy of the data aggregated over all but the
+        specified dimension with the passed in function. The function
+        needs to take an array and a dimension over which to apply it
+        as an input (a suitable candidate is, e.g., numpy.mean). The
+        function is applied simultaneously over all other
+        dimensions. The unit is set to None, unless otherwise
+        specified, because the transformation may change the unit.
+
+        If data is a DimData instance with dimensions A, B, C, and D,
+        data.margin('A',numpy.mean) returns a DimData instance
+        with dimension A that contains the mean across the B, C, and D
+        dimensions.
+        """
+        # If a string is passed in instead of a list or an array, convert:
+        dimname = N.atleast_1d(dimname)
+        if (len(N.shape(dimname)) != 1) or (len(dimname)!=1):
+            raise ValueError("dimname must be a single dimension name.\
+            Invalid value for dimname: %s " % str(dimname))
+
+        dimname = dimname[0]
+
+        # We need to transpose the data array so that dimname is
+        # the first dimension. We store the new order of dimensions in
+        # totrans:
+        totrans = range(len(self.data.shape))
+        totrans[0] = self.dim(dimname)
+        totrans[self.dim(dimname)] = 0
+        # After the transpose, we need to reshape the array to a 2D
+        # array with dimname as the first dimension. We store the
+        # new shape in toreshape:
+        toreshape = [len(self.dims[dimname].data),
+                     N.cumprod(N.array(self.data.shape)[totrans[1:]])[-1]]
+        # Now we are ready to do the transpose & reshape:
+        tmpdata = N.reshape(N.transpose(self.data,totrans),toreshape)
+        # Now that zstddata is a 2D array, we can just take the
+        # function over the 2nd dimension:
+        tmpdata = function(tmpdata,1)
+        
+        # Now that we have the, we need to create a new DimData instance.
+        # Create a new Dims instance:
+        newDims = Dims([self.dims[self.dim(dimname)].copy()])
+        
+        # Create a copy of self to make sure we have a child instance:
+        newDimData = self.copy()
+        newDimData.dims = newDims
+        newDimData.data = tmpdata
+        newDimData.unit = unit
         # Clean up & return:
         newDimData._reset_data_stats()
         return newDimData
