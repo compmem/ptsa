@@ -379,29 +379,9 @@ def tsZtransPow(freqs,tseries,zTrans=True,width=5,resample=None,keepBuffer=False
             # Copy the power for the entire time series:
             zpow = powerAll.copy()
             zpow.removeBuffer()
-        # Now calculate zmean from zpow:
-        zmean = zpow.aggregate(freqDimName,N.mean,unit="mean log10 power",
-                               dimval=False)
-        # For zstd aggregate does not work: that would produce std's of std's.
-        # To approximate one could aggregate with N.std over one dimension and
-        # with N.mean over the others. The below code calculates the exact std:
-        zstd = zmean.copy()
-        zstddata = powerAll.data.copy()
-        # We need to transpose the data array so that frequency is the first
-        # dimension. We store the new order of dimensions in totrans: 
-        totrans = range(len(zstddata.shape))
-        totrans[0] = powerAll.dim(freqDimName)
-        totrans[powerAll.dim(freqDimName)] = 0
-        # After the transpose, we need to reshape the array to a 2D array with
-        # frequency as the first dimension. We store the new shape in toreshape:
-        toreshape = [len(powerAll.dims[freqDimName].data), N.cumprod(N.array(zstddata.shape)[totrans[1:]])[-1]]
-        # Now we are ready to do the transpose & reshape:
-        zstddata = N.reshape(N.transpose(zstddata,totrans),toreshape)
-        # Now that zstddata is a 2D array, we can just take the std over the 2nd
-        # dimension to get the std for each frequency:
-        zstddata = N.std(zstddata,1)
-        zstd.data = zstddata
-        zstd.unit = "std of log10 power"
+        # Now calculate zmean and zstd from zpow:
+        zmean = zpow.margin(freqDimName,N.mean,unit="mean log10 power")
+        zstd = zpow.margin(freqDimName,N.std,unit="std of log10 power")
 
     # For the transformation {zmean,zstd}.data need to have a compatible shape.
     # Calculate the dimensions with which to reshape (all 1 except for the

@@ -24,7 +24,7 @@ class EegTimeSeries(DimData):
             self.tdim = tdim
         else:
             # turn it into a positive dim
-            self.tdim = tdim + self.ndim
+            self.tdim = self.ndim - 1
         
         # set the buffer information
         self.buffer = buffer
@@ -41,7 +41,7 @@ class EegTimeSeries(DimData):
 	"""Use the information contained in the time series to remove the
 	buffer reset the time range.  If buffer is 0, no action is
 	performed."""
-	# see if remove the anything
+	# see if we need to remove anything
 	if self.buffer>0:
             # remove the buffer from the data
             self.data = self.data.take(range(self.buffer,
