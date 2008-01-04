@@ -367,6 +367,8 @@ class DimData(object):
 
         # set the new dims
         self.dims[dim].extend(other.dims[dim])
+
+        self._reset_data_stats()
         
         #newdims = self.dims.copy()
         #newdims[dim] = newdims[dim].extend(other.dims[dim])

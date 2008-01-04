@@ -1,5 +1,6 @@
 # from numpy import *
 import numpy as N
+import os.path
 
 def reshapeTo2D(data,axis):
     """Reshape data to 2D with specified axis as the 2nd dimension."""
@@ -109,5 +110,30 @@ def cart2pol(x,y,z=None,radians=True):
     else:
         return theta,radius
 
+def lockFile(filename,lockdirpath=None,lockdirname=None):
+    if not lockdirname:
+        lockdirname=filename+'.lock'
+    if lockdirpath:
+        lockdirname = lockdirpath+lockdirname
+    if os.path.exists(lockdirname):
+        return False
+    else:
+        try:
+            os.mkdir(lockdirname)
+        except:
+            return False
+    return True
 
+def releaseFile(filename,lockdirpath=None,lockdirname=None):
+    if not lockdirname:
+        lockdirname=filename+'.lock'
+    if lockdirpath:
+        lockdirname = lockdirpath+lockdirname
+    try:
+        os.rmdir(lockdirname)
+    except:
+        return False
+    return True
+    
+    
 
