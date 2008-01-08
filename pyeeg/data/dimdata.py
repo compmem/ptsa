@@ -177,10 +177,12 @@ class DimData(object):
             # turn the list into a Dims class
             self.dims = Dims(dims)
 
-        # make sure the num dims match the shape of the data
-        if len(data.shape) != len(self.dims.dims):
+        # make sure the lengths of the dims match the shape of the data
+        if data.shape != tuple([len(dim.data) for dim in self.dims]):
             # raise error
-            raise ValueError("The length of dims must match the length of the data shape.")
+            raise ValueError("The length of dims must match the data shape.\nData shape: "+
+                             str(data.shape)+"\nShape of the dims: "+
+                             str(tuple([len(dim.data) for dim in self.dims])))
 
         # set the unit
         self.unit = unit

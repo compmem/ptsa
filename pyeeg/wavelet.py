@@ -380,11 +380,8 @@ def tsZtransPow(freqs,tseries,zTrans=True,width=5,resample=None,keepBuffer=False
             zpow = powerAll.copy()
             zpow.removeBuffer()
         # Now calculate zmean and zstd from zpow:
-        print "zpow.data: ", zpow.data
         zmean = zpow.margin(freqDimName,N.mean,unit="mean log10 power")
         zstd = zpow.margin(freqDimName,N.std,unit="std of log10 power")
-        print "zmean.data:",zmean.data
-        print "zstd.data:",zstd.data
 
     # For the transformation {zmean,zstd}.data need to have a compatible shape.
     # Calculate the dimensions with which to reshape (all 1 except for the

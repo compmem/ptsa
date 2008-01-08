@@ -342,6 +342,7 @@ class test_DimData(NumpyTestCase):
 
         self.assertRaises(ValueError,DimData,self.dat200.reshape((2,2,400)),self.dims200)
         self.assertRaises(ValueError,DimData,self.dat200.reshape((2,2,400)),Dims(self.dims200))
+        self.assertRaises(ValueError,DimData,self.dat200[:,0:799],self.dims200)
 
     def test_copy(self):
         test1 = DimData(self.dat200,self.dims200,unit='dimDatUnit')
