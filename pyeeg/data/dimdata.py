@@ -382,19 +382,19 @@ class DimData(object):
 #         newDimData._reset_data_stats()
 #         return newDimData
 
-    def aggregate(self,dimnames,function,unit=None,dimval=True):
+    def aggregate(self,dims,function,unit=None,dimval=True):
         """
         Return a copy of the data aggregated over the dimensions
-        specified in the list dimnames with the passed in
-        function. The function needs to take an array and a dimension
-        over which to apply it as an input (a suitable candidate is,
-        e.g., numpy.mean). The aggregation is done sequentially over
-        the passed in dimensions in the order in which they are passed
+        specified in the list dims with the passed in function. The
+        function needs to take an array and a dimension over which to
+        apply it as an input (a suitable candidate is, e.g.,
+        numpy.mean). The aggregation is done sequentially over the
+        passed in dimensions in the order in which they are passed
         in. The unit is set to None, unless otherwise specified,
         because the transformation may change the unit.
         
         If dimval is False the aggregation is done over every
-        dimension EXCEPT those specified in dimnames. In this case the
+        dimension EXCEPT those specified in dims. In this case the
         data are aggregated over the not specified dimensions in the
         order of the dimension index values.
 
@@ -417,20 +417,34 @@ class DimData(object):
         3) data.aggregate(['A','C'],numpy.mean) returns a DimData
         instance with dimensions B and D in which the mean was taken
         across dimensions A and C in that order. Note that for some
-        functions (such as numpy.std) passing in ['A','C'] as dimnames
-        may produce a result different from passing in ['C','A'] in
-        which the aggregation takes place in the reverse order -- see
+        functions (such as numpy.std) passing in ['A','C'] as dims may
+        produce a result different from passing in ['C','A'] in which
+        the aggregation takes place in the reverse order -- see
         warning above!
 
         4) data.aggregate(['B','D',numpy.mean,dimval=False]) produces
         the same result as data.aggregate(['A','C'],numpy.mean) (see
         above).
         """
+
+        # Find the index for dimension numbers (instead of names):
+        dimNumsInd = N.array(map(lambda x: isinstance(x,int), dims))
+        if dimNumsInd.any() and not dimNumsInd.all():
+            raise ValueError("dims must be a 1-D list of dimension indices\
+            OR names. Mixing of names and indices is not allowed.\
+            Invalid value for dims: %s " % str(dims))
+
+        #If indices are given, convert to dim names:
+        if len(dimNumsInd)>0 and dimNumsInd.all():
+            dimnames = N.array(self.dims.names)[dims]
+        else:
+            dimnames = dims
+
         # If a string is passed in instead of a list or an array, convert:
         dimnames = N.atleast_1d(dimnames)
         if len(N.shape(dimnames)) != 1:
-            raise ValueError("dimnames must be a 1-D list of dimension names.\
-            Invalid value for dimnames: %s " % str(dimnames))
+            raise ValueError("dims must be a 1-D list of dimensions.\
+            Invalid value for dims: %s " % str(dimnames))
 
         # We need to work with a copy to ensure that we
         # return the child class as opposed to the parent:
@@ -453,7 +467,7 @@ class DimData(object):
         if not db.any():
             return newDimData
         
-        # If dimnames is empty, len(db) will be 1 regardless of how many
+        # If dimns is empty, len(db) will be 1 regardless of how many
         # dimensions there are. In this case we need to repeat the single
         # db value to make db the right length:
         if len(db)==1:
@@ -481,7 +495,7 @@ class DimData(object):
 
 
 
-    def margin(self,dimname,function,unit=None):
+    def margin(self,dim,function,unit=None):
         """
         Return a copy of the data aggregated over all but the
         specified dimension with the passed in function. The function
@@ -497,23 +511,26 @@ class DimData(object):
         dimensions.
         """
         # If a string is passed in instead of a list or an array, convert:
-        dimname = N.atleast_1d(dimname)
-        if (len(N.shape(dimname)) != 1) or (len(dimname)!=1):
-            raise ValueError("dimname must be a single dimension name.\
-            Invalid value for dimname: %s " % str(dimname))
+        dim = N.atleast_1d(dim)
+        if (len(N.shape(dim)) != 1) or (len(dim)!=1):
+            raise ValueError("dim must be a single dimension name or index.\
+            Invalid value for dim: %s " % str(dim))
 
-        dimname = dimname[0]
+        dim = dim[0]
 
-        # We need to transpose the data array so that dimname is
-        # the first dimension. We store the new order of dimensions in
-        # totrans:
+        # If dim is dim name, convert to dim index:
+        if isinstance(dim,str):
+            dim = self.dim(dim)
+
+        # We need to transpose the data array so that dim is the first
+        # dimension. We store the new order of dimensions in totrans:
         totrans = range(len(self.data.shape))
-        totrans[0] = self.dim(dimname)
-        totrans[self.dim(dimname)] = 0
+        totrans[0] = dim
+        totrans[dim] = 0
         # After the transpose, we need to reshape the array to a 2D
         # array with dimname as the first dimension. We store the
         # new shape in toreshape:
-        toreshape = [len(self.dims[dimname].data),
+        toreshape = [len(self.dims[dim].data),
                      N.cumprod(N.array(self.data.shape)[totrans[1:]])[-1]]
         # Now we are ready to do the transpose & reshape:
         tmpdata = N.reshape(N.transpose(self.data,totrans),toreshape)
@@ -523,7 +540,7 @@ class DimData(object):
         
         # Now that we have the, we need to create a new DimData instance.
         # Create a new Dims instance:
-        newDims = Dims([self.dims[self.dim(dimname)].copy()])
+        newDims = Dims([self.dims[dim].copy()])
         
         # Create a copy of self to make sure we have a child instance:
         newDimData = self.copy()
