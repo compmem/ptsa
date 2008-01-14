@@ -143,7 +143,9 @@ al. (2003)."""
     t=N.r_[preTimes,maxInds,postTimes];
     d2=N.r_[preData, data[maxInds], postData];
     #s=interp1(t,d2,1:length(data),'spline');
-    rep = scipy.interpolate.splrep(t,d2)
+    # XXX verify the 's' argument
+    # needed to change so that fMRI dat would work
+    rep = scipy.interpolate.splrep(t,d2,s=1.0)
     s = scipy.interpolate.splev(range(len(data)),rep)
     # plot(1:length(data),data,'b-',1:length(data),s,'k-',t,d2,'r--');  
 
