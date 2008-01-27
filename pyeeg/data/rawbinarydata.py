@@ -134,7 +134,7 @@ class RawBinaryEEG(DataWrapper):
         # get the eventOffsets
         if isinstance(eventInfo,EegEvents):
             eventOffsets = eventInfo['eegoffset']
-	eventOffsets = N.asarray(eventOffsets)
+	eventOffsets = N.asarray(eventInfo)
 	if len(eventOffsets.shape)==0:
 	    eventOffsets = [eventOffsets]
 	for evOffset in eventOffsets:
