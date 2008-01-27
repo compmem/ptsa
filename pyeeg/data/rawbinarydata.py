@@ -165,8 +165,8 @@ class RawBinaryEEG(DataWrapper):
         timeRange = N.linspace(sampStart,sampEnd,duration)
 
 	# make it a timeseries
-        if isinstance(eventInfo,Events):
-            dims = [Dim('event', eventInfo, 'event'),
+        if isinstance(eventInfo,EegEvents):
+            dims = [Dim('event', eventInfo.data, 'event'),
                     Dim('time',timeRange,'ms')]
         else:
             dims = [Dim('eventOffsets', eventOffsets, 'samples'),
