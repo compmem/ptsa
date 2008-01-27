@@ -423,7 +423,14 @@ class DimData(object):
 #         newDimData._reset_data_stats()
 #         return newDimData
 
-    def aggregate(self,dims,function,unit=None,dimval=True,**kwargs):
+    def apply_func(self,function,unit=None,*args,**kwargs):
+        """
+        """
+        newDimData = self.copy()
+        newDimData.data = function(newDimData.data,*args,**kwargs)
+        return newDimData
+
+    def aggregate(self,dims,function,unit=None,dimval=True,*args,**kwargs):
         """
         Return a copy of the data aggregated over the dimensions
         specified in the list dims with the passed in function. The
@@ -522,7 +529,7 @@ class DimData(object):
         # the dimension indices stored in newDimData.dim(dimname):
         newdat = newDimData.data
         for dimname in aggDimNames[::-1]:
-            newdat = function(newdat,newDimData.dim(dimname),**kwargs)
+            newdat = function(newdat,newDimData.dim(dimname),*args,**kwargs)
 
         # Update newDimData:
         newDimData.data = newdat
@@ -536,7 +543,7 @@ class DimData(object):
 
 
 
-    def margin(self,dim,function,unit=None):
+    def margin(self,dim,function,unit=None,*args,**kwargs):
         """
         Return a copy of the data aggregated over all but the
         specified dimension with the passed in function. The function
@@ -577,7 +584,7 @@ class DimData(object):
         tmpdata = N.reshape(N.transpose(self.data,totrans),toreshape)
         # Now that zstddata is a 2D array, we can just take the
         # function over the 2nd dimension:
-        tmpdata = function(tmpdata,1)
+        tmpdata = function(tmpdata,1,*args,**kwargs)
         
         # Now that we have the, we need to create a new DimData instance.
         # Create a new Dims instance:
