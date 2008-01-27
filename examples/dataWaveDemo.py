@@ -17,6 +17,9 @@ ev = createEventsFromMatFile('/home1/per/eeg/free/CH012/events/events.mat')
 
 # split out two conditions (recalled and not recalled)
 print "Filtering events..."
+rInd = ev['recalled']==1
+nInd = ev['recalled']==0
+
 rInd = ev.filterIndex('recalled==1')
 nInd = ev.filterIndex('recalled==0')
 

@@ -51,8 +51,13 @@ class Dim(object):
         
         :Returns: ``numpy.ndarray``
         """
+        return self.data[item]
+
+    def select(self,item):
+        """
+        Return a new Dim instance of the specified slice.
+        """
         return Dim(self.name,self.data.copy()[item],self.units)
-        #return self.data[item]
         
     def __setitem__(self, item, value):
         """
@@ -157,6 +162,13 @@ class Dims(object):
         outstr += ')'
         return outstr
 
+    def select(self,*args,**kwargs):
+        """Return a new Dims instance of only the Dims you want.  Not
+        currently implemented, but let us know if you ever need it (we
+        couldn't think of a reason.)
+        """
+        raise NotImplementedError
+
 
 class DimData(object):
     """
@@ -224,11 +236,16 @@ class DimData(object):
                 # we have a single name, so return the data from it
                 return self.dims[res.group()].data
             else:
-                # call select
-                return self.select(item)
+                # call select_ind and return the slice into the data
+                m_ind,ind = self._select_ind(item)
+                # set up the new data
+                return self.data[m_ind]
         if isinstance(item,tuple):
             # call select
-            return self.select(*item)
+            # call select_ind and return the slice into the data
+            m_ind,ind = self._select_ind(*item)
+            # set up the new data
+            return self.data[m_ind]
         else:
             # return the slice into the data
             return self.data[item]
@@ -243,7 +260,26 @@ class DimData(object):
         
         :Returns: ``None``
         """
-        self.data[item] = value
+        if isinstance(item,str):
+            # see if it's just a single dimension name
+            res = self.dims._nameOnlyRE.search(item)
+            if res:
+                # we have a single name, so return the data from it
+                self.dims[res.group()].data = value
+            else:
+                # call select_ind and return the slice into the data
+                m_ind,ind = self._select_ind(item)
+                # set up the new data
+                self.data[m_ind] = value
+        if isinstance(item,tuple):
+            # call select
+            # call select_ind and return the slice into the data
+            m_ind,ind = self._select_ind(*item)
+            # set up the new data
+            self.data[m_ind] = value
+        else:
+            # return the slice into the data
+            self.data[item] = value
 
     def _select_ind(self,*args,**kwargs):
         """

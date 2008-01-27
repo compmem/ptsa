@@ -194,10 +194,14 @@ class test_Dim(NumpyTestCase):
         for index, val in enumerate(new_vals):
             dim1[index] = val.copy()
             dim2[index] = val.copy()
-            self.assertEquals(sum(dim1[index].data==dim2[index].data), N.prod(N.shape(dim1[index].data)))
-            self.assertEquals(sum(dim1[index].data>=dim2[index].data), N.prod(N.shape(dim1[index].data)))
-            self.assertEquals(sum(dim1[index].data<=dim2[index].data), N.prod(N.shape(dim1[index].data)))
-            self.assertEquals(sum((dim1[index].data!=dim2[index].data)+1), N.prod(N.shape(dim1[index].data)))
+            self.assertEquals(sum(dim1[index].data==dim2[index].data),
+                              N.prod(N.shape(dim1[index].data)))
+            self.assertEquals(sum(dim1[index].data>=dim2[index].data),
+                              N.prod(N.shape(dim1[index].data)))
+            self.assertEquals(sum(dim1[index].data<=dim2[index].data),
+                              N.prod(N.shape(dim1[index].data)))
+            self.assertEquals(sum((dim1[index].data!=dim2[index].data)+1),
+                              N.prod(N.shape(dim1[index].data)))
             self.assertEquals(sum((dim1[index].data>dim2[index].data)+1), N.prod(N.shape(dim1[index].data)))
             self.assertEquals(sum((dim1[index].data<dim2[index].data)+1), N.prod(N.shape(dim1[index].data)))
             

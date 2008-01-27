@@ -13,60 +13,29 @@ import sys
 # class EventsMatFileError(DataException): pass
 # class FilterStringError(DataException): pass
 
+class Events2(object):
+    def __init__(self,data=None,dtype=None,**fields):
+
+        if data is None:
+            # create from fields
+            
+        else:
+            # create from data
+            
+        
+        self.data = newrecarray
+        
+    def __getitem__(self,item):
+        return self.data[item]
+    def __setitem__(self,item,value):
+        self.data[item] = value
+
+
 # data array subclass of recarray
 class DataArray(N.recarray):
-    """ Class that extends the record array so that it's easy to filter
-    your records based on various conditions.  """
-    def filterIndex(self,filterStr,iterate=False):
-        """
-        Return the boolean index to filter events based on a filter
-        string.  You only need to iterate if there is not a ufunc for
-        your test.  For example, if you want to perform a string.find
-        on a field in the events.
-        """
-        
-        # see if must iterate or vectorize
-        if not iterate:
-            # vectorize, so replace fields
-            for k in self.dtype.names:
-                # prepend "self." to fields in event structure
-                # RE makes sure to not replace substrings
-                filterStr = re.sub(r'\b'+k+r'\b','self.'+k,filterStr)
-                
-            # eval to set the boolean indices
-            try:
-                ind = eval(filterStr)
-            except:
-                raise str(sys.exc_info()[0])+"\n"+str(sys.exc_info()[1])+"\nThe filter string is not a valid Python expression!\nExample string:\n\'(var1==0) & (var2<=0)\'"
-        else:
-            # must iterate over each one to get indices
-            for k in self.dtype.names:
-                # prepend "self." and append "[i]" to fields in event structure
-                # RE makes sure to not replace substrings
-                filterStr = re.sub(r'\b'+k+r'\b','self.'+k+'[i]',filterStr)
-                
-            # apply filter to each item
-            try:
-                ind = eval(filterStr)
-            except:
-                raise str(sys.exc_info()[0])+"\n"+str(sys.exc_info()[1])+"\nThe filter string is not a valid Python expression!\nExample string:\n\'(var1==0) & (var2<=0)\'"
-
-        # return the ind as an array
-        return N.asarray(ind)
-
-    def filter(self,filterStr,iterate=False):
-        """
-        Run filterInd and return its application to the records. 
-
-	Note that this does not make a copy of the data, it only
-	slices it."""
-        # get the filter index
-        ind = self.filterIndex(filterStr,iterate)
-
-        # apply the filter
-	return self[ind]
-
-    def removeFields(self,*fieldsToRemove):
+    """ Class that extends the record array so that it's easy to
+    manipulate its fields."""
+    def remove_fields(self,*fieldsToRemove):
         """
         Return a new instance of the array with specified fields
         removed.
@@ -90,7 +59,7 @@ class DataArray(N.recarray):
         # return the new recarray
         return self.__class__(N.rec.fromarrays(arrays,names=names))
 
-    def addFields(self,**fields):
+    def add_fields(self,**fields):
         """ Add fields from the keyword args provided and return a new
         instance.  To add an empty field, pass a dtype as the array.
 
@@ -126,6 +95,7 @@ class DataArray(N.recarray):
         # return the new recarray
         return self.__class__(N.rec.fromarrays(arrays,names=names))
 
+    def extend(self,newdat)
 	
 class Events(DataArray):
     """Class to hold EEG events.  The record fields must include both
