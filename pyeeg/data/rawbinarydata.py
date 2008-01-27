@@ -100,7 +100,7 @@ class RawBinaryEEG(DataWrapper):
         # get the samplesize in ms
         samplesize = 1000./self.samplerate
         # get the number of buffer samples
-        buffer = int(N.ceil(BufferMS/samplesize))
+        buf = int(N.ceil(BufferMS/samplesize))
         # calculate the offset samples that contains the desired offsetMS
         offset = int(N.ceil((N.abs(OffsetMS)-samplesize*.5)/samplesize)*N.sign(OffsetMS))
 
@@ -108,8 +108,8 @@ class RawBinaryEEG(DataWrapper):
         duration = int(N.ceil((DurationMS+OffsetMS - samplesize*.5)/samplesize)) - offset + 1
         
         # add in the buffer
-        duration += 2*buffer
-        offset -= buffer
+        duration += 2*buf
+        offset -= buf
 
 #         # calculate the duration samples that contain the desired ending point
 #         buffer = int(N.ceil(BufferMS*self.samplerate/1000.))
@@ -173,7 +173,7 @@ class RawBinaryEEG(DataWrapper):
                                   dims,
                                   self.samplerate,
                                   tdim=-1,
-                                  buffer=buffer)
+                                  buf=buf)
 
 	# filter if desired
 	if not filtFreq is None:
@@ -187,9 +187,9 @@ class RawBinaryEEG(DataWrapper):
             eventdata.resample(resampledRate)
 
         # remove the buffer and set the time range
-	if eventdata.buffer > 0 and not keepBuffer:
+	if eventdata.buf > 0 and not keepBuffer:
 	    # remove the buffer
-            eventdata.removeBuffer()
+            eventdata.removeBuf()
 
         # multiply by the gain and return
 	eventdata.data = eventdata.data*self.gain

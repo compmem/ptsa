@@ -9,7 +9,7 @@ class EegTimeSeries(DimData):
     """
     Class to hold EEG timeseries data.
     """
-    def __init__(self,data,dims,samplerate,unit=None,tdim=-1,buffer=0):
+    def __init__(self,data,dims,samplerate,unit=None,tdim=-1,buf=0):
         """
         """
         # call the base class init
@@ -26,8 +26,8 @@ class EegTimeSeries(DimData):
             # turn it into a positive dim
             self.tdim = self.ndim - 1
         
-        # set the buffer information
-        self.buffer = buffer
+        # set the buf information
+        self.buf = buf
 
     def copy(self):
         """
@@ -35,23 +35,23 @@ class EegTimeSeries(DimData):
         newdata = self.data.copy()
         newdims = self.dims.copy()
         return EegTimeSeries(newdata,newdims,self.samplerate,
-                             unit=self.unit,tdim=self.tdim,buffer=self.buffer)
+                             unit=self.unit,tdim=self.tdim,buf=self.buf)
 
-    def removeBuffer(self):
+    def removeBuf(self):
 	"""Use the information contained in the time series to remove the
-	buffer reset the time range.  If buffer is 0, no action is
+	buf reset the time range.  If buf is 0, no action is
 	performed."""
 	# see if we need to remove anything
-	if self.buffer>0:
-            # remove the buffer from the data
-            self.data = self.data.take(range(self.buffer,
-                                             self.shape[self.tdim]-self.buffer),self.tdim)
+	if self.buf>0:
+            # remove the buf from the data
+            self.data = self.data.take(range(self.buf,
+                                             self.shape[self.tdim]-self.buf),self.tdim)
 
-            # remove the buffer from the tdim
-            self.dims[self.tdim] = self.dims[self.tdim][self.buffer:self.shape[self.tdim]-self.buffer]
+            # remove the buf from the tdim
+            self.dims[self.tdim] = self.dims[self.tdim].select(slice(self.buf,self.shape[self.tdim]-self.buf))
 
-            # reset buffer to indicate it was removed
-	    self.buffer = 0
+            # reset buf to indicate it was removed
+	    self.buf = 0
 
             # reset the shape
             self.shape = self.data.shape
@@ -87,8 +87,8 @@ class EegTimeSeries(DimData):
         # set the time dimension
         self.dims[self.tdim].data = newTimeRange
 
-        # set the new buffer lengths
-        self.buffer = int(N.round(float(self.buffer)*resampledRate/float(self.samplerate)))
+        # set the new buf lengths
+        self.buf = int(N.round(float(self.buf)*resampledRate/float(self.samplerate)))
 
         # set the new samplerate
         self.samplerate = resampledRate

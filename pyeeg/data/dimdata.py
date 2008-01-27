@@ -53,7 +53,7 @@ class Dim(object):
         """
         return self.data[item]
 
-    def select(self,item):
+    def select(self, item):
         """
         Return a new Dim instance of the specified slice.
         """
@@ -233,7 +233,7 @@ class DimData(object):
             # see if it's just a single dimension name
             res = self.dims._nameOnlyRE.search(item)
             if res:
-                # we have a single name, so return the data from it
+                # we have a single name, so return the data from that dimension
                 return self.dims[res.group()].data
             else:
                 # call select_ind and return the slice into the data
@@ -390,7 +390,7 @@ class DimData(object):
         newdat = self.data[m_ind]
 
         # index the dims
-        newdims = [dim[ind[d]] for dim,d in zip(self.dims,range(len(ind)))]
+        newdims = [dim.select(ind[d]) for dim,d in zip(self.dims,range(len(ind)))]
         
         # make the new DimData
         # by doing this as a copy it makes sure that we return the

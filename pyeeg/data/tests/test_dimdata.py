@@ -323,7 +323,7 @@ class test_DimData(NumpyTestCase):
         #CTW: How can isinstance(item,tuple) be true?
         #self.assert(((min(test1['time>0']['time']))>0),True)
         #print ((min(test1['time>0']['time']))>0)
-        self.assertEquals(((min(test1['time>0']['time']))>0),True)
+        self.assertEquals(((min(test1.select('time>0')['time']))>0),True)
         #CTW: Is it necessary to test this with __getitem__(), too? Probably not.
         
     def test_setitem(self):
@@ -351,7 +351,7 @@ class test_DimData(NumpyTestCase):
     def test_select(self):
         #CTW: minimal test ... there probably should be more 
         test1 = DimData(self.dat200,self.dims200)
-        self.assertEquals(((min(test1['time>0']['time']))>0),True)
+        self.assertEquals(((min(test1.select('time>0')['time']))>0),True)
     
     def test_extend(self):
         #CTW: Let's chat about this function. I think it's a bit dangerous, because it lets you do crazy stuff without complaining.
