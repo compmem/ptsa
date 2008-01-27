@@ -177,13 +177,6 @@ class DimData(object):
             # turn the list into a Dims class
             self.dims = Dims(dims)
 
-        # make sure the lengths of the dims match the shape of the data
-        if data.shape != tuple([len(dim.data) for dim in self.dims]):
-            # raise error
-            raise ValueError("The length of dims must match the data shape.\nData shape: "+
-                             str(data.shape)+"\nShape of the dims: "+
-                             str(tuple([len(dim.data) for dim in self.dims])))
-
         # set the unit
         self.unit = unit
 
@@ -192,6 +185,12 @@ class DimData(object):
     def _reset_data_stats(self):
         """
         """
+        # make sure the lengths of the dims match the shape of the data
+        if self.data.shape != tuple([len(d.data) for d in self.dims]):
+            # raise error
+            raise ValueError("The length of dims must match the data shape.\nData shape: "+
+                             str(self.data.shape)+"\nShape of the dims: "+
+                             str(tuple([len(d.data) for d in self.dims])))
         # describe the data
         self.dtype = self.data.dtype
         self.shape = self.data.shape
@@ -296,7 +295,9 @@ class DimData(object):
         or
         data.find(time=data['time']>0,events=data['events'].recalled==True)
         or 
-        data.find('time>kwargs['t']','events.recalled==kwargs['val']',t=0,val=True)
+        data.find("time>kwargs['t']","events.recalled==kwargs['val']",t=0,val=True)
+        the above can be written with single quoted strings as follows:
+        data.find('time>kwargs[\'t\']','events.recalled==kwargs[\'val\']',t=0,val=True)
 
         data.data[ind], where ind is the return value of the find method and
         data.select(filterstring).data return arrays with the same shapes and values,
@@ -317,7 +318,9 @@ class DimData(object):
         or
         data.data_ind(time=data['time']>0,events=data['events'].recalled==True)
         or 
-        data.data_ind('time>kwargs['t']','events.recalled==kwargs['val']',t=0,val=True)
+        data.find("time>kwargs['t']","events.recalled==kwargs['val']",t=0,val=True)
+        the above can be written with single quoted strings as follows:
+        data.find('time>kwargs[\'t\']','events.recalled==kwargs[\'val\']',t=0,val=True)
 
         data.data[ind], where ind is the return value of the data_ind method and
         data.select(filterstring).data return arrays with the same shapes and values,
@@ -340,7 +343,9 @@ class DimData(object):
         or
         data.select(time=data['time']>0,events=data['events'].recalled==True)
         or 
-        data.select('time>kwargs['t']','events.recalled==kwargs['val']',t=0,val=True)
+        data.find("time>kwargs['t']","events.recalled==kwargs['val']",t=0,val=True)
+        the above can be written with single quoted strings as follows:
+        data.find('time>kwargs[\'t\']','events.recalled==kwargs[\'val\']',t=0,val=True)
 
         To get a tuple of index arrays for the selected conditions use the find method.
         """
@@ -382,7 +387,7 @@ class DimData(object):
 #         newDimData._reset_data_stats()
 #         return newDimData
 
-    def aggregate(self,dims,function,unit=None,dimval=True):
+    def aggregate(self,dims,function,unit=None,dimval=True,**kwargs):
         """
         Return a copy of the data aggregated over the dimensions
         specified in the list dims with the passed in function. The
@@ -481,7 +486,7 @@ class DimData(object):
         # the dimension indices stored in newDimData.dim(dimname):
         newdat = newDimData.data
         for dimname in aggDimNames[::-1]:
-            newdat = function(newdat,newDimData.dim(dimname))
+            newdat = function(newdat,newDimData.dim(dimname),**kwargs)
 
         # Update newDimData:
         newDimData.data = newdat
