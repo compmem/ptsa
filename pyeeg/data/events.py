@@ -134,7 +134,7 @@ for each event."""
             # get the eventOffsets from that source
             ind = events['eegsrc']==src
             #evOffsets = events['eegoffset'][ind]
-            srcEvents = events.select(ind)
+            srcEvents = self.select(ind)
 
             #print "Loading %d events from %s" % (ind.sum(),src)
                                       
