@@ -1,7 +1,7 @@
 
 # local imports
 from datawrapper import DataWrapper
-from events import Events,DataArray
+from events import Events,EegEvents
 from dimdata import Dim,Dims
 from eegtimeseries import EegTimeSeries
 
@@ -76,8 +76,8 @@ class RawBinaryEEG(DataWrapper):
         return params
         
 
-    def getDataMS(self,channel,eventInfo,DurationMS,OffsetMS,BufferMS,
-                  resampledRate=None,filtFreq=None,filtType='stop',filtOrder=4,keepBuffer=False):
+    def get_event_data(self,channel,eventInfo,DurationMS,OffsetMS,BufferMS,resampledRate=None,
+                       filtFreq=None,filtType='stop',filtOrder=4,keepBuffer=False):
         """
         Return an dictionary containing data for the specified channel
         in the form [events,duration].
@@ -132,7 +132,7 @@ class RawBinaryEEG(DataWrapper):
 	# loop over events
 	eventdata = []
         # get the eventOffsets
-        if isinstance(eventInfo,Events):
+        if isinstance(eventInfo,EegEvents):
             eventOffsets = eventInfo['eegoffset']
 	eventOffsets = N.asarray(eventOffsets)
 	if len(eventOffsets.shape)==0:
@@ -250,11 +250,10 @@ def createEventsFromMatFile(matfile):
 
     # see if process into DataArray or Events
     if hasEEGInfo:
-	#newrec = Events(newrec)
-	newrec = newrec.view(Events)
+	newrec = EegEvents(newrec)
     else:
-	#newrec = DataArray(newrec)
-	newrec = newrec.view(DataArray)
+	newrec = Events(newrec)
+
     return newrec
 
 

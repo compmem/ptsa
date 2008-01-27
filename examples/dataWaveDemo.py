@@ -20,9 +20,6 @@ print "Filtering events..."
 rInd = ev['recalled']==1
 nInd = ev['recalled']==0
 
-rInd = ev.filterIndex('recalled==1')
-nInd = ev.filterIndex('recalled==0')
-
 # do sample erp by getting raw eeg and doing an average for a
 # single channel
 
@@ -40,20 +37,20 @@ filtFreq = [58.0,62.0]
 
 # load the eeg data
 print "Loading EEG data..."
-rEEG = ev[rInd].getDataMS(chan,
-                          durationMS,
-                          offsetMS,
-                          bufferMS,
-                          resampledRate,
-                          filtFreq=filtFreq,
-                          keepBuffer=True)
-nEEG = ev[nInd].getDataMS(chan,
-                          durationMS,
-                          offsetMS,
-                          bufferMS,
-                          resampledRate,
-                          filtFreq=filtFreq,
-                          keepBuffer=True)
+rEEG = ev.select(rInd).get_data(chan,
+                                durationMS,
+                                offsetMS,
+                                bufferMS,
+                                resampledRate,
+                                filtFreq=filtFreq,
+                                keepBuffer=True)
+nEEG = ev.select(nInd).get_data(chan,
+                                durationMS,
+                                offsetMS,
+                                bufferMS,
+                                resampledRate,
+                                filtFreq=filtFreq,
+                                keepBuffer=True)
 
 # power for recalled events
 print "Calculating power..."
