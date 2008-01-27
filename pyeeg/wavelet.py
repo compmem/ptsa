@@ -137,7 +137,7 @@ def tsPhasePow(freqs,tseries,width=5,resample=None,keepBuffer=False,
         # turn into a timeseries
         powerAll = EegTimeSeries(res,tsdims,
                                  tseries.samplerate,unit='XXX get pow unit',
-                                 tdim=-1,buffer=tseries.buffer)
+                                 tdim=-1,buf=tseries.buf)
         powerAll.data[powerAll.data<=0] = N.finfo(powerAll.data.dtype).eps
         # see if resample
         if resample:
@@ -147,13 +147,13 @@ def tsPhasePow(freqs,tseries,width=5,resample=None,keepBuffer=False,
             powerAll.data = N.power(10,powerAll.data)
         # see if remove buffer
         if not keepBuffer:
-            powerAll.removeBuffer()
+            powerAll.removeBuf()
     
     if toReturn == 'phase' or toReturn == 'both':
         # get the phase matrix
         phaseAll = EegTimeSeries(res,tsdims,
                                  tseries.samplerate,unit='radians',
-                                 tdim=-1,buffer=tseries.buffer)
+                                 tdim=-1,buf=tseries.buf)
         if resample:
             # must unwrap before resampling
             phaseAll.data = N.unwrap(phaseAll.data)
@@ -161,7 +161,7 @@ def tsPhasePow(freqs,tseries,width=5,resample=None,keepBuffer=False,
             phaseAll.data = N.mod(phaseAll.data+N.pi,2*N.pi)-N.pi;            
         # see if remove buffer
         if not keepBuffer:
-            phaseAll.removeBuffer()
+            phaseAll.removeBuf()
     
     # see what to return
     if toReturn == 'pow':
