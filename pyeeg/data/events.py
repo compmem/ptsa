@@ -13,7 +13,7 @@ import sys
 # class EventsMatFileError(DataException): pass
 # class FilterStringError(DataException): pass
 
-class Events2(object):
+class Events(object):
     def __init__(self,data=None,dtype=None,**fields):
 
         if data is None:
@@ -27,8 +27,73 @@ class Events2(object):
         
     def __getitem__(self,item):
         return self.data[item]
+
     def __setitem__(self,item,value):
         self.data[item] = value
+
+    def extend(self,newrows):
+        pass
+    
+    def remove_fields(self,*fieldsToRemove):
+        """
+        Return a new instance of the array with specified fields
+        removed.
+        """
+        # sequence of arrays and names
+        arrays = []
+        names = ''
+
+        # loop over fields, keeping if not matching fieldName
+        for field in self.data.dtype.names:
+            # don't add the field if in fieldsToRemove list
+            if sum(map(lambda x: x==field,fieldsToRemove)) == 0:
+                # append the data
+                arrays.append(self[field])
+                if len(names)>0:
+                    # append ,
+                    names = names+','
+                # append the name
+                names = names+field
+
+        # return the new recarray
+        return self.__class__(N.rec.fromarrays(arrays,names=names))
+
+    def add_fields(self,**fields):
+        """ Add fields from the keyword args provided and return a new
+        instance.  To add an empty field, pass a dtype as the array.
+
+        addFields(name1=array1, name2=dtype('i4'))
+        
+        """
+        # sequence of arrays and names from starting recarray
+        arrays = map(lambda x: self[x], self.data.dtype.names)
+        names = string.join(self.data.dtype.names,',')
+        
+        # loop over the kwargs of field
+        for name,data in fields.iteritems():
+            # see if already there, error if so
+            if self.data.dtype.fields.has_key(name):
+                # already exists
+                raise AttributeError, 'Field "'+name+'" already exists.'
+            
+            # append the array and name
+            if isinstance(data,N.dtype):
+                # add empty array the length of the data
+                arrays.append(N.empty(len(self),data))
+            else:
+                # add the data as an array
+                arrays.append(data)
+
+            # add the name
+            if len(names)>0:
+                # append ,
+                names = names+','
+            # append the name
+            names = names+name
+
+        # return the new recarray
+        return self.__class__(N.rec.fromarrays(arrays,names=names))
+
 
 
 # data array subclass of recarray
@@ -95,7 +160,6 @@ class DataArray(N.recarray):
         # return the new recarray
         return self.__class__(N.rec.fromarrays(arrays,names=names))
 
-    def extend(self,newdat)
 	
 class Events(DataArray):
     """Class to hold EEG events.  The record fields must include both

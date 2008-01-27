@@ -158,30 +158,14 @@ class test_Dim(NumpyTestCase):
         name = "test 1"
         data = self.dat200
         dim1 = Dim(name,data)
-        dim2 = dim1[:]
-        self.assertEquals(dim1.name,dim2.name)
-        N.testing.assert_array_almost_equal(dim1.data,dim2.data)
-        self.assertEquals(dim1.units,dim2.units)
-        dim3 = dim1.__getitem__(range(len(dim1.data)))
-        self.assertEquals(dim1.name,dim3.name)
-        self.assertEquals(dim2.name,dim3.name)
-        N.testing.assert_array_almost_equal(dim1.data,dim3.data)
-        N.testing.assert_array_almost_equal(dim2.data,dim3.data)
-        self.assertEquals(dim1.units,dim3.units)
-        self.assertEquals(dim2.units,dim3.units)
+        N.testing.assert_array_equal(data[20:30], dim1[20:30])
 
     def test_setitem(self):
         name = "test 1"
         data = self.dat200
         dim = Dim(name,data)
-        new_vals = N.random.random_sample(N.shape(dim.data))
-        for index, val in enumerate(new_vals):
-            dim[index] = val
-            N.testing.assert_array_almost_equal(dim[index].data,new_vals[index])
-        new_vals = N.random.random_sample(N.shape(dim.data))
-        for index, val in enumerate(new_vals):
-            dim.__setitem__(index,val)
-            N.testing.assert_array_almost_equal(dim[index].data,new_vals[index])
+        dim[10:20] = data[20:30]
+        N.testing.assert_array_equal(dim.data[10:20], data[20:30])
         
     def test_comparisons(self):
         name1 = "test 1"
@@ -194,53 +178,16 @@ class test_Dim(NumpyTestCase):
         for index, val in enumerate(new_vals):
             dim1[index] = val.copy()
             dim2[index] = val.copy()
-            self.assertEquals(sum(dim1[index].data==dim2[index].data),
-                              N.prod(N.shape(dim1[index].data)))
-            self.assertEquals(sum(dim1[index].data>=dim2[index].data),
-                              N.prod(N.shape(dim1[index].data)))
-            self.assertEquals(sum(dim1[index].data<=dim2[index].data),
-                              N.prod(N.shape(dim1[index].data)))
-            self.assertEquals(sum((dim1[index].data!=dim2[index].data)+1),
-                              N.prod(N.shape(dim1[index].data)))
-            self.assertEquals(sum((dim1[index].data>dim2[index].data)+1), N.prod(N.shape(dim1[index].data)))
-            self.assertEquals(sum((dim1[index].data<dim2[index].data)+1), N.prod(N.shape(dim1[index].data)))
-            
-            self.assertEquals(sum(dim1[index].data.__eq__(dim2[index].data)), N.prod(N.shape(dim1[index].data)))
-            self.assertEquals(sum(dim1[index].data.__ge__(dim2[index].data)), N.prod(N.shape(dim1[index].data)))
-            self.assertEquals(sum(dim1[index].data.__le__(dim2[index].data)), N.prod(N.shape(dim1[index].data)))
-            self.assertEquals(sum((dim1[index].data.__ne__(dim2[index].data))+1), N.prod(N.shape(dim1[index].data)))
-            self.assertEquals(sum((dim1[index].data.__gt__(dim2[index].data))+1), N.prod(N.shape(dim1[index].data)))
-            self.assertEquals(sum((dim1[index].data.__lt__(dim2[index].data))+1), N.prod(N.shape(dim1[index].data)))
-            
-            dim2[index] = val+1
-            self.assertEquals(sum((dim1[index].data==dim2[index].data)+1), N.prod(N.shape(dim1[index].data)))
-            self.assertEquals(sum((dim1[index].data>=dim2[index].data)+1), N.prod(N.shape(dim1[index].data)))
-            self.assertEquals(sum(dim1[index].data<=dim2[index].data), N.prod(N.shape(dim1[index].data)))
-            self.assertEquals(sum(dim1[index].data!=dim2[index].data), N.prod(N.shape(dim1[index].data)))
-            self.assertEquals(sum((dim1[index].data>dim2[index].data)+1), N.prod(N.shape(dim1[index].data)))
-            self.assertEquals(sum(dim1[index].data<dim2[index].data), N.prod(N.shape(dim1[index].data)))
-            
-            self.assertEquals(sum((dim1[index].data.__eq__(dim2[index].data))+1), N.prod(N.shape(dim1[index].data)))
-            self.assertEquals(sum((dim1[index].data.__ge__(dim2[index].data))+1), N.prod(N.shape(dim1[index].data)))
-            self.assertEquals(sum(dim1[index].data.__le__(dim2[index].data)), N.prod(N.shape(dim1[index].data)))
-            self.assertEquals(sum(dim1[index].data.__ne__(dim2[index].data)), N.prod(N.shape(dim1[index].data)))
-            self.assertEquals(sum((dim1[index].data.__gt__(dim2[index].data))+1), N.prod(N.shape(dim1[index].data)))
-            self.assertEquals(sum(dim1[index].data.__lt__(dim2[index].data)), N.prod(N.shape(dim1[index].data)))
-            
-            dim2[index] = val-1
-            self.assertEquals(sum((dim1[index].data==dim2[index].data)+1), N.prod(N.shape(dim1[index].data)))
-            self.assertEquals(sum(dim1[index].data>=dim2[index].data), N.prod(N.shape(dim1[index].data)))
-            self.assertEquals(sum((dim1[index].data<=dim2[index].data)+1), N.prod(N.shape(dim1[index].data)))
-            self.assertEquals(sum(dim1[index].data!=dim2[index].data), N.prod(N.shape(dim1[index].data)))
-            self.assertEquals(sum(dim1[index].data>dim2[index].data), N.prod(N.shape(dim1[index].data)))
-            self.assertEquals(sum((dim1[index].data<dim2[index].data)+1), N.prod(N.shape(dim1[index].data)))      
-
-            self.assertEquals(sum((dim1[index].data.__eq__(dim2[index].data))+1), N.prod(N.shape(dim1[index].data)))
-            self.assertEquals(sum(dim1[index].data.__ge__(dim2[index].data)), N.prod(N.shape(dim1[index].data)))
-            self.assertEquals(sum((dim1[index].data.__le__(dim2[index].data))+1), N.prod(N.shape(dim1[index].data)))
-            self.assertEquals(sum(dim1[index].data.__ne__(dim2[index].data)), N.prod(N.shape(dim1[index].data)))
-            self.assertEquals(sum(dim1[index].data.__gt__(dim2[index].data)), N.prod(N.shape(dim1[index].data)))
-            self.assertEquals(sum((dim1[index].data.__lt__(dim2[index].data))+1), N.prod(N.shape(dim1[index].data)))      
+            self.assertEquals(sum(dim1[index]==dim2[index]),
+                              N.prod(N.shape(dim1[index])))
+            self.assertEquals(sum(dim1[index]>=dim2[index]),
+                              N.prod(N.shape(dim1[index])))
+            self.assertEquals(sum(dim1[index]<=dim2[index]),
+                              N.prod(N.shape(dim1[index])))
+            self.assertEquals(sum((dim1[index]!=dim2[index])+1),
+                              N.prod(N.shape(dim1[index])))
+            self.assertEquals(sum((dim1[index]>dim2[index])+1), N.prod(N.shape(dim1[index])))
+            self.assertEquals(sum((dim1[index]<dim2[index])+1), N.prod(N.shape(dim1[index])))
 
 # test Dims
 class test_Dims(NumpyTestCase):
