@@ -136,9 +136,6 @@ for each event."""
 	# get ready to load dat
 	eventdata = None
         
-        #if len(self.data.shape)==0:
-	#    events = [self.data]
-	#else:
         events = self.data
 
         # speed up by getting unique event sources first
