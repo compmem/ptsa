@@ -15,7 +15,7 @@ class Dim(object):
         """
         """
         self.name = name
-        self.data = N.asarray(data)
+        self.data = N.atleast_1d(data)
         self.units = units
 
     def copy(self):
@@ -210,6 +210,7 @@ class DimData(object):
 
     def copy(self):
         """
+        Return a copy of this DimData instance.
         """
         newdata = self.data.copy()
         newdims = self.dims.copy()

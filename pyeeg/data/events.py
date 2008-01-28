@@ -35,6 +35,16 @@ class Events(object):
         """
         return self.__class__(self.data[item])
     
+    def copy(self):
+        """
+        Return a copy of this Events instance.
+        """
+        if self.data is None:
+            new_dat = None
+        else:
+            new_dat = self.data.copy()        
+        return Events(new_dat)
+    
     def extend(self,newrows):
         raise NotImplementedError
     
@@ -104,6 +114,16 @@ class EegEvents(Events):
 eegsrc and eegoffset so that the class can know how to retrieve data
 for each event."""
     
+    def copy(self):
+        """
+        Return a copy of this EegEvents instance.
+        """
+        if self.data is None:
+            new_dat = None
+        else:
+            new_dat = self.data.copy()        
+        return EegEvents(new_dat)
+
     def get_data(self,channel,DurationMS,OffsetMS,BufferMS,resampledRate=None,
                   filtFreq=None,filtType='stop',filtOrder=4,keepBuffer=False):
         """
@@ -116,10 +136,10 @@ for each event."""
 	# get ready to load dat
 	eventdata = None
         
-        if len(self.data.shape)==0:
-	    events = [self.data]
-	else:
-	    events = self.data
+        #if len(self.data.shape)==0:
+	#    events = [self.data]
+	#else:
+        events = self.data
 
         # speed up by getting unique event sources first
         usources = N.unique1d(events['eegsrc'])
@@ -127,13 +147,17 @@ for each event."""
         # loop over unique sources
         for src in usources:
             # get the eventOffsets from that source
-            ind = events['eegsrc']==src
-            #evOffsets = events['eegoffset'][ind]
-            srcEvents = self.select(ind)
+            ind = N.atleast_1d(events['eegsrc']==src)
+            if len(ind) <= 1:
+                if ind:
+                    srcEvents=self.copy()
+                else:
+                    raise ValueError
+            else:
+                srcEvents = self.select(ind)
 
             #print "Loading %d events from %s" % (ind.sum(),src)
-                                      
-            # get the timeseries for those events
+            # get the timeseries for those events            
             newdat = src.get_event_data(channel,
                                         srcEvents,
                                         DurationMS,
