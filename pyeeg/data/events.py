@@ -36,7 +36,7 @@ class Events(object):
         return self.__class__(self.data[item])
     
     def extend(self,newrows):
-        pass
+        raise NotImplementedError
     
     def remove_fields(self,*fieldsToRemove):
         """
