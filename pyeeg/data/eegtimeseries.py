@@ -19,12 +19,17 @@ class EegTimeSeries(DimData):
         self.samplerate = samplerate
         
         # get the time dimension
-        if tdim >= 0:
-            # use it
-            self.tdim = tdim
+        if isinstance(tdim,str):
+            # get the dimension from a name
+            self.tdim = self.dim[tdim]
         else:
-            # turn it into a positive dim
-            self.tdim = self.ndim - 1
+            # is a numerical dimension
+            if tdim >= 0:
+                # use it
+                self.tdim = tdim
+            else:
+                # turn it into a positive dim
+                self.tdim = self.ndim - 1
         
         # set the buf information
         self.buf = buf
