@@ -73,7 +73,7 @@ pylab.ylabel('Voltage (mV)')
 fig+=1
 pylab.figure(fig)
 pylab.plot(rPow['freq'],N.squeeze(rPow.aggregate('time',N.mean).data),'r')
-pylab.plot(nPow['freq'],N.squeeze(nPow.data.mean(nPow.dim['time'])),'b')
+pylab.plot(nPow['freq'],N.squeeze(nPow.data.mean(nPow.dim('time'))),'b')
 pylab.legend(('Recalled','Not Recalled'))
 pylab.xlabel('Frequency (Hz)')
 pylab.ylabel(r'Power ($log_{10}(mV^2)$)')
