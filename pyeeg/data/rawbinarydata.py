@@ -100,7 +100,7 @@ class RawBinaryEEG(DataWrapper):
         # get the samplesize in ms
         samplesize = 1./self.samplerate
         # get the number of buffer samples
-        buf_samp = int(N.ceil(BufferMS/samplesize))
+        buf_samp = int(N.ceil(buf/samplesize))
         # calculate the offset samples that contains the desired offsetMS
         offset_samp = int(N.ceil((N.abs(offset)-samplesize*.5)/samplesize)*N.sign(offset))
 

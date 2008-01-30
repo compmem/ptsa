@@ -124,7 +124,7 @@ for each event."""
             new_dat = self.data.copy()        
         return EegEvents(new_dat)
 
-    def get_data(self,channel,DurationMS,OffsetMS,BufferMS,resampledRate=None,
+    def get_data(self,channel,dur,offset,buf,resampledRate=None,
                   filtFreq=None,filtType='stop',filtOrder=4,keepBuffer=False):
         """
         Return the requested range of data for each event by using the
@@ -157,9 +157,9 @@ for each event."""
             # get the timeseries for those events            
             newdat = src.get_event_data(channel,
                                         srcEvents,
-                                        DurationMS,
-                                        OffsetMS,
-                                        BufferMS,
+                                        dur,
+                                        offset,
+                                        buf,
                                         resampledRate,
                                         filtFreq,
                                         filtType,
