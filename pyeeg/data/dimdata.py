@@ -604,6 +604,8 @@ class DimData(object):
     def get_bins(self,dim,bins,function,unit=None,number_bins=True,dim_unit=None,error_on_nonexact=True,**kwargs):
         """
         Return a copy of the data with dimension dim binned as specified.
+        Example usage:
+          data.get_bins('time',10,numpy.mean,unit='mean voltage',number_bins=False,dim_unit='time bin midpoint')
         Input:
           dim
             The dimension to be binned. Can be name or number.
