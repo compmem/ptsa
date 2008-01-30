@@ -137,7 +137,7 @@ def tsPhasePow(freqs,tseries,width=5,resample=None,keepBuffer=False,
         # turn into a timeseries
         powerAll = TimeSeries(res,tsdims,
                               tseries.samplerate,unit='XXX get pow unit',
-                              tdim=-1,buf=tseries.buf)
+                              tdim=-1,buf_samp=tseries.buf_samp)
         powerAll.data[powerAll.data<=0] = N.finfo(powerAll.data.dtype).eps
         # see if resample
         if resample:
@@ -153,7 +153,7 @@ def tsPhasePow(freqs,tseries,width=5,resample=None,keepBuffer=False,
         # get the phase matrix
         phaseAll = TimeSeries(res,tsdims,
                               tseries.samplerate,unit='radians',
-                              tdim=-1,buf=tseries.buf)
+                              tdim=-1,buf_samp=tseries.buf_samp)
         if resample:
             # must unwrap before resampling
             phaseAll.data = N.unwrap(phaseAll.data)
@@ -238,85 +238,4 @@ def calcPhasePow(freqs,dat,samplerate,axis=-1,width=5,verbose=False,toReturn='bo
     elif toReturn == 'both':
         return phaseAll,powerAll
 
-
-
-#     # convert negative axis to positive axis
-#     rnk = len(origshape)
-    
-#     # set time axis, used for decimation
-#     taxis = axis
-#     if taxis < 0: 
-# 	taxis = taxis + rnk
-	
-#     # add one b/c of new freq dim at beginning
-#     taxis = taxis + 1
-
-#     # see if decimate
-#     samplerate = dat.samplerate
-#     timeRange = dat.time
-#     buffer = dat.bufLen
-#     if not downsample is None and downsample != samplerate:
-# 	if verbose:
-# 	    sys.stdout.write('Decimating...')
-# 	    sys.stdout.flush()
-#         # set the decimation ratio
-#         dmate = int(N.round(samplerate/downsample))
-
-# 	if not phaseOnly:
-# 	    # must log transform powerAll before decimating
-# 	    powerAll[powerAll<=0] = N.finfo(powerAll.dtype).eps
-# 	    powerAll = N.log10(powerAll)
-# 	    powerAll = decimate(powerAll,dmate,axis=taxis);
-# 	    powerAll = N.power(10,powerAll)
-
-# 	if not powOnly:
-# 	    # decimate the unwraped phase, then wrap it back
-# 	    phaseAll = N.mod(decimate(N.unwrap(phaseAll),dmate)+N.pi,2*N.pi)-N.pi;
-
-# 	# redo the time and reset the samplerate
-# 	samplerate = downsample
-# 	if dat.bufLen > 0:
-# 	    # redo using the buffer
-# 	    timeRange = N.linspace(dat.OffsetMS-dat.BufferMS,
-# 				   dat.OffsetMS+dat.DurationMS+dat.BufferMS,
-# 				   phaseAll.shape[taxis])
-# 	    # reset the buffer
-# 	    buffer = int(N.fix((dat.BufferMS)*samplerate/1000.))
-# 	else:
-# 	    # redo with no buffer
-# 	    timeRange = N.linspace(dat.OffsetMS,
-# 				   dat.OffsetMS+dat.DurationMS,
-# 				   phaseAll.shape[taxis])
-# 	if verbose:
-# 	    sys.stdout.write('Done!\n')
-# 	    sys.stdout.flush()
-
-#     # make dictinary of results
-#     res = {'freqs': freqs,
-# 	   'width': width,
-# 	   'samplerate': samplerate,
-# 	   'time': timeRange,
-# 	   'OffsetMS': dat.OffsetMS,
-# 	   'DurationMS': dat.DurationMS,
-# 	   'BufferMS': dat.BufferMS,
-# 	   'bufLen': buffer}
-#     if not powOnly:
-# 	res['phase'] = phaseAll
-#     if not phaseOnly:
-# 	res['power'] = powerAll
-	   
-#     #res = DataDict(res) 
-#     # XXX Replace with TimeSeries XXX
-
-#     # see if remove the buffer
-#     if not keepBuffer:
-# 	toRemove = []
-# 	if not powOnly:
-# 	    toRemove.append('phase')
-# 	if not phaseOnly:
-# 	    toRemove.append('power')
-# 	res.removeBuffer(toRemove,axis=taxis)
-    
-#     # return the results
-#     return res
 
