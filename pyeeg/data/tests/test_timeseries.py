@@ -128,8 +128,8 @@ class test_TimeSeries(NumpyTestCase):
         ts200.removeBuf()
         ts50.removeBuf()
         N.testing.assert_equal(ts200.shape[:],ts50.shape[:])
-        print type(ts200['time'])
-        print type(ts50['time'])
+        #print type(ts200['time'])
+        #print type(ts50['time'])
         N.testing.assert_array_almost_equal(ts200['time'],ts50['time'],decimal=6)
         N.testing.assert_array_almost_equal(ts200.data[:],ts50.data[:],decimal=6)
 
