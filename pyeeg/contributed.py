@@ -4,7 +4,7 @@ import sys
 
 #from filter import decimate
 #from helper import reshapeTo2D,reshapeFrom2D
-from pyeeg.data import EegTimeSeries,Dim,Dims,DimData
+from pyeeg.data import TimeSeries,Dim,Dims,DimData
 from pyeeg import wavelet
 import scipy.stats as stats
 
@@ -15,8 +15,8 @@ import pdb
 def tsZtransPow(freqs,tseries,zTrans=True,log=True,width=5,resample=None,
                 keepBuffer=False,verbose=False,toReturn='both',freqDimName='freq'):
     """
-    Calculate z-transformed power (and optionally phase) on an
-    EegTimeSeries, returning new EegTimeSeries instances.
+    Calculate z-transformed power (and optionally phase) on a
+    TimeSeries, returning new TimeSeries instances.
     """
     if (toReturn != 'both') and (toReturn != 'pow'):
         raise ValueError("toReturn must be \'pow\'or \'both\' to specify\
@@ -61,7 +61,7 @@ def tsZtransPow(freqs,tseries,zTrans=True,log=True,width=5,resample=None,
         zmean = zTrans[0]
         zstd = zTrans[1]
     else: # zmean and zstd must be calculated
-        if isinstance(zTrans,EegTimeSeries):
+        if isinstance(zTrans,TimeSeries):
             # Get the power for the provided baseline time series:
             zpow = wavelet.tsPhasePow(freqs=freqs,tseries=zTrans,width=width,
                               resample=resample,keepBuffer=False,verbose=verbose,
