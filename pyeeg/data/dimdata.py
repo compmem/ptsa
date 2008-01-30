@@ -605,7 +605,7 @@ class DimData(object):
         """
         Return a copy of the data with dimension dim binned as specified.
         Example usage:
-          data.get_bins('time',10,numpy.mean,unit='mean voltage',number_bins=False,dim_unit='time bin midpoint')
+          data.get_bins('time',10,numpy.mean,unit=data.unit,number_bins=False,dim_unit='time bin midpoint')
         Input:
           dim
             The dimension to be binned. Can be name or number.
