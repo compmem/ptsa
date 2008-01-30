@@ -7,7 +7,7 @@ import numpy as N
 
 class TimeSeries(DimData):
     """
-    Class to hold EEG timeseries data.
+    Class to hold timeseries data.
     """
     def __init__(self,data,dims,samplerate,unit=None,rate_unit=None,tdim=-1,buf_samp=0):
         """
