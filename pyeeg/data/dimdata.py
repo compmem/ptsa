@@ -1,4 +1,3 @@
-
 import re
 import numpy as N
 
@@ -11,20 +10,20 @@ class Dim(object):
     """
     Holds the information describing a dimension of data.
     """
-    def __init__(self,name,data,units=None):
+    def __init__(self,name,data,unit=None):
         """
         """
         self.name = name
         self.data = N.atleast_1d(data)
-        self.units = units
+        self.unit = unit
 
     def copy(self):
-        return Dim(self.name,self.data.copy(),self.units)
+        return Dim(self.name,self.data.copy(),self.unit)
 
     def extend(self,other):
         if type(self) != type(other):
             raise "Can only concatenate the same type of data."
-        if self.units != other.units:
+        if self.unit != other.unit:
             raise "Can only concatenate data with the same units."
 
         self.data = N.concatenate((self.data,other.data),axis=0)
@@ -34,13 +33,13 @@ class Dim(object):
         outstr = '%s: %s .. %s %s' % (self.name,
                                       self.data[0],
                                       self.data[-1],
-                                      self.units)
+                                      self.unit)
         return outstr
 
     def __repr__(self):
         outstr = 'Dim(%s,\n\t%s,\n\tunits=%s)' % (self.name.__repr__(),
                                                   self.data.__repr__(),
-                                                  self.units.__repr__())
+                                                  self.unit.__repr__())
         return outstr
 
     def __getitem__(self, item):
@@ -57,7 +56,7 @@ class Dim(object):
         """
         Return a new Dim instance of the specified slice.
         """
-        return Dim(self.name,self.data.copy()[item],self.units)
+        return Dim(self.name,self.data.copy()[item],self.unit)
         
     def __setitem__(self, item, value):
         """
@@ -431,7 +430,7 @@ class DimData(object):
         newDimData.data = function(newDimData.data,*args,**kwargs)
         return newDimData
 
-    def aggregate(self,dims,function,unit=None,dimval=True,*args,**kwargs):
+    def aggregate(self,dims,function,unit=None,dimval=True,**kwargs):
         """
         Return a copy of the data aggregated over the dimensions
         specified in the list dims with the passed in function. The
@@ -530,7 +529,7 @@ class DimData(object):
         # the dimension indices stored in newDimData.dim(dimname):
         newdat = newDimData.data
         for dimname in aggDimNames[::-1]:
-            newdat = function(newdat,newDimData.dim(dimname),*args,**kwargs)
+            newdat = function(newdat,axis=newDimData.dim(dimname),**kwargs)
 
         # Update newDimData:
         newDimData.data = newdat
@@ -544,7 +543,7 @@ class DimData(object):
 
 
 
-    def margin(self,dim,function,unit=None,*args,**kwargs):
+    def margin(self,dim,function,unit=None,**kwargs):
         """
         Return a copy of the data aggregated over all but the
         specified dimension with the passed in function. The function
@@ -585,7 +584,7 @@ class DimData(object):
         tmpdata = N.reshape(N.transpose(self.data,totrans),toreshape)
         # Now that zstddata is a 2D array, we can just take the
         # function over the 2nd dimension:
-        tmpdata = function(tmpdata,1,*args,**kwargs)
+        tmpdata = function(tmpdata,axis=1,**kwargs)
         
         # Now that we have the, we need to create a new DimData instance.
         # Create a new Dims instance:
@@ -601,4 +600,51 @@ class DimData(object):
         return newDimData
 
 
+
+    def get_bins(self,dim,bins,function=N.mean,unit=None,number_bins=True,dim_unit=None,error_on_nonexact=True,**kwargs):
+        """
+
+        """
+        # If a string is passed in instead of a list or an array, convert:
+        dim = N.atleast_1d(dim)
+        if (len(N.shape(dim)) != 1) or (len(dim)!=1):
+            raise ValueError("dim must be a single dimension name or index.\
+            Invalid value for dim: %s " % str(dim))
+
+        dim = dim[0]
+
+        # If dim is dim name, convert to dim index:
+        if isinstance(dim,str):
+            dim = self.dim(dim)
+
+        if error_on_nonexact:
+            split = N.split
+        else:
+            split = N.array_split
+
+        split_dim = N.array(split(self.dims[dim].data,bins))
+        if number_bins:
+            new_dim = Dim(self.dims.names[dim],
+                          N.arange(len(split_dim)),
+                          unit=dim_unit)
+        else:
+            new_dim = Dim(self.dims.names[dim],
+                          function(split_dim,axis=1,**kwargs),
+                          unit=dim_unit)
+
+        split_dat = N.array(split(self.data,bins,axis=dim))
+        if dim == 0:
+            func_axis = 1
+        else:
+            func_axis = 0
+        new_dat = function(split_dat,axis=func_axis,**kwargs)
+
+        new_dims = self.dims.copy()
+        new_dims[dim] = new_dim
+        newDimData = self.copy()
+        newDimData.dims = new_dims
+        newDimData.data = new_dat
+        newDimData.unit = unit
+        newDimData._reset_data_stats()
+        return newDimData
 

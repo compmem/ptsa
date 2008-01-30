@@ -3,7 +3,7 @@ import re
 from numpy.testing import NumpyTest, NumpyTestCase
 
 from pyeeg.data import Dim,Dims,DimData
-from pyeeg import filt
+from pyeeg import filter
 
 
 # from numpy.testing import NumpyTest, NumpyTestCase
@@ -26,7 +26,7 @@ from pyeeg import filt
 # I don't know why I can't just include this
 #from testdata import TestData
 
-class TestData:
+class TestData():
     def __init__(self):
         # create 10 Hz sine waves at 200 and 50 Hz 4000ms long
         numSecs = 4.
@@ -117,11 +117,11 @@ class test_Dim(NumpyTestCase):
         N.testing.assert_array_almost_equal(dim.data,data)
         name = "Test 2"
         data = self.dat50
-        units = "ms"
-        dim = Dim(name,data,units)
+        unit = "ms"
+        dim = Dim(name,data,unit)
         self.assertEquals(dim.name,name)
         N.testing.assert_array_almost_equal(dim.data,data)
-        self.assertEquals(dim.units,units)
+        self.assertEquals(dim.unit,unit)
        
     def test_copy(self):
         name = "test 1"
@@ -132,25 +132,25 @@ class test_Dim(NumpyTestCase):
         N.testing.assert_array_almost_equal(dim1.data,dim2.data)
         name = "Test 2"
         data = self.dat50
-        units = "ms"
-        dim1 = Dim(name,data,units)
+        unit = "ms"
+        dim1 = Dim(name,data,unit)
         dim2 = dim1.copy()
         self.assertEquals(dim1.name,dim2.name)
         N.testing.assert_array_almost_equal(dim1.data,dim2.data)
-        self.assertEquals(dim1.units,dim2.units)
+        self.assertEquals(dim1.unit,dim2.unit)
         
     def test_extend(self):
         # CTW: Perhaps it would be better to just have a place holder for this function and require subclasses to specify this class in a way that takes sampling rate into account.
         pass
 #         name1 = "test 1"
 #         data1 = self.dat200
-#         units1 = "ms"
-#         dim1 = Dim(name1,data1,units1)
+#         unit1 = "ms"
+#         dim1 = Dim(name1,data1,unit1)
 #         name2 = "test 2"
 #         data2 = self.dat50
-#         units2 = "ms"
-#         dim2 = Dim(name2,data2,units2)
-#         dim12  = Dim(name1,N.concatenate((dim1.data,dim2.data),axis=0),units1)
+#         unit2 = "ms"
+#         dim2 = Dim(name2,data2,unit2)
+#         dim12  = Dim(name1,N.concatenate((dim1.data,dim2.data),axis=0),unit1)
 #         dim12e = dim1.extend(dim2)
 #         self.assertEquals(dim12,dim12e)
 
@@ -223,8 +223,8 @@ class test_Dims(NumpyTestCase):
         for index,dim in enumerate(test1.dims):
             N.testing.assert_array_equal(dim.name,test2.dims[index].name)
             N.testing.assert_array_equal(dim.data,test2.dims[index].data)
-            N.testing.assert_array_equal(dim.units,test2.dims[index].units)
-        #N.testing.assert_array_equal([dim.units for dim in test1.dims],[dim.units for dim in test2.dims])
+            N.testing.assert_array_equal(dim.unit,test2.dims[index].unit)
+        #N.testing.assert_array_equal([dim.unit for dim in test1.dims],[dim.unit for dim in test2.dims])
         N.testing.assert_array_equal(test1.names,test2.names)
         N.testing.assert_array_equal(test1._namesRE,test2._namesRE)
         N.testing.assert_array_equal(test1._nameOnlyRE,test2._nameOnlyRE)
@@ -237,18 +237,18 @@ class test_Dims(NumpyTestCase):
         for index,dim in enumerate(test1.dims):        
             N.testing.assert_array_equal(dim.name,test2[index].name)
             N.testing.assert_array_equal(dim.data,test2[index].data)
-            N.testing.assert_array_equal(dim.units,test2[index].units)
+            N.testing.assert_array_equal(dim.unit,test2[index].unit)
         test3 = [test1.__getitem__(i) for i in range(len(test1.dims))]
         for index,dim in enumerate(test1.dims):        
             N.testing.assert_array_equal(dim.name,test3[index].name)
             N.testing.assert_array_equal(dim.data,test3[index].data)
-            N.testing.assert_array_equal(dim.units,test3[index].units)
+            N.testing.assert_array_equal(dim.unit,test3[index].unit)
 
     def test_setitem(self):
         test1 = Dims(self.dims50)
-        test1[0] = Dim('newDim',N.arange(5),'newUnits')
+        test1[0] = Dim('newDim',N.arange(5),'newUnit')
         self.assertEqual(test1[0].name,'newDim')
-        self.assertEqual(test1[0].units,'newUnits')
+        self.assertEqual(test1[0].unit,'newUnit')
         self.assertEqual(len(test1[0].data),5)
 
     def test_iter(self):
@@ -274,7 +274,7 @@ class test_DimData(NumpyTestCase):
         for index,dim in enumerate(test1.dims):        
             N.testing.assert_array_equal(dim.name,self.dims200[index].name)
             N.testing.assert_array_equal(dim.data,self.dims200[index].data)
-            N.testing.assert_array_equal(dim.units,self.dims200[index].units)
+            N.testing.assert_array_equal(dim.unit,self.dims200[index].unit)
         self.assertEqual(test1.unit,'dimDatUnit')
         self.assertEqual(test1.dtype,self.dat200.dtype)
         self.assertEqual(test1.shape,self.dat200.shape)
@@ -285,7 +285,7 @@ class test_DimData(NumpyTestCase):
         for index,dim in enumerate(test2.dims):        
             N.testing.assert_array_equal(dim.name,self.dims200[index].name)
             N.testing.assert_array_equal(dim.data,self.dims200[index].data)
-            N.testing.assert_array_equal(dim.units,self.dims200[index].units)
+            N.testing.assert_array_equal(dim.unit,self.dims200[index].unit)
         self.assertEqual(test2.unit,'dimDatUnit')
         self.assertEqual(test2.dtype,self.dat200.dtype)
         self.assertEqual(test2.shape,self.dat200.shape)
@@ -302,7 +302,7 @@ class test_DimData(NumpyTestCase):
         for index,dim in enumerate(test1.dims.dims):        
             N.testing.assert_array_equal(dim.name,test2.dims.dims[index].name)
             N.testing.assert_array_equal(dim.data,test2.dims.dims[index].data)
-            N.testing.assert_array_equal(dim.units,test2.dims.dims[index].units)
+            N.testing.assert_array_equal(dim.unit,test2.dims.dims[index].unit)
         N.testing.assert_array_equal(test1.data,test2.data)
         self.assertEqual(test1.unit,test2.unit)
         self.assertEqual(test1.dtype,test2.dtype)
@@ -550,6 +550,78 @@ class test_DimData(NumpyTestCase):
         N.testing.assert_array_equal(test2_1d_f.dims['condition'].data,test2_nd_f.dims['condition'].data)
 
         
+    def test_get_bins(self):
+        data = N.arange(256).reshape((4,4,4,4))
+        dim1 = Dim('subject',N.arange(100,500,100))
+        dim2 = Dim('channel',N.arange(30,70,10))
+        dim3 = Dim('session',N.arange(4))
+        dim4 = Dim('time',N.arange(1000,1200,50))
+        dims = Dims([dim1,dim2,dim3,dim4])
+        test = DimData(data,dims)
+
+        split = N.split
+
+        test1 = test.get_bins('subject',2,N.mean)
+        test2 = test.get_bins('channel',2,N.mean)
+        test3 = test.get_bins('session',2,N.mean)
+        test4 = test.get_bins('time',2,N.mean)
+        
+        tstS1 = N.array(split(data,2,axis=0))
+        tstS1_M = tstS1.mean(1)
+        N.testing.assert_array_equal(test1.data,tstS1_M)
+        
+        tstS2 = N.array(split(data,2,axis=1))
+        tstS2_M = tstS2.mean(0)
+        N.testing.assert_array_equal(test2.data,tstS2_M)
+
+        tstS3 = N.array(split(data,2,axis=2))
+        tstS3_M = tstS3.mean(0)
+        N.testing.assert_array_equal(test3.data,tstS3_M)
+       
+        tstS4 = N.array(split(data,2,axis=3))
+        tstS4_M = tstS4.mean(0)
+        N.testing.assert_array_equal(test4.data,tstS4_M)
+       
+        test12= test1.get_bins('channel',2,N.mean)
+        test21= test2.get_bins('subject',2,N.mean)
+        N.testing.assert_array_equal(test12.data,test21.data)
+        
+        test13= test1.get_bins('session',2,N.mean)
+        test31= test3.get_bins('subject',2,N.mean)
+        N.testing.assert_array_equal(test13.data,test31.data)
+        
+        test14= test1.get_bins('time',2,N.mean)
+        test41= test4.get_bins('subject',2,N.mean)
+        N.testing.assert_array_equal(test14.data,test41.data)
+
+        test23= test2.get_bins('session',2,N.mean)
+        test32= test3.get_bins('channel',2,N.mean)
+        N.testing.assert_array_equal(test23.data,test32.data)
+       
+        test24= test2.get_bins('time',2,N.mean)
+        test42= test4.get_bins('channel',2,N.mean)
+        N.testing.assert_array_equal(test24.data,test42.data)
+       
+        test34= test3.get_bins('time',2,N.mean)
+        test43= test4.get_bins('session',2,N.mean)
+        N.testing.assert_array_equal(test34.data,test43.data)
+
+        test123 = test12.get_bins('session',2,N.mean)
+        test132 = test13.get_bins('channel',2,N.mean)
+        N.testing.assert_array_equal(test123.data,test132.data)
+       
+        test124 = test12.get_bins('time',2,N.mean)
+        test142 = test14.get_bins('channel',2,N.mean)
+        N.testing.assert_array_equal(test124.data,test142.data)
+       
+        test134 = test13.get_bins('time',2,N.mean)
+        test143 = test14.get_bins('session',2,N.mean)
+        N.testing.assert_array_equal(test134.data,test143.data)
+       
+        test234 = test23.get_bins('time',2,N.mean)
+        test243 = test24.get_bins('session',2,N.mean)
+        N.testing.assert_array_equal(test234.data,test243.data)
+       
 
 # test RawBinaryEEG
 
