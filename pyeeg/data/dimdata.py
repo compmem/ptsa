@@ -603,7 +603,36 @@ class DimData(object):
 
     def get_bins(self,dim,bins,function=N.mean,unit=None,number_bins=True,dim_unit=None,error_on_nonexact=True,**kwargs):
         """
-
+        Return a copy of the data with dimension dim binned as specified.
+        Input:
+          dim
+            The dimension to be binned. Can be name or number.
+          bins
+            The number of bins (equally spaced, if possible, roughly equally
+            spaced if not and error_on_nonexact is False). Alternatively the
+            indices where the data should be split into bins can be specified.
+            See numpy.split and numpy.array_split for details.
+          function
+            The function to aggregate over within the bins. Needs to take the
+            data as the first argument and an additional axis argument
+            (numpy.mean is an example of a valid function).
+          unit
+            The new unit of the data (the passed in function may change the
+            unit so it needs to be explicity specified)
+          number_bins
+            If True the binned dimension is labeled by bin number. If False
+            the new labels are found by binning the old labels and applying
+            the function on the old labels. This only works if the labels are
+            an acceptable input to function (e.g., numpy.float for numpy.mean).
+          dim_unit
+            The unit of the binned dimension.
+          error_on_nonexact
+            Specifies whether roughly equal bin sizes are acceptable when the
+            data cannot be evenly split in the specified number of bins.
+            Internally, when True, the function numpy.split is used, when False
+            the function numpy.array_split is used.
+          *kwargs
+            Optional key word arguments to be passed on to function.
         """
         # If a string is passed in instead of a list or an array, convert:
         dim = N.atleast_1d(dim)
@@ -617,11 +646,13 @@ class DimData(object):
         if isinstance(dim,str):
             dim = self.dim(dim)
 
+        # Determine which function to use for splitting:
         if error_on_nonexact:
             split = N.split
         else:
             split = N.array_split
 
+        # Create the new dimension:
         split_dim = N.array(split(self.dims[dim].data,bins))
         if number_bins:
             new_dim = Dim(self.dims.names[dim],
@@ -632,13 +663,17 @@ class DimData(object):
                           function(split_dim,axis=1,**kwargs),
                           unit=dim_unit)
 
+        # Create the new data:
         split_dat = N.array(split(self.data,bins,axis=dim))
+        # If the first dim is binned, the function needs to be applied to axis 1,
+        # if any other dim is binned, the function needs to be applied to axis 0:
         if dim == 0:
             func_axis = 1
         else:
             func_axis = 0
         new_dat = function(split_dat,axis=func_axis,**kwargs)
 
+        # Create and return new DimData object:
         new_dims = self.dims.copy()
         new_dims[dim] = new_dim
         newDimData = self.copy()
