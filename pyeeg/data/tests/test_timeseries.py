@@ -3,8 +3,8 @@ import re
 from numpy.testing import NumpyTest, NumpyTestCase
 
 
-from pyeeg.data import Dim,Dims,DimData,EegTimeSeries
-from pyeeg import filter
+from pyeeg.data import Dim,Dims,DimData,TimeSeries
+from pyeeg import filt
 
 # from numpy.testing import NumpyTest, NumpyTestCase
 
@@ -26,7 +26,7 @@ from pyeeg import filter
 # I don't know why I can't just include this
 #from testdata import TestData
 
-class TestData():
+class TestData:
     def __init__(self):
         # create 10 Hz sine waves at 200 and 50 Hz 4000ms long
         numSecs = 4.
@@ -66,8 +66,8 @@ class TestData():
 
 
 
-# test EegTimeSeries
-class test_EegTimeSeries(NumpyTestCase):
+# test TimeSeries
+class test_TimeSeries(NumpyTestCase):
     def setUp(self):
         td = TestData()
         self.dat200 = td.dat200
@@ -80,12 +80,12 @@ class test_EegTimeSeries(NumpyTestCase):
         # (data,dims,samplerate,unit=None,tdim=-1,buf=0)
 
         # fewest params
-        ts = EegTimeSeries(self.dat200,self.dims200,200)
+        ts = TimeSeries(self.dat200,self.dims200,200)
         N.testing.assert_equal(ts.data[:], self.dat200[:])
         self.assertEquals(ts.shape, self.dat200.shape)
         self.assertEquals(ts.ndim, len(self.dat200.shape))
         self.assertEquals(ts.tdim, len(self.dat200.shape)-1)
-        self.assertEquals(ts.buf, 0)
+        self.assertEquals(ts.buf_samp, 0)
         self.assertEquals(ts.unit,None)
         self.assertEquals(ts.samplerate,200)
 
@@ -93,19 +93,19 @@ class test_EegTimeSeries(NumpyTestCase):
     def test_removeBuf(self):
         buf = 200
         numsamp = 4*200
-        ts = EegTimeSeries(self.dat200,self.dims200,200,buf=buf)
+        ts = TimeSeries(self.dat200,self.dims200,200,buf_samp=buf)
         ts.removeBuf()
         self.assertEquals(ts.shape[ts.tdim],numsamp-2*buf)
         self.assertEquals(len(ts['time']),numsamp-2*buf)
 
 #    def test_getitem(self):
-#        ts = EegTimeSeries(self.dat200,self.dims200,200)
+#        ts = TimeSeries(self.dat200,self.dims200,200)
 #        for i in range(N.shape(ts)[0]):
 #            N.testing.assert_equal(ts.__getitem__(i),self.dat200[i])
 
 #    def test_setitem(self):        
 #        pass
-#         ts = EegTimeSeries(self.dat200,200)
+#         ts = TimeSeries(self.dat200,200)
 #         x = N.arange(10)
 #         ts[11:11+10] = x
 #         N.testing.assert_equal(ts[11:11+10],x[:])
@@ -115,15 +115,15 @@ class test_EegTimeSeries(NumpyTestCase):
         filtType='stop'
         freqRange = [10,20]
         order = 4
-        ts = EegTimeSeries(self.dat200,self.dims200,samplerate)
+        ts = TimeSeries(self.dat200,self.dims200,samplerate)
         ts.filter(freqRange)
-        test = filter.buttfilt(self.dat200,freqRange,samplerate,filtType,
-                               order,axis=ts.tdim)
+        test = filt.buttfilt(self.dat200,freqRange,samplerate,filtType,
+                             order,axis=ts.tdim)
         N.testing.assert_array_almost_equal(ts[:],test[:],decimal=6)
 
     def test_resample(self):
-        ts200 = EegTimeSeries(self.dat200,self.dims200,200,buf=200)
-        ts50 = EegTimeSeries(self.dat50,self.dims50,50,buf=50)
+        ts200 = TimeSeries(self.dat200,self.dims200,200,buf_samp=200)
+        ts50 = TimeSeries(self.dat50,self.dims50,50,buf_samp=50)
         ts200.resample(50)
         ts200.removeBuf()
         ts50.removeBuf()

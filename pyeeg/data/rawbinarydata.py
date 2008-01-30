@@ -3,7 +3,7 @@
 from datawrapper import DataWrapper
 from events import Events,EegEvents
 from dimdata import Dim,Dims
-from eegtimeseries import EegTimeSeries
+from timeseries import TimeSeries
 
 # global imports
 import numpy as N
@@ -76,7 +76,7 @@ class RawBinaryEEG(DataWrapper):
         return params
         
 
-    def get_event_data(self,channel,eventInfo,DurationMS,OffsetMS,BufferMS,resampledRate=None,
+    def get_event_data(self,channel,eventInfo,dur,offset,buf,resampledRate=None,
                        filtFreq=None,filtType='stop',filtOrder=4,keepBuffer=False):
         """
         Return an dictionary containing data for the specified channel
@@ -98,18 +98,18 @@ class RawBinaryEEG(DataWrapper):
         """
         # set event durations from rate
         # get the samplesize in ms
-        samplesize = 1000./self.samplerate
+        samplesize = 1./self.samplerate
         # get the number of buffer samples
-        buf = int(N.ceil(BufferMS/samplesize))
+        buf_samp = int(N.ceil(BufferMS/samplesize))
         # calculate the offset samples that contains the desired offsetMS
-        offset = int(N.ceil((N.abs(OffsetMS)-samplesize*.5)/samplesize)*N.sign(OffsetMS))
+        offset_samp = int(N.ceil((N.abs(offset)-samplesize*.5)/samplesize)*N.sign(offset))
 
         # finally get the duration necessary to cover the desired span
-        duration = int(N.ceil((DurationMS+OffsetMS - samplesize*.5)/samplesize)) - offset + 1
+        dur_samp = int(N.ceil((dur+offset - samplesize*.5)/samplesize)) - offset_samp + 1
         
         # add in the buffer
-        duration += 2*buf
-        offset -= buf
+        dur_samp += 2*buf_samp
+        offset_samp -= buf_samp
 
 #         # calculate the duration samples that contain the desired ending point
 #         buffer = int(N.ceil(BufferMS*self.samplerate/1000.))
@@ -141,14 +141,14 @@ class RawBinaryEEG(DataWrapper):
 	    eventOffsets = [eventOffsets]
 	for evOffset in eventOffsets:
 	    # seek to the position in the file
-	    thetime = offset+evOffset
+	    thetime = offset_samp+evOffset
 	    efile.seek(self.nBytes*thetime,0)
 
 	    # read the data
-	    data = efile.read(int(self.nBytes*duration))
+	    data = efile.read(int(self.nBytes*dur_samp))
 
 	    # make sure we got some data
-	    if len(data) < duration:
+	    if len(data) < dur_samp:
 		raise IOError('Event with offset %d is outside the bounds of file %s.\n'
 			      % (evOffset,eegfname))
                 
@@ -160,9 +160,9 @@ class RawBinaryEEG(DataWrapper):
 	    eventdata.append(data)
 
         # calc the time range in MS
-        sampStart = offset*samplesize
-        sampEnd = sampStart + (duration-1)*samplesize
-        timeRange = N.linspace(sampStart,sampEnd,duration)
+        sampStart = offset_samp*samplesize
+        sampEnd = sampStart + (dur_samp-1)*samplesize
+        timeRange = N.linspace(sampStart,sampEnd,dur_samp)
 
 	# make it a timeseries
         if isinstance(eventInfo,EegEvents):
@@ -171,11 +171,11 @@ class RawBinaryEEG(DataWrapper):
         else:
             dims = [Dim('eventOffsets', eventOffsets, 'samples'),
                     Dim('time',timeRange,'ms')]
-        eventdata = EegTimeSeries(N.array(eventdata),
-                                  dims,
-                                  self.samplerate,
-                                  tdim=-1,
-                                  buf=buf)
+        eventdata = TimeSeries(N.array(eventdata),
+                               dims,
+                               self.samplerate,
+                               tdim=-1,
+                               buf_samp=buf_samp)
 
 	# filter if desired
 	if not filtFreq is None:
@@ -189,7 +189,7 @@ class RawBinaryEEG(DataWrapper):
             eventdata.resample(resampledRate)
 
         # remove the buffer and set the time range
-	if eventdata.buf > 0 and not keepBuffer:
+	if eventdata.buf_samp > 0 and not keepBuffer:
 	    # remove the buffer
             eventdata.removeBuf()
 

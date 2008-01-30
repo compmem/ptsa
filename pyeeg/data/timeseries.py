@@ -1,15 +1,15 @@
 
 from dimdata import DimData
-from pyeeg import filter
+from pyeeg import filt
 
 from scipy.signal import resample
 import numpy as N
 
-class EegTimeSeries(DimData):
+class TimeSeries(DimData):
     """
     Class to hold EEG timeseries data.
     """
-    def __init__(self,data,dims,samplerate,unit=None,tdim=-1,buf=0):
+    def __init__(self,data,dims,samplerate,unit=None,rate_unit=None,tdim=-1,buf_samp=0):
         """
         """
         # call the base class init
@@ -17,6 +17,7 @@ class EegTimeSeries(DimData):
         
         # set the timeseries-specific information
         self.samplerate = samplerate
+        self.rate_unit = rate_unit
         
         # get the time dimension
         if isinstance(tdim,str):
@@ -32,31 +33,32 @@ class EegTimeSeries(DimData):
                 self.tdim = self.ndim - 1
         
         # set the buf information
-        self.buf = buf
+        self.buf_samp = buf_samp
 
     def copy(self):
         """
         """
         newdata = self.data.copy()
         newdims = self.dims.copy()
-        return EegTimeSeries(newdata,newdims,self.samplerate,
-                             unit=self.unit,tdim=self.tdim,buf=self.buf)
+        return TimeSeries(newdata,newdims,self.samplerate,
+                          unit=self.unit,rate_unit=self.rate_unit,
+                          tdim=self.tdim,buf_samp=self.buf_samp)
 
     def removeBuf(self):
 	"""Use the information contained in the time series to remove the
 	buf reset the time range.  If buf is 0, no action is
 	performed."""
 	# see if we need to remove anything
-	if self.buf>0:
+	if self.buf_samp>0:
             # remove the buf from the data
-            self.data = self.data.take(range(self.buf,
-                                             self.shape[self.tdim]-self.buf),self.tdim)
+            self.data = self.data.take(range(self.buf_samp,
+                                             self.shape[self.tdim]-self.buf_samp),self.tdim)
 
             # remove the buf from the tdim
-            self.dims[self.tdim] = self.dims[self.tdim].select(slice(self.buf,self.shape[self.tdim]-self.buf))
+            self.dims[self.tdim] = self.dims[self.tdim].select(slice(self.buf_samp,self.shape[self.tdim]-self.buf_samp))
 
             # reset buf to indicate it was removed
-	    self.buf = 0
+	    self.buf_samp = 0
 
             # reset the shape
             self.shape = self.data.shape
@@ -65,7 +67,7 @@ class EegTimeSeries(DimData):
         """
         Filter the data using a Butterworth filter.
         """
-        self.data = filter.buttfilt(self.data,freqRange,self.samplerate,filtType,
+        self.data = filt.buttfilt(self.data,freqRange,self.samplerate,filtType,
                                     order,axis=self.tdim)
 
     def resample(self,resampledRate,window=None):
@@ -93,7 +95,7 @@ class EegTimeSeries(DimData):
         self.dims[self.tdim].data = newTimeRange
 
         # set the new buf lengths
-        self.buf = int(N.round(float(self.buf)*resampledRate/float(self.samplerate)))
+        self.buf_samp = int(N.round(float(self.buf_samp)*resampledRate/float(self.samplerate)))
 
         # set the new samplerate
         self.samplerate = resampledRate

@@ -4,7 +4,7 @@ PyEEG - The Python EEG toolbox.
 
 
 #from data import DataWrapper,Events,RawBinaryEEG,createEventsFromMatFile
-from data import Dim,Dims,DimData,EegTimeSeries
+from data import Dim,Dims,DimData,TimeSeries
 from filter import buttfilt, filtfilt
 from plotting import topoplot
 from wavelet import tsPhasePow,phasePow1d,phasePow2d

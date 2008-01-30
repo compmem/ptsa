@@ -130,7 +130,7 @@ for each event."""
         Return the requested range of data for each event by using the
         proper data retrieval mechanism for each event.
 
-        The result will be an EegTimeSeries instance with
+        The result will be an TimeSeries instance with
         dimensions (events,time) for the data and also some
         information about the data returned.  """
 	# get ready to load dat

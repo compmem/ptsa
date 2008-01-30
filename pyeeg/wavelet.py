@@ -2,9 +2,9 @@ import numpy as N
 from scipy import unwrap
 import sys
 
-from filter import decimate
+from filt import decimate
 from helper import reshapeTo2D,reshapeFrom2D
-from pyeeg.data import EegTimeSeries,Dim,Dims,DimData
+from pyeeg.data import TimeSeries,Dim,Dims,DimData
 import scipy.stats as stats
 
 import pdb
@@ -113,8 +113,8 @@ def phasePow2d(freq,dat,samplerate,width):
 def tsPhasePow(freqs,tseries,width=5,resample=None,keepBuffer=False,
                verbose=False,toReturn='both',freqDimName='freq'):
     """
-    Calculate phase and/or power on an EegTimeSeries, returning new
-    EegTimeSeries instances.
+    Calculate phase and/or power on an TimeSeries, returning new
+    TimeSeries instances.
     """
     if (toReturn != 'both') and (toReturn != 'pow') and (toReturn != 'phase'):
         raise ValueError("toReturn must be \'pow\', \'phase\', or \'both\' to\
@@ -135,9 +135,9 @@ def tsPhasePow(freqs,tseries,width=5,resample=None,keepBuffer=False,
     # turn them into timeseries
     if toReturn == 'pow' or toReturn == 'both':
         # turn into a timeseries
-        powerAll = EegTimeSeries(res,tsdims,
-                                 tseries.samplerate,unit='XXX get pow unit',
-                                 tdim=-1,buf=tseries.buf)
+        powerAll = TimeSeries(res,tsdims,
+                              tseries.samplerate,unit='XXX get pow unit',
+                              tdim=-1,buf=tseries.buf)
         powerAll.data[powerAll.data<=0] = N.finfo(powerAll.data.dtype).eps
         # see if resample
         if resample:
@@ -151,9 +151,9 @@ def tsPhasePow(freqs,tseries,width=5,resample=None,keepBuffer=False,
     
     if toReturn == 'phase' or toReturn == 'both':
         # get the phase matrix
-        phaseAll = EegTimeSeries(res,tsdims,
-                                 tseries.samplerate,unit='radians',
-                                 tdim=-1,buf=tseries.buf)
+        phaseAll = TimeSeries(res,tsdims,
+                              tseries.samplerate,unit='radians',
+                              tdim=-1,buf=tseries.buf)
         if resample:
             # must unwrap before resampling
             phaseAll.data = N.unwrap(phaseAll.data)
@@ -306,7 +306,7 @@ def calcPhasePow(freqs,dat,samplerate,axis=-1,width=5,verbose=False,toReturn='bo
 # 	res['power'] = powerAll
 	   
 #     #res = DataDict(res) 
-#     # XXX Replace with EegTimeSeries XXX
+#     # XXX Replace with TimeSeries XXX
 
 #     # see if remove the buffer
 #     if not keepBuffer:
