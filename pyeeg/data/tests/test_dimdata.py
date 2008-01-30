@@ -3,7 +3,7 @@ import re
 from numpy.testing import NumpyTest, NumpyTestCase
 
 from pyeeg.data import Dim,Dims,DimData
-from pyeeg import filter
+from pyeeg import filt
 
 
 # from numpy.testing import NumpyTest, NumpyTestCase
@@ -26,7 +26,7 @@ from pyeeg import filter
 # I don't know why I can't just include this
 #from testdata import TestData
 
-class TestData():
+class TestData:
     def __init__(self):
         # create 10 Hz sine waves at 200 and 50 Hz 4000ms long
         numSecs = 4.
