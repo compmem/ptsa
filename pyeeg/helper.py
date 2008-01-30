@@ -111,9 +111,9 @@ def cart2pol(x,y,z=None,radians=True):
         return theta,radius
 
 def lockFile(filename,lockdirpath=None,lockdirname=None):
-    if not lockdirname:
+    if lockdirname is None:
         lockdirname=filename+'.lock'
-    if lockdirpath:
+    if not(lockdirpath is None):
         lockdirname = lockdirpath+lockdirname
     if os.path.exists(lockdirname):
         return False
@@ -125,9 +125,9 @@ def lockFile(filename,lockdirpath=None,lockdirname=None):
     return True
 
 def releaseFile(filename,lockdirpath=None,lockdirname=None):
-    if not lockdirname:
+    if lockdirname is None:
         lockdirname=filename+'.lock'
-    if lockdirpath:
+    if not(lockdirpath is None):
         lockdirname = lockdirpath+lockdirname
     try:
         os.rmdir(lockdirname)

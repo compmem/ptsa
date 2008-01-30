@@ -601,7 +601,7 @@ class DimData(object):
 
 
 
-    def get_bins(self,dim,bins,function=N.mean,unit=None,number_bins=True,dim_unit=None,error_on_nonexact=True,**kwargs):
+    def get_bins(self,dim,bins,function,unit=None,number_bins=True,dim_unit=None,error_on_nonexact=True,**kwargs):
         """
         Return a copy of the data with dimension dim binned as specified.
         Input:
