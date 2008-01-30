@@ -635,6 +635,8 @@ class DimData(object):
             the function numpy.array_split is used.
           *kwargs
             Optional key word arguments to be passed on to function.
+        Output:
+          A new DimData instance in which one of the dimensions is binned as specified.
         """
         # If a string is passed in instead of a list or an array, convert:
         dim = N.atleast_1d(dim)
