@@ -161,9 +161,6 @@ class Dims(object):
         outstr += ')'
         return outstr
 
-    def __len__(self):
-        return len(self.dims)
-
     def select(self,*args,**kwargs):
         """Return a new Dims instance of only the Dims you want.  Not
         currently implemented, but let us know if you ever need it (we
@@ -298,13 +295,10 @@ class DimData(object):
             filterStr = arg
 
             # figure out which dimension we're dealing with
-            foundDim = False
             for d,k in enumerate(self.dims.names):
                 # RE makes sure to not replace substrings
                 if re.search(r'\b'+k+r'\b',filterStr):
                     # this is our dimension
-                    foundDim = True
-
                     # replace the string
                     filterStr = re.sub(r'\b'+k+r'\b','self.dims["'+k+'"]',filterStr)
 
@@ -316,12 +310,6 @@ class DimData(object):
 
                     # break this loop to continue the next
                     break
-
-            # if we get to here, the string they provided did not specify any dimensions
-            if not foundDim:
-                # XXX eventually this should be a custom exception
-                raise ValueError("The provided filter string did not specify any valid dimensions: '%s'" %
-                                 (filterStr))
 
         # loop over the kwargs
         for key,value in kwargs.iteritems():
@@ -613,7 +601,7 @@ class DimData(object):
 
 
 
-    def get_bins(self,dim,bins,function,unit=None,number_bins=False,dim_unit=None,error_on_nonexact=True,**kwargs):
+    def get_bins(self,dim,bins,function,unit=None,bin_labels='function',dim_unit=None,error_on_nonexact=True,**kwargs):
         """
         Return a copy of the data with dimension dim binned as specified.
         Example usage:
@@ -669,19 +657,30 @@ class DimData(object):
             split = N.array_split
 
         # Create the new dimension:
-        split_dim = N.array(split(self.dims[dim].data,bins))
-        if number_bins:
+        split_dim = split(self.dims[dim].data,bins)
+        if bin_labels == 'function':
+            new_dim_dat = N.array([function(x,**kwargs) for x in split_dim])
+            new_dim = Dim(self.dims.names[dim],
+                          new_dim_dat,
+                          unit=dim_unit)
+        elif bin_labels == 'sequential':
             new_dim = Dim(self.dims.names[dim],
                           N.arange(len(split_dim)),
                           unit=dim_unit)
-        else:
+        elif ((len(N.atleast_1d(bin_labels).shape) == 1) and
+              (len(N.atleast_1d(bin_labels)) == bins)):
             new_dim = Dim(self.dims.names[dim],
-                          function(split_dim,axis=1,**kwargs),
+                          N.atleast_1d(bin_labels),
                           unit=dim_unit)
+        else:
+            raise ValueError("Invalid value for bin_labels. Allowed values are "+
+            "'function','sequential', or a 1-D list/array of labels of the same "+
+            "length as bins.\n bins: "+str(bins)+"\n bin_labels: "+str(bin_labels))
+                 
         
         # Create the new data:
-        split_dat = N.array(split(self.data,bins,axis=dim))
-        new_dat = function(split_dat,axis=dim+1,**kwargs)
+        split_dat = split(self.data,bins,axis=dim)
+        new_dat = N.array([function(x,axis=dim,**kwargs) for x in split_dat])
         
         # Now the dimensions of the array need be re-arranged in the correct
         # order:
