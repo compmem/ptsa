@@ -601,7 +601,7 @@ class DimData(object):
 
 
 
-    def get_bins(self,dim,bins,function,unit=None,number_bins=True,dim_unit=None,error_on_nonexact=True,**kwargs):
+    def get_bins(self,dim,bins,function,unit=None,number_bins=False,dim_unit=None,error_on_nonexact=True,**kwargs):
         """
         Return a copy of the data with dimension dim binned as specified.
         Example usage:
@@ -666,17 +666,19 @@ class DimData(object):
             new_dim = Dim(self.dims.names[dim],
                           function(split_dim,axis=1,**kwargs),
                           unit=dim_unit)
-
+        
         # Create the new data:
         split_dat = N.array(split(self.data,bins,axis=dim))
-        # If the first dim is binned, the function needs to be applied to axis 1,
-        # if any other dim is binned, the function needs to be applied to axis 0:
-        if dim == 0:
-            func_axis = 1
-        else:
-            func_axis = 0
-        new_dat = function(split_dat,axis=func_axis,**kwargs)
-
+        new_dat = function(split_dat,axis=dim+1,**kwargs)
+        
+        # Now the dimensions of the array need be re-arranged in the correct
+        # order:
+        dim_order = N.arange(len(new_dat.shape))
+        dim_order[dim] = 0
+        dim_order[0:dim] = N.arange(1,dim+1)
+        dim_order[dim+1:len(new_dat.shape)] = N.arange(dim+1,len(new_dat.shape))
+        new_dat = N.transpose(new_dat,dim_order)
+        
         # Create and return new DimData object:
         new_dims = self.dims.copy()
         new_dims[dim] = new_dim

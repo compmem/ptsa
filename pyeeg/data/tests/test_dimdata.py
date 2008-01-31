@@ -565,21 +565,25 @@ class test_DimData(NumpyTestCase):
         test2 = test.get_bins('channel',2,N.mean)
         test3 = test.get_bins('session',2,N.mean)
         test4 = test.get_bins('time',2,N.mean)
+
         
         tstS1 = N.array(split(data,2,axis=0))
         tstS1_M = tstS1.mean(1)
         N.testing.assert_array_equal(test1.data,tstS1_M)
         
         tstS2 = N.array(split(data,2,axis=1))
-        tstS2_M = tstS2.mean(0)
+        tstS2_M = N.mean(tstS2,axis=2)
+        tstS2_M = N.transpose(tstS2_M,[1,0,2,3])
         N.testing.assert_array_equal(test2.data,tstS2_M)
 
         tstS3 = N.array(split(data,2,axis=2))
-        tstS3_M = tstS3.mean(0)
+        tstS3_M = tstS3.mean(3)
+        tstS3_M = N.transpose(tstS3_M,[1,2,0,3])
         N.testing.assert_array_equal(test3.data,tstS3_M)
        
         tstS4 = N.array(split(data,2,axis=3))
-        tstS4_M = tstS4.mean(0)
+        tstS4_M = tstS4.mean(4)
+        tstS4_M = N.transpose(tstS4_M,[1,2,3,0])
         N.testing.assert_array_equal(test4.data,tstS4_M)
        
         test12= test1.get_bins('channel',2,N.mean)
