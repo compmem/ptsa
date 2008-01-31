@@ -352,6 +352,13 @@ class test_DimData(NumpyTestCase):
         #CTW: minimal test ... there probably should be more 
         test1 = DimData(self.dat200,self.dims200)
         self.assertEquals(((min(test1.select('time>0')['time']))>0),True)
+
+        # verify that illegal values raise errors
+        try:
+            y = test1['jubbawubba<42']
+        except ValueError:
+            # Caught the value error
+            pass
     
     def test_extend(self):
         #CTW: Let's chat about this function. I think it's a bit dangerous, because it lets you do crazy stuff without complaining.
