@@ -161,6 +161,9 @@ class Dims(object):
         outstr += ')'
         return outstr
 
+    def __len__(self):
+        return len(self.dims)
+
     def select(self,*args,**kwargs):
         """Return a new Dims instance of only the Dims you want.  Not
         currently implemented, but let us know if you ever need it (we
@@ -295,10 +298,13 @@ class DimData(object):
             filterStr = arg
 
             # figure out which dimension we're dealing with
+            foundDim = False
             for d,k in enumerate(self.dims.names):
                 # RE makes sure to not replace substrings
                 if re.search(r'\b'+k+r'\b',filterStr):
                     # this is our dimension
+                    foundDim = True
+
                     # replace the string
                     filterStr = re.sub(r'\b'+k+r'\b','self.dims["'+k+'"]',filterStr)
 
@@ -310,6 +316,12 @@ class DimData(object):
 
                     # break this loop to continue the next
                     break
+
+            # if we get to here, the string they provided did not specify any dimensions
+            if not foundDim:
+                # XXX eventually this should be a custom exception
+                raise ValueError("The provided filter string did not specify any valid dimensions: '%s'" %
+                                 (filterStr))
 
         # loop over the kwargs
         for key,value in kwargs.iteritems():
