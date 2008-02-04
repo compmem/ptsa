@@ -109,7 +109,7 @@ class Dims(object):
     def index(self,name):
         return self.names.index(name)
 
-    def append(self,index,dim):
+    def append(self,dim):
         """Append a new Dim to the end."""
         self.dims.append(dim)
         self._set_regexp()
