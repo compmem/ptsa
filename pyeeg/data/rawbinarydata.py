@@ -178,18 +178,18 @@ class RawBinaryEEG(DataWrapper):
                                buf_samp=buf_samp)
 
 	# filter if desired
-	if not filtFreq is None:
+	if not(filtFreq is None):
 	    # filter that data
             eventdata.filter(filtFreq,filtType=filtType,order=filtOrder)
 
 	# resample if desired
 	samplerate = self.samplerate
-	if not resampledRate is None and not resampledRate == eventdata.samplerate:
+	if not(resampledRate is None) and not(resampledRate == eventdata.samplerate):
 	    # resample the data
             eventdata.resample(resampledRate)
 
         # remove the buffer and set the time range
-	if eventdata.buf_samp > 0 and not keepBuffer:
+	if eventdata.buf_samp > 0 and not(keepBuffer):
 	    # remove the buffer
             eventdata.removeBuf()
 
