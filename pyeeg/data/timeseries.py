@@ -5,12 +5,27 @@ from pyeeg import filt
 from scipy.signal import resample
 import numpy as N
 
+
+__docformat__ = 'restructuredtext'
+
+
 class TimeSeries(DimData):
-    """
-    Class to hold timeseries data.
-    """
-    def __init__(self,data,dims,samplerate,unit=None,rate_unit=None,tdim=-1,buf_samp=0):
-        """
+    """Class to hold timeseries data.  In addition to having all the
+    basic DimData properties, it keeps track of the time dimension,
+    its sample rate, and the units of the data.  It also provides
+    methods for manipulating the time dimension, such as resampling
+    and filtering the data."""
+
+    def __init__(self,data,dims,samplerate,
+                 unit=None,rate_unit=None,tdim=-1,buf_samp=0):
+        """Initialize a time series.
+
+        :Parameters:
+          data : ndarray
+            XXX
+          dims : Dims
+            XXX
+
         """
         # call the base class init
         DimData.__init__(self,data,dims,unit)
