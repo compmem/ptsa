@@ -5,6 +5,8 @@ import numpy as N
 import string
 import re
 import sys
+from dimdata import Dim,Dims
+from timeseries import TimeSeries
 
 #import pdb
 
@@ -174,6 +176,14 @@ for each event."""
                 # append it to the existing
                 eventdata.extend(newdat,0)
 
+        if eventdata is None:
+            dims = [Dim('event', eventInfo.data, 'event'),
+                    Dim('time',timeRange,'ms')]
+            eventdata = TimeSeries(N.array([]),
+                                   dims,
+                                   samplerate=None,
+                                   tdim=-1,
+                                   buf_samp=0)
         return eventdata
     
 
