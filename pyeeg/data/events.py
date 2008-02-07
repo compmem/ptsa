@@ -177,9 +177,9 @@ for each event."""
                 eventdata.extend(newdat,0)
 
         if eventdata is None:
-            dims = [Dim('event', None, 'event'),
-                    Dim('time',None,'ms')]
-            eventdata = TimeSeries(None,
+            dims = [Dim('event', N.array(), 'event'),
+                    Dim('time',N.array(),'ms')]
+            eventdata = TimeSeries(N.array(),
                                    dims,
                                    samplerate=None,
                                    tdim=-1,
