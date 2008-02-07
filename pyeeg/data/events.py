@@ -178,7 +178,7 @@ for each event."""
 
         if eventdata is None:
             dims = [Dim('event', N.array(None), 'event'),
-                    Dim('time',N.array(None),'ms')]
+                    Dim('time',N.array(None),None)]
             eventdata = TimeSeries(N.atleast_2d(N.array(None)),
                                    dims,
                                    samplerate=None,
