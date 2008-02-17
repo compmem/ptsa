@@ -447,6 +447,8 @@ class DimData(object):
         newDimData.data = function(newDimData.data,*args,**kwargs)
         return newDimData
 
+
+
     def aggregate(self,dims,function,unit=None,dimval=True,**kwargs):
         """
         Return a copy of the data aggregated over the dimensions
@@ -559,6 +561,20 @@ class DimData(object):
         return newDimData
 
 
+    def _convert_dim(self,dim):
+        """
+        A helper function to convert a dimension name into a dimension index.
+        If a dimension index is passed in it will not be modified.
+        """
+        dim = N.atleast_1d(dim)
+        if (len(N.shape(dim)) != 1) or (len(dim)!=1):
+            raise ValueError("dim must be a single dimension name or index.\
+            Invalid value for dim: %s " % str(dim))
+        dim = dim[0]
+        if isinstance(dim,str):
+            dim = self.dim(dim)
+        return dim
+        
 
     def margin(self,dim,function,unit=None,**kwargs):
         """
@@ -575,17 +591,8 @@ class DimData(object):
         with dimension A that contains the mean across the B, C, and D
         dimensions.
         """
-        # If a string is passed in instead of a list or an array, convert:
-        dim = N.atleast_1d(dim)
-        if (len(N.shape(dim)) != 1) or (len(dim)!=1):
-            raise ValueError("dim must be a single dimension name or index.\
-            Invalid value for dim: %s " % str(dim))
-
-        dim = dim[0]
-
-        # If dim is dim name, convert to dim index:
-        if isinstance(dim,str):
-            dim = self.dim(dim)
+        # Makes sure dim is index (convert dim name if necessary):
+        dim = self._convert_dim(dim)
 
         # We need to transpose the data array so that dim is the first
         # dimension. We store the new order of dimensions in totrans:
@@ -618,55 +625,102 @@ class DimData(object):
 
 
 
-    def get_bins(self,dim,bins,function,unit=None,bin_labels='function',dim_unit=None,error_on_nonexact=True,**kwargs):
+    def make_bins(self,dim,bins,function,unit=None,bin_labels='function',
+                  dim_unit=None,error_on_nonexact=True,**kwargs):
         """
         Return a copy of the data with dimension dim binned as specified.
-        Example usage:
-          data.get_bins('time',10,numpy.mean,unit=data.unit,number_bins=False,dim_unit='time bin midpoint')
-        Input:
-          dim
-            The dimension to be binned. Can be name or number.
-          bins
-            The number of bins (equally spaced, if possible, roughly equally
-            spaced if not and error_on_nonexact is False). Alternatively the
-            indices where the data should be split into bins can be specified.
-            See numpy.split and numpy.array_split for details.
-          function
-            The function to aggregate over within the bins. Needs to take the
-            data as the first argument and an additional axis argument
-            (numpy.mean is an example of a valid function).
-          unit
-            The new unit of the data (the passed in function may change the
-            unit so it needs to be explicity specified)
-          number_bins
-            If True the binned dimension is labeled by bin number. If False
-            the new labels are found by binning the old labels and applying
-            the function on the old labels. This only works if the labels are
-            an acceptable input to function (e.g., numpy.float for numpy.mean).
-          dim_unit
-            The unit of the binned dimension.
-          error_on_nonexact
-            Specifies whether roughly equal bin sizes are acceptable when the
-            data cannot be evenly split in the specified number of bins.
-            Internally, when True, the function numpy.split is used, when False
-            the function numpy.array_split is used.
-          *kwargs
-            Optional key word arguments to be passed on to function.
-        Output:
-          A new DimData instance in which one of the dimensions is binned as specified.
+        
+        :Example usage:
+        data.get_bins('time',10,numpy.mean,unit=data.unit,number_bins=False,
+                      dim_unit='time bin midpoint')
+        data.get_bins('time',[[-100,0,'baseline'],[0,100,'timebin 1'],
+                      [100,200,'timebin 2']],numpy.mean,unit=data.unit,
+                      number_bins=False,dim_unit='time bin midpoint')
+                        
+        :Parameters:
+        - `dim`: The dimension to be binned. Can be name or number.
+        - `bins`: Specifies how the data should be binned. Acceptable values
+                  are:
+                  * the number of bins (equally spaced, if possible, roughly
+                    equally spaced if not and error_on_nonexact is False).
+                    (Uses numpy.[array]split.)
+                  * A 1-D container (list or tuple) of the indices where the
+                    data should be split into bins. The value for
+                    error_on_nonexact does not influence the result.
+                    (Uses numpy.[array]split.)
+                  * A 2-D containers (lists or tuples) where each container in
+                    the first dimension specifies the min (inclusive) and the max
+                    (exlusive) values and (optionally) a label for each bin. The
+                    value for error_on_nonexact must be True. If labels are
+                    specified in bins, they are used and the value of bin_labels
+                    is ignored.
+        - `function`: The function to aggregate over within the bins. Needs to
+                      take the data as the first argument and an additional axis
+                      argument (numpy.mean is an example of a valid function).
+        - `unit`: The new unit of the data (the passed in function may change the
+                  unit so it needs to be explicity specified)
+        - `number_bins`: If True the binned dimension is labeled by bin number.
+                         If False the new labels are found by binning the old
+                         labels and applying the function on the old labels. This
+                         only works if the labels are an acceptable input to
+                         function (e.g., numpy.float for numpy.mean).
+        - `dim_unit`: The unit of the binned dimension.
+        - `error_on_nonexact`: Specifies whether roughly equal bin sizes are
+                               acceptable when the data cannot be evenly split in
+                               the specified number of bins (this parameter is
+                               only applicable when bins is an integer specifying
+                               the number of bins). When True, the function
+                               numpy.split is used, when False the function
+                               numpy.array_split is used.
+        - `kwargs`: Optional key word arguments to be passed on to function.
+        
+        :Returns:
+        A new DimData instance in which one of the dimensions is binned as
+        specified.
         """
-        # If a string is passed in instead of a list or an array, convert:
-        dim = N.atleast_1d(dim)
-        if (len(N.shape(dim)) != 1) or (len(dim)!=1):
-            raise ValueError("dim must be a single dimension name or index.\
-            Invalid value for dim: %s " % str(dim))
+        # Makes sure dim is index (convert dim name if necessary):
+        dim = self._convert_dim(dim)
+        tmp_bins = N.atleast_2d(bins)
+        if len(tmp_bins.shape)>2:
+            raise ValueError('Invalid bins! Acceptable values are: number of '+
+                             'bins, 1-D container of index values, 2-D '+
+                             'container of min and max values and (optionally) '+
+                             'a label for each bin. Provided bins: '+str(bins))
+        if N.atleast_2d(bins).shape[1] == 1:
+            return self._split_bins(dim,bins,function,unit,bin_labels,dim_unit,
+                               error_on_nonexact,**kwargs)
+        elif N.atleast_2d(bins).shape[1] == 2:
+            if not error_on_nonexact:
+                raise ValueError('When bins are explicitly specified, '+
+                                  'error_on_nonexact must be True. Provided '+
+                                  'value: '+str(error_on_nonexact))
+            return self._select_bins(dim,bins,function,unit,bin_labels,
+                                dim_unit,error_on_nonexact,**kwargs)
+        elif N.atleast_2d(bins).shape[1] == 3:
+            if bin_labels != 'function':
+                raise ValueError('Simultaneously specification of bin labels '+
+                                 'in bins and bin_labels is not allowed. '+
+                                 'Provided bins: '+str(bins)+' Provided '+
+                                 'bin_labels: '+ str(bin_labels))
+            if not error_on_nonexact:
+                raise ValueError('When bins are explicitly specified, '+
+                                  'error_on_nonexact must be True. Provided '+
+                                  'value: '+str(error_on_nonexact))
+            return self._select_bins(dim,bins,function,unit,dim_unit,**kwargs)
+        else:
+            raise ValueError('Invalid bins! Acceptable values are: number of '+
+                             'bins, 1-D container of index values, 2-D '+
+                             'container of min and max values and (optionally) '+
+                             'a label for each bin. Provided bins: '+str(bins))
 
-        dim = dim[0]
 
-        # If dim is dim name, convert to dim index:
-        if isinstance(dim,str):
-            dim = self.dim(dim)
-
+    def _split_bins(self,dim,bins,function,unit=None,bin_labels='function',
+                    dim_unit=None,error_on_nonexact=True,**kwargs):
+        """
+        Internal function for making bins when the number of bins or the
+        indices at which to split the data into bins is specified. This
+        function should only be called by make_bins().
+        """
         # Determine which function to use for splitting:
         if error_on_nonexact:
             split = N.split
@@ -717,3 +771,62 @@ class DimData(object):
         newDimData._reset_data_stats()
         return newDimData
 
+
+    def _select_bins(self,dim,bins,function,unit=None,bin_labels='function',
+                     dim_unit=None,error_on_nonexact=True,**kwargs):
+        """
+        Internal function for making bins when the bins are specified as a list
+        of intervals. This function should only be called by make_bins().
+        """
+        # Create the new dimension:
+        dimbin_indx = N.array([((self.dims[dim]>=x[0]) & (self.dims[dim]<x[1])) for x in bins])
+        if N.shape(bins)[-1] == 3:
+            new_dim_dat = N.array([x[2] for x in bins])
+        elif bin_labels == 'function':
+            new_dim_dat = N.array([function(x,**kwargs) for x in [self.dims[dim][indx] for indx in dimbin_indx]])
+        elif bin_labels == 'sequential':
+            new_dim_dat = N.arange(len(dimbin_indx))
+        elif ((len(N.atleast_1d(bin_labels).shape) == 1) and
+              (len(N.atleast_1d(bin_labels)) == bins)):
+            new_dim_dat = N.atleast_1d(bin_labels)
+        else:
+            raise ValueError("Invalid value for bin_labels. Allowed values are "+
+            "'function','sequential', or a 1-D list/array of labels of the same "+
+            "length as bins.\n bins: "+str(bins)+"\n bin_labels: "+str(bin_labels))
+                
+        new_dim = Dim(self.dims.names[dim],new_dim_dat,unit=dim_unit)
+        
+        # Create the new data:
+        # We need to transpose the data array so that dim is the first
+        # dimension. We store the new order of dimensions in totrans:
+        totrans = range(len(self.data.shape))
+        totrans[0] = dim
+        totrans[dim] = 0
+        
+        # Now we are ready to do the transpose:
+        tmpdata = N.transpose(self.data,totrans)
+        
+        # Now loop through each bin applying the function and concatenate the
+        # data:
+        new_dat = None
+        for b,bin in enumerate(bins):
+            bindata = function(tmpdata[dimbin_indx[b]],axis=0,**kwargs)
+            if new_dat is None:
+                new_dat = bindata[N.newaxis,:]
+            else:
+                new_dat = N.r_[new_dat,bindata[N.newaxis,:]]
+
+        # transpose back:
+        new_dat = N.transpose(new_dat,totrans)
+        
+        # Create and return new DimData object:
+        new_dims = self.dims.copy()
+        new_dims[dim] = new_dim
+        newDimData = self.copy()
+        newDimData.dims = new_dims
+        newDimData.data = new_dat
+        newDimData.unit = unit
+        newDimData._reset_data_stats()
+        return newDimData
+            
+        

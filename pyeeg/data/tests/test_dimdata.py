@@ -557,7 +557,7 @@ class test_DimData(NumpyTestCase):
         N.testing.assert_array_equal(test2_1d_f.dims['condition'].data,test2_nd_f.dims['condition'].data)
 
         
-    def test_get_bins(self):
+    def test_make_bins(self):
         data = N.arange(256).reshape((4,4,4,4))
         dim1 = Dim('subject',N.arange(100,500,100))
         dim2 = Dim('channel',N.arange(30,70,10))
@@ -568,11 +568,12 @@ class test_DimData(NumpyTestCase):
 
         split = N.split
 
-        test1 = test.get_bins('subject',2,N.mean)
-        test2 = test.get_bins('channel',2,N.mean)
-        test3 = test.get_bins('session',2,N.mean)
-        test4 = test.get_bins('time',2,N.mean)
-
+        test1 = test.make_bins('subject',2,N.mean)
+        test2 = test.make_bins('channel',2,N.mean)
+        test3 = test.make_bins('session',2,N.mean)
+        test4 = test.make_bins('time',2,N.mean)
+        test4b = test.make_bins('time',[[1000,1100],[1100,2000]],N.mean)
+        N.testing.assert_array_equal(test4.data,test4b.data)
         
         tstS1 = N.array(split(data,2,axis=0))
         tstS1_M = tstS1.mean(1)
@@ -593,44 +594,44 @@ class test_DimData(NumpyTestCase):
         tstS4_M = N.transpose(tstS4_M,[1,2,3,0])
         N.testing.assert_array_equal(test4.data,tstS4_M)
        
-        test12= test1.get_bins('channel',2,N.mean)
-        test21= test2.get_bins('subject',2,N.mean)
+        test12= test1.make_bins('channel',2,N.mean)
+        test21= test2.make_bins('subject',2,N.mean)
         N.testing.assert_array_equal(test12.data,test21.data)
         
-        test13= test1.get_bins('session',2,N.mean)
-        test31= test3.get_bins('subject',2,N.mean)
+        test13= test1.make_bins('session',2,N.mean)
+        test31= test3.make_bins('subject',2,N.mean)
         N.testing.assert_array_equal(test13.data,test31.data)
         
-        test14= test1.get_bins('time',2,N.mean)
-        test41= test4.get_bins('subject',2,N.mean)
+        test14= test1.make_bins('time',2,N.mean)
+        test41= test4.make_bins('subject',2,N.mean)
         N.testing.assert_array_equal(test14.data,test41.data)
 
-        test23= test2.get_bins('session',2,N.mean)
-        test32= test3.get_bins('channel',2,N.mean)
+        test23= test2.make_bins('session',2,N.mean)
+        test32= test3.make_bins('channel',2,N.mean)
         N.testing.assert_array_equal(test23.data,test32.data)
        
-        test24= test2.get_bins('time',2,N.mean)
-        test42= test4.get_bins('channel',2,N.mean)
+        test24= test2.make_bins('time',2,N.mean)
+        test42= test4.make_bins('channel',2,N.mean)
         N.testing.assert_array_equal(test24.data,test42.data)
        
-        test34= test3.get_bins('time',2,N.mean)
-        test43= test4.get_bins('session',2,N.mean)
+        test34= test3.make_bins('time',2,N.mean)
+        test43= test4.make_bins('session',2,N.mean)
         N.testing.assert_array_equal(test34.data,test43.data)
 
-        test123 = test12.get_bins('session',2,N.mean)
-        test132 = test13.get_bins('channel',2,N.mean)
+        test123 = test12.make_bins('session',2,N.mean)
+        test132 = test13.make_bins('channel',2,N.mean)
         N.testing.assert_array_equal(test123.data,test132.data)
        
-        test124 = test12.get_bins('time',2,N.mean)
-        test142 = test14.get_bins('channel',2,N.mean)
+        test124 = test12.make_bins('time',2,N.mean)
+        test142 = test14.make_bins('channel',2,N.mean)
         N.testing.assert_array_equal(test124.data,test142.data)
        
-        test134 = test13.get_bins('time',2,N.mean)
-        test143 = test14.get_bins('session',2,N.mean)
+        test134 = test13.make_bins('time',2,N.mean)
+        test143 = test14.make_bins('session',2,N.mean)
         N.testing.assert_array_equal(test134.data,test143.data)
        
-        test234 = test23.get_bins('time',2,N.mean)
-        test243 = test24.get_bins('session',2,N.mean)
+        test234 = test23.make_bins('time',2,N.mean)
+        test243 = test24.make_bins('session',2,N.mean)
         N.testing.assert_array_equal(test234.data,test243.data)
        
 
