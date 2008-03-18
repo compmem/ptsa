@@ -4,8 +4,8 @@ import sys
 
 #from filter import decimate
 #from helper import reshapeTo2D,reshapeFrom2D
-from pyeeg.data import TimeSeries,Dim,Dims,DimData
-from pyeeg import wavelet
+from ptsa.data import TimeSeries,Dim,Dims,DimData
+from ptsa import wavelet
 import scipy.stats as stats
 
 

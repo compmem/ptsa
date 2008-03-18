@@ -4,7 +4,7 @@ import sys
 
 from filt import decimate
 from helper import reshapeTo2D,reshapeFrom2D
-from pyeeg.data import TimeSeries,Dim,Dims,DimData
+from ptsa.data import TimeSeries,Dim,Dims,DimData
 import scipy.stats as stats
 
 import pdb

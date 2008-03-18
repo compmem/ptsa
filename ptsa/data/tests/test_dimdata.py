@@ -2,8 +2,8 @@ import numpy as N
 import re
 from numpy.testing import NumpyTest, NumpyTestCase
 
-from pyeeg.data import Dim,Dims,DimData
-from pyeeg import filt
+from ptsa.data import Dim,Dims,DimData
+from ptsa import filt
 
 
 # from numpy.testing import NumpyTest, NumpyTestCase

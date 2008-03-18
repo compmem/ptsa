@@ -1,5 +1,5 @@
 """
-PyEEG - The Python EEG toolbox.
+PTSA - The Python Time-Series Analysis toolbox.
 """
 
 
@@ -12,10 +12,10 @@ from version import versionAtLeast,versionWithin
 
 #__all__ = [data,filter,plotting,wavelet]
 
-packages = ('pyeeg',
-            'pyeeg.tests',
-            'pyeeg.data',
-            'pyeeg.data.tests')
+packages = ('ptsa',
+            'ptsa.tests',
+            'ptsa.data',
+            'ptsa.data.tests')
 
 def _test(method, level, verbosity, flags):
     """
@@ -35,7 +35,7 @@ def _test(method, level, verbosity, flags):
     from numpy.testing import NumpyTest, importall
     #from neuroimaging.utils.testutils import set_flags
     #set_flags(flags)
-    importall('pyeeg')
+    importall('ptsa')
     return getattr(NumpyTest(), method)(level, verbosity=2)
 
 def test(level=1, verbosity=1, flags=[]):

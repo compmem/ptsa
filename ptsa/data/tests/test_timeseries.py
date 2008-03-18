@@ -3,8 +3,8 @@ import re
 from numpy.testing import NumpyTest, NumpyTestCase
 
 
-from pyeeg.data import Dim,Dims,DimData,TimeSeries
-from pyeeg import filt
+from ptsa.data import Dim,Dims,DimData,TimeSeries
+from ptsa import filt
 
 # from numpy.testing import NumpyTest, NumpyTestCase
 

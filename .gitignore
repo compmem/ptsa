@@ -1,9 +1,6 @@
-syntax: glob
 *.orig
 *~
 *.py[co]
 pyeeg/griddata-0.1
 
-syntax: regexp
-.*\#.*\#$
 

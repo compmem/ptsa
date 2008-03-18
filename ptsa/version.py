@@ -1,4 +1,4 @@
-# PyEEG: version.py
+# Ptsa: version.py
 #
 # Copyright (C) 2007 Per B. Sederberg
 # Authors: Per B. Sederberg, Christoph T. Weidemann
@@ -18,13 +18,13 @@ import versionString
 #vstr = open('versionString.txt').readline().strip()
 ## !!!!!
 
-pyeegVersion = StrictVersion(versionString.vstr)
+ptsaVersion = StrictVersion(versionString.vstr)
 
 def versionAtLeast(someString):
     """
-    Check that the current pyeeg Version >= argument string's version.
+    Check that the current ptsa Version >= argument string's version.
     """
-    if pyeegVersion >= StrictVersion(someString):
+    if ptsaVersion >= StrictVersion(someString):
         # Is above specified version
         return True
     else:
@@ -32,10 +32,10 @@ def versionAtLeast(someString):
 
 def versionWithin(str1, str2):
     """
-    Check that the current pyeeg version is in the version-range described
+    Check that the current ptsa version is in the version-range described
     by the 2 argument strings.
     """
-    if not (pyeegVersion >= StrictVersion(str1) and pyeegVersion <= StrictVersion(str2)):
+    if not (ptsaVersion >= StrictVersion(str1) and ptsaVersion <= StrictVersion(str2)):
         # not within range
         return False
     else:

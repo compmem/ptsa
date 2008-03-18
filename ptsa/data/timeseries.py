@@ -1,6 +1,6 @@
 
 from dimdata import DimData
-from pyeeg import filt
+from ptsa import filt
 
 from scipy.signal import resample
 import numpy as N

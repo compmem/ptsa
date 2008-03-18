@@ -1,5 +1,5 @@
 
-from pyeeg.data import Dim
+from ptsa.data import Dim
 
 
 import numpy as N

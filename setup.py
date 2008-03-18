@@ -6,21 +6,21 @@ import os
 import sys
 
 # get the version loaded as vstr
-execfile('pyeeg/versionString.py')
+execfile('ptsa/versionString.py')
 
 # # set up the data files
 # site_packages_dir = os.path.join(get_config_var('BINLIBDEST'), 'site-packages')
 # data_files = []
 
 # # The version string text file
-# data_files.append((os.path.join(site_packages_dir, 'pyeeg'), 
+# data_files.append((os.path.join(site_packages_dir, 'ptsa'), 
 # 		   ['src/versionString.txt']))
 
 
-setup(name='pyeeg', 
+setup(name='ptsa', 
       version=vstr, 
-      package_dir={"pyeeg":"pyeeg"},
-      packages=['pyeeg','pyeeg.tests','pyeeg.data','pyeeg.data.tests'],
+      package_dir={"ptsa":"ptsa"},
+      packages=['ptsa','ptsa.tests','ptsa.data','ptsa.data.tests'],
       author=['Per B. Sederberg, Christoph T. Weidemann'],
       maintainer=['Per B. Sederberg'],
       maintainer_email=['psederberg@gmail.com'],

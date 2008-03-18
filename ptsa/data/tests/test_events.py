@@ -2,7 +2,7 @@
 import numpy as N
 from numpy.testing import NumpyTest, NumpyTestCase
 
-from pyeeg import Events,EegEvents
+from ptsa import Events,EegEvents
 
 class test_Events(NumpyTestCase):
     def setUp(self):
