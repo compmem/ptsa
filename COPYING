@@ -1,0 +1,23 @@
+PTSA - The Python Time Series Analysis Toolbox
+
+Copyright (C) 2007-2008
+Per B. Sederberg <psederberg@gmail.com> and
+Christoph T. Weidemann <ctw@cogsci.info>
+
+Authors: Per B. Sederberg and Christoph T. Weidemann
+URL: TBA
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program. It can be found in the file license.txt which
+is part of the ptsa package and online at
+<http://www.gnu.org/licenses/>.

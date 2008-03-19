@@ -1,5 +1,10 @@
+What do we want in ptsa?
 
-What do we want in pyeeg?
+1) Finish unit tests.
+   a) make sure all code is tested
+   b) clean up existing unit tests.
+
+
 
 Testing of code.
 

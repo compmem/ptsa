@@ -1,11 +1,11 @@
-# Ptsa: version.py
+#emacs: -*- mode: python-mode; py-indent-offset: 4; indent-tabs-mode: nil -*-
+#ex: set sts=4 ts=4 sw=4 et:
+### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ##
 #
-# Copyright (C) 2007 Per B. Sederberg
-# Authors: Per B. Sederberg, Christoph T. Weidemann
-# URL: 
+#   See the COPYING file distributed along with the PTSA package for the
+#   copyright and license terms.
 #
-# Distributed under the terms of the GNU Lesser General Public License
-# (LGPL). See the license.txt that came with this file.
+### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ##
 
 """
 Version management module.

@@ -1,3 +1,12 @@
+#emacs: -*- mode: python-mode; py-indent-offset: 4; indent-tabs-mode: nil -*-
+#ex: set sts=4 ts=4 sw=4 et:
+### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ##
+#
+#   See the COPYING file distributed along with the PTSA package for the
+#   copyright and license terms.
+#
+### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ##
+
 from scipy.signal import butter, cheby1, firwin, lfilter
 from numpy import asarray, vstack, hstack, eye, ones, zeros, linalg, newaxis, r_, flipud, convolve, matrix, array,concatenate
 

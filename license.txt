@@ -1,12 +1,3 @@
-# PyEEG: license.txt
-#
-# Copyright (C) 2007-2008 Per B. Sederberg and Christoph T. Weidemann
-# Authors: Per B. Sederberg and Christoph T. Weidemann
-# URL:
-#
-# Distributed under the terms of the GNU General Public License
-# (GPL). See the license.txt that came with this file.
-
                     GNU GENERAL PUBLIC LICENSE
                        Version 3, 29 June 2007
 

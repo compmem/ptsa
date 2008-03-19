@@ -1,3 +1,12 @@
+#emacs: -*- mode: python-mode; py-indent-offset: 4; indent-tabs-mode: nil -*-
+#ex: set sts=4 ts=4 sw=4 et:
+### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ##
+#
+#   See the COPYING file distributed along with the PTSA package for the
+#   copyright and license terms.
+#
+### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ##
+
 """
 PTSA - The Python Time-Series Analysis toolbox.
 """
@@ -5,7 +14,7 @@ PTSA - The Python Time-Series Analysis toolbox.
 
 #from data import DataWrapper,Events,RawBinaryEEG,createEventsFromMatFile
 from data import Dim,Dims,DimData,TimeSeries
-from filter import buttfilt, filtfilt
+from filt import buttfilt, filtfilt
 from plotting import topoplot
 from wavelet import tsPhasePow,phasePow1d,phasePow2d
 from version import versionAtLeast,versionWithin
