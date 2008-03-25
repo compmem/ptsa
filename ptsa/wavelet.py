@@ -18,19 +18,27 @@ import scipy.stats as stats
 
 import pdb
 
-def morlet(freq,t,width):
-    """ Generate a Morlet wavelet for specified frequncy for times t.
+# def morlet(freq,t,width):
+#     """ Generate a Morlet wavelet for specified frequncy for times t.
 
-    The wavelet will be normalized so the total energy is 1.  width
-    defines the ``width'' of the wavelet in cycles.  A value >= 5 is
-    suggested.
+#     The wavelet will be normalized so the total energy is 1.  width
+#     defines the ``width'' of the wavelet in cycles.  A value >= 5 is
+#     suggested.
 
-    """
-    sf = float(freq)/float(width)
-    st = 1./(2*N.pi*sf)
-    A = 1./N.sqrt(st*N.sqrt(N.pi))
-    y = A*N.exp(-N.power(t,2)/(2*N.power(st,2)))*N.exp(2j*N.pi*freq*t)
-    return y
+#     """
+#     sf = float(freq)/float(width)
+#     st = 1./(2*N.pi*sf)
+#     A = 1./N.sqrt(st*N.sqrt(N.pi))
+#     y = A*N.exp(-N.power(t,2)/(2*N.power(st,2)))*N.exp(2j*N.pi*freq*t)
+#     return y
+
+
+def getNormWavelet(freq,samplerate,wavelet=ptsa.fixed_scipy.wavelets.morlet,**kwargs):
+    # generate wavelet based on frequency & sample rate
+    # normalize wavlet so the total energy is 1
+    pass
+    
+
 
 def phasePow1d(freq,dat,samplerate,width):
     """ Calculate phase and power for a single freq and 1d signal.

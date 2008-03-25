@@ -9,4 +9,3 @@
 
 """Functions that contain a bug in the latest scipy stable release are copied here (fixed) until they are fixed in the stable release."""
 
-from wavelets import morlet
