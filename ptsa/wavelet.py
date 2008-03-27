@@ -93,20 +93,23 @@ def morlet_multi(freqs, widths, samplerate,sampling_window=7,complete=True):
     if len(widths) != len(freqs):
         raise ValueError("Freqs and widths are not compatible: len(freqs) must be "+
                          "evenly divisible by len(widths).\n"+
-                         "len(freqs) = "+str(len(freqs))+"\nlen(widths) = "+str(len(widths)))
+                         "len(freqs) = "+str(len(freqs))+
+                         "\nlen(widths) = "+str(len(widths)))
     
     # std. devs. in the time domain:
     st = widths/(2*N.pi*freqs)
     
-    # determine number of samples needed to have wavelet with max std. dev. in
-    # time domain taper out to zero
-    samples = N.ceil(N.max(st)*samplerate*7)
+    # determine number of samples needed based on wavelet with maximum
+    # stdandard deviation in time domain
+    samples = N.ceil(N.max(st)*samplerate*sampling_window)
     
     # determine the scale of the wavelet (cf.
     # scipy.signal.wavelets.morlet docstring):
     scale = (freqs*samples)/(2.*widths*samplerate)
     
-    morlet = N.array([fixed_scipy.morlet(samples,w=widths[i],s=scale[i],complete=complete) for i in xrange(len(scale))])
+    morlet = N.array([fixed_scipy.morlet(samples,w=widths[i],s=scale[i],
+                                         complete=complete)
+                      for i in xrange(len(scale))])
     energy = N.sqrt(N.sum(N.power(N.abs(morlet),2.),axis=1)/samplerate)
     norm_factors = N.vstack([1./energy]*samples).T
     return morlet*norm_factors
