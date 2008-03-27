@@ -2,5 +2,10 @@
 *~
 *.py[co]
 pyeeg/griddata-0.1
+\#*
+\.\#*
+build
+*.so
+build-arch*
 
 
