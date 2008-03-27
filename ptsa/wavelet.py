@@ -29,7 +29,7 @@ def morlet_multi(freqs, widths, samplerate,sampling_window=7,complete=True):
     Calls the scipy.signal.wavelet.morlet() function to generate
     Morlet wavelets with the specified frequencies, samplerate, and
     widths (in cycles); see the docstring for the scipy morlet function
-    for details. This wavelets are normalized before they are returned.
+    for details. These wavelets are normalized before they are returned.
     
     Parameters
     ----------
