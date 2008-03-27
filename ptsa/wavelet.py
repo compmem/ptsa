@@ -10,13 +10,89 @@
 import numpy as N
 from scipy import unwrap
 import sys
+import scipy.stats as stats
+from scipy.fftpack import fft,ifft
+from scipy.signal.signaltools import _centered as centered
 
 from filt import decimate
 from helper import reshapeTo2D,reshapeFrom2D
 from ptsa.data import TimeSeries,Dim,Dims,DimData
-import scipy.stats as stats
 
 import pdb
+
+def morlet_multi(freqs, width, samplerate):
+    """
+    """
+    pass
+
+def fconv_multi(in1, in2, mode='full'):
+    """Convolve multiple 1-dimensional arrays using FFT. See convolve
+    for additional details.
+
+    N.B. The time dimension MUST be the first dimension.  The FFT are
+    calculated for each column of each input signals and then are
+    combined as if you looped over the 1D signals in the first input
+    and for each of those signals you looped over the the 1D signals
+    from the second input.  Time then becomes the second axis on the
+    return value while each pairwise combination makes up the first
+    axis.
+    """
+    # get the number of samples for each input
+    s1 = in1.shape[0]
+    s2 = in2.shape[0]
+
+    # ensure proper number of dimensions
+    if len(in1.shape) == 1:
+        in1 = in1[:,N.newaxis]
+    if len(in2.shape) == 1:
+        in2 = in2[:,N.newaxis]
+
+    # get the number of signals in each input
+    num1 = in1.shape[1]
+    num2 = in2.shape[1]
+    
+    # see if we will be returning a complex result
+    complex_result = (N.issubdtype(in1.dtype, N.complex) or
+                      N.issubdtype(in2.dtype, N.complex))
+
+    # determine the size based on the next power of 2
+    actual_size = s1+s2-1
+    size = N.power(2,nextpow2(actual_size))
+
+    # perform the fft of each column of in1 and in2
+    in1_fft = N.empty((num1,size),dtype=N.complex128)
+    for i in xrange(num1):
+        in1_fft[i,:] = fft(in1[:,i],size)
+    in2_fft = N.empty((num2,size),dtype=N.complex128)
+    for i in xrange(num2):
+        in2_fft[i,:] = fft(in2[:,i],size)
+
+    # duplicate the signals and multiply before taking the inverse
+    ret = ifft(in1_fft.repeat(num2,axis=0) * \
+               N.vstack([in2_fft]*num1))
+
+    # delete to save memory
+    del in1_fft, in2_fft
+
+    # strip of extra space if necessary
+    ret = ret[:,:actual_size]
+
+    # determine if complex, keeping only real if not
+    if not complex_result:
+        ret = ret.real
+
+    # now only keep the requested portion
+    if mode == "full":
+        return ret
+    elif mode == "same":
+        if s1 > s2:
+            osize = s1
+        else:
+            osize = s2
+        return centered(ret,osize)
+    elif mode == "valid":
+        return centered(ret,N.abs(s2-s1)+1)
+
 
 def morlet(freq,t,width):
     """ Generate a Morlet wavelet for specified frequncy for times t.
