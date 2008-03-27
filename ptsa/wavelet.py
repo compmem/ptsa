@@ -64,7 +64,7 @@ def morlet_multi(freqs, widths, samplerate,sampling_window=7,complete=True):
     
     Returns
     -------
-    A 2-D (frequency * samples) array of Morlet wavelets.
+    A 2-D (frequencies * samples) array of Morlet wavelets.
     
     Notes
     -----
