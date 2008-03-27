@@ -18,15 +18,13 @@ from filt import buttfilt, filtfilt
 from plotting import topoplot
 from wavelet import tsPhasePow,phasePow1d,phasePow2d
 from version import versionAtLeast,versionWithin
-from fixed_scipy import wavelets
 
 #__all__ = [data,filter,plotting,wavelet]
 
 packages = ('ptsa',
             'ptsa.tests',
             'ptsa.data',
-            'ptsa.data.tests',
-            'ptsa.fixed_scipy')
+            'ptsa.data.tests')
 
 def _test(method, level, verbosity, flags):
     """

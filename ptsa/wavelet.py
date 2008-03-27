@@ -15,15 +15,101 @@ from scipy.fftpack import fft,ifft
 from scipy.signal.signaltools import _centered as centered
 
 from filt import decimate
-from helper import reshapeTo2D,reshapeFrom2D
+from helper import reshapeTo2D,reshapeFrom2D,nextPow2
 from ptsa.data import TimeSeries,Dim,Dims,DimData
+
+import fixed_scipy
 
 import pdb
 
-def morlet_multi(freqs, width, samplerate):
+def morlet_multi(freqs, widths, samplerate,sampling_window=7,complete=True):
     """
+    Returns a Morlet wavelets with the total energy normalized to 1.
+    
+    Calls the scipy.signal.wavelet.morlet() function to generate
+    Morlet wavelets with the specified frequencies, samplerate, and
+    widths (in cycles); see the docstring for the scipy morlet function
+    for details. This wavelets are normalized before they are returned.
+    
+    Parameters
+    ----------
+    freq : {int, float, array_like of ints or floats}
+        The frequencies of the Morlet wavelets
+    samplerate : {float}
+        The sample rate of the signal (e.g., 200 Hz)
+    widths : {int, float, array_like of ints or floats}
+        The width(s) of the wavelets in cycles. If only one width is passed
+        in, all wavelets have the same width. If len(widths)==len(freqs),
+        each frequency is paired with a corresponding width. If
+        1<len(widths)<len(freqs), len(freqs) must be evenly divisible by
+        len(widths) (i.e., len(freqs)%len(widths)==0). In this case widths
+        are repeated such that (1/len(widths))*len(freq) neigboring wavelets
+        have the same width -- e.g., if len(widths)==2, the the first and
+        second half of the wavelets have widths of widths[0] and width[1]
+        respectively, and if len(widths)==3 the first, middle, and last
+        third of wavelets have widths of widths[0], widths[1], and widths[2]
+        respectively.
+    sampling_window : {float}
+        How much of the wavelet is sampled. As sampling_window increases,
+        the number of samples increases and thus the samples near the edge
+        approach zero increasingly closely. The number of samples are
+        determined from the wavelet(s) with the largest standard deviation
+        in the time domain. All other wavelets are therefore guaranteed to
+        approach zero better at the edges. A value >= 7 is recommended.
+    complete : {bool}
+        Whether to generate a complete or standard approximation to
+        the complete version of a Morlet wavelet. Complete should be True,
+        especially for low (<=5) values of width. See
+        scipy.signal.wavelet.morlet() for details.
+    
+    Returns
+    -------
+    A 2-D (frequency * samples) array of Morlet wavelets.
+    
+    Notes
+    -----
+    The in scipy versions <= 0.6.0, the scipy.signal.wavelet.morlet()
+    code contains a bug. Until it is fixed in a stable release, this
+    code calls a local fixed version of the scipy function.
+    
+    Examples
+    --------
+    >>> wavelet = morlet_multi(10,5,200)
+    >>> wavelet.shape
+    (1, 112)
+    >>> wavelet = morlet_multi([10,20,30],5,200)
+    >>> wavelet.shape
+    (3, 112)
+    >>> wavelet = morlet_multi([10,20,30],[5,6,7],200)
+    >>> wavelet.shape
+    (3, 112)
     """
-    pass
+    
+    freqs = N.atleast_1d(freqs)
+    widths = N.atleast_1d(widths)
+
+    # make len(widths)==len(freqs):
+    widths = widths.repeat(len(freqs)/len(widths))
+    if len(widths) != len(freqs):
+        raise ValueError("Freqs and widths are not compatible: len(freqs) must be "+
+                         "evenly divisible by len(widths).\n"+
+                         "len(freqs) = "+str(len(freqs))+"\nlen(widths) = "+str(len(widths)))
+    
+    # std. devs. in the time domain:
+    st = widths/(2*N.pi*freqs)
+    
+    # determine number of samples needed to have wavelet with max std. dev. in
+    # time domain taper out to zero
+    samples = N.ceil(N.max(st)*samplerate*7)
+    
+    # determine the scale of the wavelet (cf.
+    # scipy.signal.wavelets.morlet docstring):
+    scale = (freqs*samples)/(2.*widths*samplerate)
+    
+    morlet = N.array([fixed_scipy.morlet(samples,w=widths[i],s=scale[i],complete=complete) for i in xrange(len(scale))])
+    energy = N.sqrt(N.sum(N.power(N.abs(morlet),2.),axis=1)/samplerate)
+    norm_factors = N.vstack([1./energy]*samples).T
+    return morlet*norm_factors
 
 def fconv_multi(in1, in2, mode='full'):
     """Convolve multiple 1-dimensional arrays using FFT. See convolve
@@ -37,15 +123,14 @@ def fconv_multi(in1, in2, mode='full'):
     return value while each pairwise combination makes up the first
     axis.
     """
+    
+    # ensure proper number of dimensions
+    in1 = N.atleast_2d(in1)
+    in2 = N.atleast_2d(in2)
+
     # get the number of samples for each input
     s1 = in1.shape[0]
     s2 = in2.shape[0]
-
-    # ensure proper number of dimensions
-    if len(in1.shape) == 1:
-        in1 = in1[:,N.newaxis]
-    if len(in2.shape) == 1:
-        in2 = in2[:,N.newaxis]
 
     # get the number of signals in each input
     num1 = in1.shape[1]
@@ -57,7 +142,7 @@ def fconv_multi(in1, in2, mode='full'):
 
     # determine the size based on the next power of 2
     actual_size = s1+s2-1
-    size = N.power(2,nextpow2(actual_size))
+    size = N.power(2,nextPow2(actual_size))
 
     # perform the fft of each column of in1 and in2
     in1_fft = N.empty((num1,size),dtype=N.complex128)
@@ -106,13 +191,6 @@ def fconv_multi(in1, in2, mode='full'):
 #     A = 1./N.sqrt(st*N.sqrt(N.pi))
 #     y = A*N.exp(-N.power(t,2)/(2*N.power(st,2)))*N.exp(2j*N.pi*freq*t)
 #     return y
-
-
-def getNormWavelet(freq,samplerate,wavelet=ptsa.fixed_scipy.wavelets.morlet,**kwargs):
-    # generate wavelet based on frequency & sample rate
-    # normalize wavlet so the total energy is 1
-    pass
-    
 
 
 def phasePow1d(freq,dat,samplerate,width):

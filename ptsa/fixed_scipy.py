@@ -1,18 +1,12 @@
 ################################################################################
 ################################################################################
 ###
-### scipy.signal.wavelets
+### scipy.signal.wavelets.morlet
 ###
 ################################################################################
 ################################################################################
 
-import numpy as sb
-from numpy.dual import eig
-from scipy.misc import comb
 from scipy import linspace, pi, exp, zeros
-
-################################################################################
-# scipy.signal.wavelets.morlet
 
 def morlet(M, w=5.0, s=1.0, complete=True):
     """Complex Morlet wavelet.
@@ -61,62 +55,8 @@ def morlet(M, w=5.0, s=1.0, complete=True):
     
     return output
 
-#
-################################################################################
-
-
-################################################################################
-################################################################################
 ###
-### scipy.signal.signaltools
+### scipy.signal.wavelets.morlet()
 ###
 ################################################################################
-################################################################################
-
-import types
-import scipy.signal.sigtools
-from scipy import special, linalg
-from scipy.fftpack import fft, ifft, ifftshift, fft2, ifft2
-from numpy import polyadd, polymul, polydiv, polysub, \
-     roots, poly, polyval, polyder, cast, asarray, isscalar, atleast_1d, \
-     ones, sin, linspace, real, extract, real_if_close, zeros, array, arange, \
-     where, sqrt, rank, newaxis, argmax, product, cos, pi, exp, \
-     ravel, size, less_equal, sum, r_, iscomplexobj, take, \
-     argsort, allclose, expand_dims, unique, prod, sort, reshape, c_, \
-     transpose, dot, any, minimum, maximum, mean, cosh, arccosh, \
-     arccos, concatenate
-import numpy
-from scipy.fftpack import fftn, ifftn, fft
-from scipy.misc import factorial
-
-
-################################################################################
-# scipy.signal.signaltools.fftconvolve
-
-def fftconvolve(in1, in2, mode="full"):
-    """Convolve two N-dimensional arrays using FFT. See convolve.
-    """
-    s1 = array(in1.shape)
-    s2 = array(in2.shape)
-    complex_result = (numpy.issubdtype(in1.dtype, numpy.complex) or
-                      numpy.issubdtype(in2.dtype, numpy.complex))
-    size = s1+s2-1
-    IN1 = fftn(in1,size)
-    IN1 *= fftn(in2,size)
-    ret = ifftn(IN1)
-    del IN1
-    if not complex_result:
-        ret = ret.real
-    if mode == "full":
-        return ret
-    elif mode == "same":
-        if product(s1,axis=0) > product(s2,axis=0):
-            osize = s1
-        else:
-            osize = s2
-        return _centered(ret,osize)
-    elif mode == "valid":
-        return _centered(ret,abs(s2-s1)+1)
-
-#
 ################################################################################

@@ -143,6 +143,12 @@ def releaseFile(filename,lockdirpath=None,lockdirname=None):
     except:
         return False
     return True
-    
-    
+      
+def nextPow2(n):
+    """Returns p such that 2 ** p >= n """
+    p   = N.floor(N.log2(n))
+    if 2 **  p ==  n:
+        return p
+    else:
+        return p + 1
 
