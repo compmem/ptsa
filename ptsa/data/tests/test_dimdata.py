@@ -14,7 +14,6 @@ from numpy.testing import NumpyTest, NumpyTestCase
 from ptsa.data import Dim,Dims,DimData
 from ptsa import filt
 
-
 # from numpy.testing import NumpyTest, NumpyTestCase
 
 # class test_Template(NumpyTestCase):
@@ -34,6 +33,7 @@ from ptsa import filt
 
 # I don't know why I can't just include this
 #from testdata import TestData
+
 
 class TestData:
     def __init__(self):

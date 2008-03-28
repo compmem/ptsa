@@ -334,7 +334,8 @@ class DimData(object):
             # if we get to here, the string they provided did not specify any dimensions
             if not foundDim:
                 # XXX eventually this should be a custom exception
-                raise ValueError("The provided filter string did not specify any valid dimensions: '%s'" %
+                raise ValueError("The provided filter string did " + \
+                                 "not specify any valid dimensions: '%s'" %
                                  (filterStr))
 
         # loop over the kwargs
