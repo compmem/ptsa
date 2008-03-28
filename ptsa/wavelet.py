@@ -182,18 +182,28 @@ def fconv_multi(in1, in2, mode='full'):
         return centered(ret,N.abs(s2-s1)+1)
 
 
-#def morlet(freq,t,width):
-#    """ Generate a Morlet wavelet for specified frequncy for times t.
-#     The wavelet will be normalized so the total energy is 1.  width
-#     defines the ``width'' of the wavelet in cycles.  A value >= 5 is
-#     suggested.
+def phase_pow_multi(freqs, dat, samplerate, axis=-1,
+                    widths=5, verbose=False, toReturn='both'):
+    # base this code on calcPhasePow from below
+    pass
 
-#     """
-#     sf = float(freq)/float(width)
-#     st = 1./(2*N.pi*sf)
-#     A = 1./N.sqrt(st*N.sqrt(N.pi))
-#     y = A*N.exp(-N.power(t,2)/(2*N.power(st,2)))*N.exp(2j*N.pi*freq*t)
-#     return y
+
+##################
+# Old wavelet code
+##################
+
+def morlet(freq,t,width):
+   """ Generate a Morlet wavelet for specified frequncy for times t.
+    The wavelet will be normalized so the total energy is 1.  width
+    defines the ``width'' of the wavelet in cycles.  A value >= 5 is
+    suggested.
+
+    """
+    sf = float(freq)/float(width)
+    st = 1./(2*N.pi*sf)
+    A = 1./N.sqrt(st*N.sqrt(N.pi))
+    y = A*N.exp(-N.power(t,2)/(2*N.power(st,2)))*N.exp(2j*N.pi*freq*t)
+    return y
 
 
 def phasePow1d(freq,dat,samplerate,width):
