@@ -13,18 +13,20 @@ PTSA - The Python Time-Series Analysis toolbox.
 
 
 #from data import DataWrapper,Events,RawBinaryEEG,createEventsFromMatFile
-from data import Dim,Dims,DimData,TimeSeries
-from filt import buttfilt, filtfilt
-from plotting import topoplot
-from wavelet import tsPhasePow,phasePow1d,phasePow2d
-from version import versionAtLeast,versionWithin
+from ptsa.data import Dim,Dims,DimData,TimeSeries
+from ptsa.filt import buttfilt, filtfilt
+from ptsa.plotting import topoplot
+from ptsa.wavelet import tsPhasePow,phasePow1d,phasePow2d
+from ptsa.version import versionAtLeast,versionWithin
 
 #__all__ = [data,filter,plotting,wavelet]
 
 packages = ('ptsa',
             'ptsa.tests',
             'ptsa.data',
-            'ptsa.data.tests')
+            'ptsa.data.tests',
+            'ptsa.plotting',
+            'ptsa.plotting.tests')
 
 def _test(method, level, verbosity, flags):
     """
@@ -42,8 +44,6 @@ def _test(method, level, verbosity, flags):
           > 1            --- show warnings on missing tests
     """
     from numpy.testing import NumpyTest, importall
-    #from neuroimaging.utils.testutils import set_flags
-    #set_flags(flags)
     importall('ptsa')
     return getattr(NumpyTest(), method)(level, verbosity=2)
 

@@ -8,7 +8,7 @@
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ##
 
 import pylab as PL
-from helper import pol2cart, cart2pol, deg2rad
+from ptsa.helper import pol2cart, cart2pol, deg2rad
 try:
     from griddata import griddata
 except:
