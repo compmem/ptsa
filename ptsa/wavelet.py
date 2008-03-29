@@ -31,7 +31,7 @@ def morlet_multi(freqs, widths, samplerate,
     Parameters
     ----------
     freqs : {int, float, array_like of ints or floats}
-        The frequencies of the Morlet wavelets
+        The frequencies of the Morlet wavelets.
     widths : {int, float, array_like of ints or floats}
         The width(s) of the wavelets in cycles. If only one width is passed
         in, all wavelets have the same width. If len(widths)==len(freqs),
@@ -45,7 +45,7 @@ def morlet_multi(freqs, widths, samplerate,
         third of wavelets have widths of widths[0], widths[1], and widths[2]
         respectively.
     samplerate : {float}
-        The sample rate of the signal (e.g., 200 Hz)
+        The sample rate of the signal (e.g., 200 Hz).
     sampling_window : {float}
         How much of the wavelet is sampled. As sampling_window increases,
         the number of samples increases and thus the samples near the edge
@@ -212,12 +212,12 @@ def phase_pow_multi(freqs, dat, samplerate, widths=5, toReturn='both',
     Parameters
     ----------
     freqs : {int, float, array_like of ints or floats}
-        The frequencies of the Morlet wavelets
+        The frequencies of the Morlet wavelets.
     dat : {array_like}
         The data to determine the phase and power of. Time/samples must be
         last dimension and should include a buffer to avoid edge effects.
     samplerate : {float}
-        The sample rate of the signal (e.g., 200 Hz)
+        The sample rate of the signal (e.g., 200 Hz).
     widths : {int, float, array_like of ints or floats}
         The width(s) of the wavelets in cycles. See docstring of
         morlet_multi() for details.
@@ -230,15 +230,13 @@ def phase_pow_multi(freqs, dat, samplerate, widths=5, toReturn='both',
         Index of the frequency dimension in the returned array(s).
         Should be in {0, time_axis, time_axis+1}.
     **kwargs : {**kwargs},optional
-        Additional key word arguments to be passed on to morlet_multi()
+        Additional key word arguments to be passed on to morlet_multi().
     
     Returns
     -------
     Array(s) of phase and/or power values as specified in toReturn. The
-    returned array(s) has/have one more dimension than dat. The added dimension
-
-    The first
-    dimension 
+    returned array(s) has/have one more dimension than dat. The added
+    dimension is for the frequencies and is inserted at freq_axis.
     """
     if toReturn != 'both' and toReturn != 'power' and toReturn != 'phase':
         raise ValueError("toReturn must be \'power\', \'phase\', or \'both\' to "+
