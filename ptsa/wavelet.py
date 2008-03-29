@@ -261,8 +261,6 @@ def phase_pow_multi(freqs, dat, samplerate, widths=5, toReturn='both',
     eegdat = reshapeTo2D(dat,time_axis)
 
     # calculate wavelet coefficients:
-    # take the transpose because fconv_multi wants time on first axis
-    # change if fconf_multi changes!
     wavCoef = fconv_multi(wavelets,eegdat,mode='same')
 
     # Determine shape for ouput arrays with added frequency dimension:
