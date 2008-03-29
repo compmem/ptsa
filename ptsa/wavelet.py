@@ -157,21 +157,24 @@ def fconv_multi(in1, in2, mode='full'):
     size = N.power(2,nextPow2(actual_size))
 
     # perform the fft of each row of in1 and in2:
-    in1_fft = N.array([fft(input,size) for input in in1])
-    in2_fft = N.array([fft(input,size) for input in in2])
+    # in1_fft = N.array([fft(input,size) for input in in1])
+    # in2_fft = N.array([fft(input,size) for input in in2])
     # PER: We could easily specify dtype=N.complex128 here, but do we
     # really need to? The below code may be more efficient; if so,
     # uncomment and replace the above code:
-    # in1_fft = N.empty((num1,size),dtype=N.complex128)
-    # for i in xrange(num1):
-    #     in1_fft[i] = fft(in1[i],size)
-    # in2_fft = N.empty((num2,size),dtype=N.complex128)
-    # for i in xrange(num2):
-    #     in2_fft[i] = fft(in2[i],size)
+    in1_fft = N.empty((num1,size),dtype=N.complex128)
+    for i in xrange(num1):
+        in1_fft[i] = fft(in1[i],size)
+    in2_fft = N.empty((num2,size),dtype=N.complex128)
+    for i in xrange(num2):
+        in2_fft[i] = fft(in2[i],size)
     
     # duplicate the signals and multiply before taking the inverse
-    ret = ifft(in1_fft.repeat(num2,axis=0) * \
-               N.vstack([in2_fft]*num1))
+    in1_fft = in1_fft.repeat(num2,axis=0)
+    in1_fft *= N.vstack([in2_fft]*num1)
+    ret = ifft(in1_fft)
+#     ret = ifft(in1_fft.repeat(num2,axis=0) * \
+#                N.vstack([in2_fft]*num1))
     
     # delete to save memory
     del in1_fft, in2_fft
@@ -261,7 +264,9 @@ def phase_pow_multi(freqs, dat, samplerate, widths=5, toReturn='both',
 
     # Determine shape for ouput arrays with added frequency dimension:
     newshape = list(origshape)
-    newshape.insert(freq_axis,len(freqs))
+    # freqs must be first for reshapeFrom2D to work
+    # XXX
+    newshape.insert(0,len(freqs))
     newshape = tuple(newshape)
     
     if toReturn == 'power' or toReturn == 'both':

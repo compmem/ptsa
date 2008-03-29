@@ -20,7 +20,7 @@ def reshapeTo2D(data,axis):
     # convert negative axis to positive axis
     if axis < 0: 
         axis = axis + rnk
-    # determine the new orde of the axes
+    # determine the new order of the axes
     newdims = N.r_[0:axis,axis+1:rnk,axis]
 
     # reshape and transpose the data
