@@ -16,7 +16,7 @@ from scipy.fftpack import fft,ifft
 from ptsa.filt import decimate
 from ptsa.helper import reshapeTo2D,reshapeFrom2D,nextPow2,centered
 from ptsa.data import TimeSeries,Dim,Dims,DimData
-from ptsa.fixed_scipy import morlet as wavelet
+from ptsa.fixed_scipy import morlet as morlet_wavelet
 
 def morlet_multi(freqs, widths, samplerate,
                  sampling_window=7, complete=True):
@@ -104,8 +104,8 @@ def morlet_multi(freqs, widths, samplerate,
     # scipy.signal.wavelets.morlet docstring):
     scale = (freqs*samples)/(2.*widths*samplerate)
     
-    wavelets = N.array([wavelet(samples,w=widths[i],s=scale[i],
-                               complete=complete)
+    wavelets = N.array([morlet_wavelet(samples,w=widths[i],s=scale[i],
+                                       complete=complete)
                         for i in xrange(len(scale))])
     energy = N.sqrt(N.sum(N.power(N.abs(wavelets),2.),axis=1)/samplerate)
     norm_factors = N.vstack([1./energy]*samples).T
@@ -248,7 +248,7 @@ def phase_pow_multi(freqs, dat, samplerate, widths=5, toReturn='both',
     if wavelets.shape[1]>dat.shape[time_axis]:
         raise ValueError("The number of data samples is insufficient compared "+
                          "to the number of wavelet samples. Try increasing "+
-                         "event samples by using a [longer] buffer.\n data"+
+                         "data samples by using a (longer) buffer.\n data "+
                          "samples: "+str(dat.shape[time_axis])+"\nwavelet "+
                          "samples: "+str(wavelets.shape[1]))
     
