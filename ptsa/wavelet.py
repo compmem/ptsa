@@ -225,7 +225,7 @@ def phase_pow_multi(freqs, dat, samplerate, widths=5, toReturn='both',
         Specify whether to return power, phase, or both.
     time_axis : {int},optional
         Index of the time/samples dimension in dat.
-        Must conform to 0<=time_axis<len(dat.shape).
+        Should be in {-1,0,len(dat.shape)}
     freq_axis : {int},optional
         Index of the frequency dimension in the returned array(s).
         Should be in {0, time_axis, time_axis+1}.
