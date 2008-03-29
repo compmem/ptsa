@@ -145,10 +145,43 @@ def releaseFile(filename,lockdirpath=None,lockdirname=None):
     return True
       
 def nextPow2(n):
-    """Returns p such that 2 ** p >= n """
+    """
+    Returns p such that 2 ** p >= n
+    """
     p   = N.floor(N.log2(n))
     if 2 **  p ==  n:
         return p
     else:
         return p + 1
 
+
+
+def centered(arr, newsize):
+    """
+    Return the center newsize portion of the input array.
+
+    Parameters
+    ----------
+    arr : {array}
+        Input array
+    newsize : {tuple of ints}
+        A tuple specifing the size of the new array.
+
+    Returns
+    -------
+    A center slice into the input array
+    
+    Note
+    ----
+    Adapted from scipy.signal.signaltools._centered
+        
+    """
+    # Don't make a copy of newsize when creating array:
+    newsize = N.asarray(newsize)
+    # Do make a copy of arr.shape when creating array:
+    currsize = N.array(arr.shape)
+    # determine start- & end-indices and slice:
+    startind = (currsize - newsize) / 2
+    endind = startind + newsize
+    myslice = [slice(startind[k], endind[k]) for k in range(len(endind))]
+    return arr[tuple(myslice)]
