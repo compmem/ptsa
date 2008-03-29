@@ -81,7 +81,6 @@ def morlet_multi(freqs, widths, samplerate,
     >>> wavelet.shape
     (3, 112)
     """
-
     # ensure the proper dimensions
     freqs = N.atleast_1d(freqs)
     widths = N.atleast_1d(widths)
@@ -140,8 +139,7 @@ def fconv_multi(in1, in2, mode='full'):
     -------
     Array with in1.shape[0]*in2.shape[0] rows with the convolution of
     the 1-D signals in the rows of in1 and in2.
-    """
-    
+    """    
     # ensure proper number of dimensions
     in1 = N.atleast_2d(in1)
     in2 = N.atleast_2d(in2)
