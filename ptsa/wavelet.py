@@ -226,7 +226,7 @@ def phase_pow_multi(freqs, dat, samplerate, widths=5, toReturn='both',
         Should be in {-1,0,len(dat.shape)}
     freq_axis : {int},optional
         Index of the frequency dimension in the returned array(s).
-        Should be in {0, time_axis, time_axis+1}.
+        Should be in {0, time_axis, time_axis+1,len(dat.shape)}.
     **kwargs : {**kwargs},optional
         Additional key word arguments to be passed on to morlet_multi().
     
