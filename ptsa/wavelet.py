@@ -169,8 +169,11 @@ def fconv_multi(in1, in2, mode='full'):
         in2_fft[i] = fft(in2[i],size)
     
     # duplicate the signals and multiply before taking the inverse
-    ret = ifft(in1_fft.repeat(num2,axis=0) * \
-               N.vstack([in2_fft]*num1))
+    in1_fft = in1_fft.repeat(num2,axis=0)
+    in1_fft *= N.vstack([in2_fft]*num1)
+    ret = ifft(in1_fft)
+#     ret = ifft(in1_fft.repeat(num2,axis=0) * \
+#                N.vstack([in2_fft]*num1))
     
     # delete to save memory
     del in1_fft, in2_fft
@@ -260,7 +263,9 @@ def phase_pow_multi(freqs, dat, samplerate, widths=5, toReturn='both',
 
     # Determine shape for ouput arrays with added frequency dimension:
     newshape = list(origshape)
-    newshape.insert(freq_axis,len(freqs))
+    # freqs must be first for reshapeFrom2D to work
+    # XXX
+    newshape.insert(0,len(freqs))
     newshape = tuple(newshape)
     
     if toReturn == 'power' or toReturn == 'both':
