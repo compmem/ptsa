@@ -104,9 +104,13 @@ def morlet_multi(freqs, widths, samplerate,
     # scipy.signal.wavelets.morlet docstring):
     scale = (freqs*samples)/(2.*widths*samplerate)
     
-    wavelets = N.array([morlet_wavelet(samples,w=widths[i],s=scale[i],
-                                       complete=complete)
-                        for i in xrange(len(scale))])
+    wavelets = N.empty((len(freqs),samples),dtype=N.complex128)
+    for i in xrange(len(freqs)):
+        wavelets[i] = morlet_wavelet(samples,w=widths[i],s=scale[i],
+                                     complete=complete)
+    #wavelets = N.array([morlet_wavelet(samples,w=widths[i],s=scale[i],
+    #                                   complete=complete)
+    #                    for i in xrange(len(scale))])
     energy = N.sqrt(N.sum(N.power(N.abs(wavelets),2.),axis=1)/samplerate)
     norm_factors = N.vstack([1./energy]*samples).T
     return wavelets*norm_factors
@@ -157,17 +161,12 @@ def fconv_multi(in1, in2, mode='full'):
     size = N.power(2,nextPow2(actual_size))
 
     # perform the fft of each row of in1 and in2:
-    in1_fft = N.array([fft(input,size) for input in in1])
-    in2_fft = N.array([fft(input,size) for input in in2])
-    # PER: We could easily specify dtype=N.complex128 here, but do we
-    # really need to? The below code may be more efficient; if so,
-    # uncomment and replace the above code:
-    # in1_fft = N.empty((num1,size),dtype=N.complex128)
-    # for i in xrange(num1):
-    #     in1_fft[i] = fft(in1[i],size)
-    # in2_fft = N.empty((num2,size),dtype=N.complex128)
-    # for i in xrange(num2):
-    #     in2_fft[i] = fft(in2[i],size)
+    in1_fft = N.empty((num1,size),dtype=N.complex128)
+    for i in xrange(num1):
+        in1_fft[i] = fft(in1[i],size)
+    in2_fft = N.empty((num2,size),dtype=N.complex128)
+    for i in xrange(num2):
+        in2_fft[i] = fft(in2[i],size)
     
     # duplicate the signals and multiply before taking the inverse
     ret = ifft(in1_fft.repeat(num2,axis=0) * \
