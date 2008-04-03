@@ -19,7 +19,7 @@ from ptsa.data import TimeSeries,Dim,Dims,DimData
 from ptsa.fixed_scipy import morlet as morlet_wavelet
 
 def morlet_multi(freqs, widths, samplerate,
-                 sampling_window=7, complete=True):
+                 sampling_windows=7, complete=True):
     """
     Calculate Morlet wavelets with the total energy normalized to 1.
     
@@ -30,9 +30,9 @@ def morlet_multi(freqs, widths, samplerate,
     
     Parameters
     ----------
-    freqs : {int, float, array_like of ints or floats}
+    freqs : {float, array_like of floats}
         The frequencies of the Morlet wavelets.
-    widths : {int, float, array_like of ints or floats}
+    widths : {float, array_like floats}
         The width(s) of the wavelets in cycles. If only one width is passed
         in, all wavelets have the same width. If len(widths)==len(freqs),
         each frequency is paired with a corresponding width. If
@@ -46,14 +46,13 @@ def morlet_multi(freqs, widths, samplerate,
         respectively.
     samplerate : {float}
         The sample rate of the signal (e.g., 200 Hz).
-    sampling_window : {float}
-        How much of the wavelet is sampled. As sampling_window increases,
+    sampling_windows : {float, array_like of floates},optional
+        How much of the wavelets is sampled. As sampling_window increases,
         the number of samples increases and thus the samples near the edge
-        approach zero increasingly closely. The number of samples are
-        determined from the wavelet(s) with the largest standard deviation
-        in the time domain. All other wavelets are therefore guaranteed to
-        approach zero better at the edges. A value >= 7 is recommended.
-    complete : {bool}
+        approach zero increasingly closely. If desired different values can
+        be specified for different wavelets (the syntax for multiple sampling
+        windows is the same as for widths). One value >= 7 is recommended.
+    complete : {bool},optional
         Whether to generate a complete or standard approximation to
         the complete version of a Morlet wavelet. Complete should be True,
         especially for low (<=5) values of width. See
@@ -84,7 +83,8 @@ def morlet_multi(freqs, widths, samplerate,
     # ensure the proper dimensions
     freqs = N.atleast_1d(freqs)
     widths = N.atleast_1d(widths)
-
+    sampling_windows = N.atleast_1d(sampling_windows)
+    
     # make len(widths)==len(freqs):
     widths = widths.repeat(len(freqs)/len(widths))
     if len(widths) != len(freqs):
@@ -93,113 +93,43 @@ def morlet_multi(freqs, widths, samplerate,
                          "len(freqs) = "+str(len(freqs))+"\nlen(widths) = "+
                          str(len(widths)/(len(freqs)/len(widths))))
     
+    # make len(sampling_windows)==len(freqs):
+    sampling_windows = sampling_windows.repeat(len(freqs)/len(sampling_windows))
+    if len(sampling_windows) != len(freqs):
+        raise ValueError("Freqs and sampling_windows are not compatible:"+
+                         "len(freqs) must be evenly divisible by"+
+                         "len(sampling_windows).\nlen(freqs) = "+str(len(freqs))+
+                         "\nlen(sampling_windows) = "+
+                         str(len(sampling_windows)/(len(freqs)/
+                                                    len(sampling_windows))))
+    
     # std. devs. in the time domain:
     st = widths/(2*N.pi*freqs)
     
-    # determine number of samples needed based on wavelet with maximum
-    # standard deviation in time domain
-    samples = N.ceil(N.max(st)*samplerate*sampling_window)
+    # determine number of samples needed:
+    samples = N.ceil(st*samplerate*sampling_windows)
     
-    # determine the scale of the wavelet (cf.
-    # scipy.signal.wavelets.morlet docstring):
-    scale = (freqs*samples)/(2.*widths*samplerate)
+    # each scale depends on frequency, samples, width, and samplerate:
+    scales = (freqs*samples)/(2.*widths*samplerate)
     
-    wavelets = N.empty((len(freqs),samples),dtype=N.complex128)
-    for i in xrange(len(freqs)):
-        wavelets[i] = morlet_wavelet(samples,w=widths[i],s=scale[i],
-                                     complete=complete)
-    #wavelets = N.array([morlet_wavelet(samples,w=widths[i],s=scale[i],
-    #                                   complete=complete)
-    #                    for i in xrange(len(scale))])
-    energy = N.sqrt(N.sum(N.power(N.abs(wavelets),2.),axis=1)/samplerate)
-    norm_factors = N.vstack([1./energy]*samples).T
-    return wavelets*norm_factors
-
-
-def fconv_multi(in1, in2, mode='full'):
-    """
-    Convolve multiple 1-dimensional arrays using FFT.
-
-    Calls scipy.signal.fft on every row in in1 and in2, multiplies
-    every possible pairwise combination of the transformed rows, and
-    returns an inverse fft (by calling scipy.signal.ifft) of the
-    result. Therefore the output array has as many rows as the product
-    of the number of rows in in1 and in2 (the number of colums depend
-    on the mode).
+    # generate list of unnormalized wavelets:
+    wavelets = [morlet_wavelet(samples[i],w=widths[i],s=scales[i],
+                               complete=complete)
+                for i in xrange(len(scales))]
     
-    Parameters
-    ----------
-    in1 : {array_like}
-        First input array. Must be arranged such that each row is a
-        1-D array with data to convolve.
-    in2 : {array_like}
-        Second input array. Must be arranged such that each row is a
-        1-D array with data to convolve.
-    mode : {'full','valid','same'},optional
-        Specifies the size of the output. See the docstring for
-        scipy.signal.convolve() for details.
+    # generate list of energies for the wavelets:
+    energies = [N.sqrt(N.sum(N.power(N.abs(wavelets[i]),2.))/samplerate)
+                for i in xrange(len(scales))]
     
-    Returns
-    -------
-    Array with in1.shape[0]*in2.shape[0] rows with the convolution of
-    the 1-D signals in the rows of in1 and in2.
-    """    
-    # ensure proper number of dimensions
-    in1 = N.atleast_2d(in1)
-    in2 = N.atleast_2d(in2)
-
-    # get the number of signals and samples in each input
-    num1,s1 = in1.shape
-    num2,s2 = in2.shape
+    # normalize the wavelets by dividing each one by its energy:
+    norm_wavelets = [wavelets[i]/energies[i]
+                     for i in xrange(len(scales))]
     
-    # see if we will be returning a complex result
-    complex_result = (N.issubdtype(in1.dtype, N.complex) or
-                      N.issubdtype(in2.dtype, N.complex))
-
-    # determine the size based on the next power of 2
-    actual_size = s1+s2-1
-    size = N.power(2,nextPow2(actual_size))
-
-    # perform the fft of each row of in1 and in2:
-    in1_fft = N.empty((num1,size),dtype=N.complex128)
-    for i in xrange(num1):
-        in1_fft[i] = fft(in1[i],size)
-    in2_fft = N.empty((num2,size),dtype=N.complex128)
-    for i in xrange(num2):
-        in2_fft[i] = fft(in2[i],size)
-    
-    # duplicate the signals and multiply before taking the inverse
-    in1_fft = in1_fft.repeat(num2,axis=0)
-    in1_fft *= N.vstack([in2_fft]*num1)
-    ret = ifft(in1_fft)
-#     ret = ifft(in1_fft.repeat(num2,axis=0) * \
-#                N.vstack([in2_fft]*num1))
-    
-    # delete to save memory
-    del in1_fft, in2_fft
-    
-    # strip of extra space if necessary
-    ret = ret[:,:actual_size]
-    
-    # determine if complex, keeping only real if not
-    if not complex_result:
-        ret = ret.real
-    
-    # now only keep the requested portion
-    if mode == "full":
-        return ret
-    elif mode == "same":
-        if s1 > s2:
-            osize = s1
-        else:
-            osize = s2
-        return centered(ret,(num1*num2,osize))
-    elif mode == "valid":
-        return centered(ret,(num1*num2,N.abs(s2-s1)+1))
+    return norm_wavelets
 
 
 def phase_pow_multi(freqs, dat, samplerate, widths=5, toReturn='both',
-                    time_axis=-1, freq_axis=0, **kwargs):
+                    time_axis=-1, freq_axis=0, conv_dtype=N.complex64, **kwargs):
     """
     Calculate phase and power with wavelets across multiple events.
 
@@ -229,6 +159,11 @@ def phase_pow_multi(freqs, dat, samplerate, widths=5, toReturn='both',
     freq_axis : {int},optional
         Index of the frequency dimension in the returned array(s).
         Should be in {0, time_axis, time_axis+1,len(dat.shape)}.
+    conv_dtype : {numpy.complex*},optional
+        Data type for the convolution array. Using a larger dtype
+        (e.g., numpy.complex128) can increase processing time.
+        *** WARNING: Choosing a non-complex dtype will produce wrong
+        results!
     **kwargs : {**kwargs},optional
         Additional key word arguments to be passed on to morlet_multi().
     
@@ -243,29 +178,37 @@ def phase_pow_multi(freqs, dat, samplerate, widths=5, toReturn='both',
                          "specify whether power, phase, or both are to be "+
                          "returned. Invalid value: %s " % toReturn)
 
-    # generate array of wavelets:
+    # generate list of wavelets:
     wavelets = morlet_multi(freqs,widths,samplerate,**kwargs)
-
+    
     # make sure we have at least as many data samples as wavelet samples
-    if wavelets.shape[1]>dat.shape[time_axis]:
+    if ((len(wavelets)>0) and
+        (N.max([len(i) for i in wavelets]) >  dat.shape[time_axis])):
         raise ValueError("The number of data samples is insufficient compared "+
                          "to the number of wavelet samples. Try increasing "+
                          "data samples by using a (longer) buffer.\n data "+
-                         "samples: "+str(dat.shape[time_axis])+"\nwavelet "+
-                         "samples: "+str(wavelets.shape[1]))
+                         "samples: "+str(dat.shape[time_axis])+"\nmax wavelet "+
+                         "samples: "+str(N.max([len(i) for i in wavelets])))
     
     # reshape the data to 2D with time on the 2nd dimension
     origshape = dat.shape
     eegdat = reshapeTo2D(dat,time_axis)
 
-    # calculate wavelet coefficients:
-    wavCoef = fconv_multi(wavelets,eegdat,mode='same')
-
+    # for efficiency pre-generate empty array for convolution:
+    wavCoef = N.empty((eegdat.shape[time_axis-1]*len(freqs),
+                       eegdat.shape[time_axis]),dtype=conv_dtype)
+    
+    # populate this array with the convolutions:
+    i=0
+    for wav in wavelets:
+        for evDat in dat:
+            wavCoef[i]=N.convolve(wav,evDat,'same')
+            i+=1
+    
     # Determine shape for ouput arrays with added frequency dimension:
     newshape = list(origshape)
     # freqs must be first for reshapeFrom2D to work
-    # XXX
-    newshape.insert(0,len(freqs))
+    newshape.insert(freq_axis,len(freqs))
     newshape = tuple(newshape)
     
     if toReturn == 'power' or toReturn == 'both':
@@ -273,7 +216,7 @@ def phase_pow_multi(freqs, dat, samplerate, widths=5, toReturn='both',
         power = N.power(N.abs(wavCoef),2)
         # reshape to new shape:
         power = reshapeFrom2D(power,time_axis,newshape)
-
+    
     if toReturn == 'phase' or toReturn == 'both':
         # normalize the phase estimates to length one taking care of
         # instances where they are zero:
@@ -286,14 +229,15 @@ def phase_pow_multi(freqs, dat, samplerate, widths=5, toReturn='both',
         phase = N.angle(wavCoef)
         # reshape to new shape
         phase = reshapeFrom2D(phase,time_axis,newshape)
-
+    
     if toReturn == 'power':
         return power
     elif toReturn == 'phase':
         return phase
     elif toReturn == 'both':
         return phase,power
-    
+
+
 
 ##################
 # Old wavelet code
@@ -372,6 +316,7 @@ def phasePow2d(freq,dat,samplerate,width):
 
     # allocate for the necessary space
     wCoef = N.empty(dat.shape,N.complex64)
+    #wCoef = N.empty(dat.shape,N.complex192)
 
     for ev,evDat in enumerate(dat):
 	# convolve the wavelet and the signal
