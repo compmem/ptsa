@@ -8,9 +8,8 @@
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ##
 
 import numpy as N
-
-#from scipy.signal import wavelets
-from numpy.testing import * #NumpyTest, NumpyTestCase, assert_equal, assert_array_less
+from numpy.testing import *
+from numpy.testing import NumpyTest, NumpyTestCase
 import ptsa.fixed_scipy as wavelets
 
 class TestFixed_Scipy(NumpyTestCase):
