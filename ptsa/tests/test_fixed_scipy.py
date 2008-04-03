@@ -12,6 +12,7 @@ from numpy.testing import *
 from numpy.testing import NumpyTest, NumpyTestCase
 import ptsa.fixed_scipy as wavelets
 
+
 class TestFixed_Scipy(NumpyTestCase):
     def test_morlet(self):
 
