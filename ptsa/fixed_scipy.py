@@ -1,3 +1,9 @@
+"""
+Functions that are not yet included or fixed in a stable scipy release
+are provided here until they are easily available in scipy.
+"""
+
+
 ################################################################################
 ################################################################################
 ###
