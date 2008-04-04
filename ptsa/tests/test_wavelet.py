@@ -97,14 +97,22 @@ class test_morlet_multi(NumpyTestCase):
         self.assertEqual(N.shape(x),(2,1,2,1000))
         assert_array_equal(x[0][0][0],x[0][0][1])
         assert_array_equal(x[1][0][0],x[1][0][1])
+        phaseTest = N.abs(x[0]) <= N.pi
+        powerTest = x[1] >= 0
+        self.assertTrue(phaseTest.all())
+        self.assertTrue(powerTest.all())
         
         y = phase_pow_multi([1],dat,100,toReturn='phase')
         self.assertEqual(N.shape(y),(1,2,1000))
         assert_array_equal(x[0][0][0],y[0][1])
+        phaseTest = N.abs(y[0]) <= N.pi
+        self.assertTrue(phaseTest.all())
 
         z = phase_pow_multi(1,dat,[100],toReturn='power')
         self.assertEqual(N.shape(z),(1,2,1000))
         assert_array_equal(x[1][0][0],z[0][1])
+        powerTest = z >= 0
+        self.assertTrue(powerTest.all())
 
         x = phase_pow_multi([1,2,3],dat,100,widths=6)
         self.assertEqual(N.shape(x),(2,3,2,1000))
@@ -114,18 +122,26 @@ class test_morlet_multi(NumpyTestCase):
         assert_array_equal(x[1][1][0],x[1][1][1])
         assert_array_equal(x[0][2][0],x[0][2][1])
         assert_array_equal(x[1][2][0],x[1][2][1])
+        phaseTest = N.abs(x[0]) <= N.pi
+        powerTest = x[1] >= 0
+        self.assertTrue(phaseTest.all())
+        self.assertTrue(powerTest.all())
         
         y = phase_pow_multi([1,2,3],dat,[100],widths=6,toReturn='phase')
         self.assertEqual(N.shape(y),(3,2,1000))
         assert_array_equal(x[0][0][0],y[0][1])
         assert_array_equal(x[0][1][0],y[1][1])
         assert_array_equal(x[0][2][0],y[2][1])
+        phaseTest = N.abs(y) <= N.pi
+        self.assertTrue(phaseTest.all())
 
         z = phase_pow_multi([1,2,3],dat,100,widths=[6],toReturn='power')
         self.assertEqual(N.shape(z),(3,2,1000))
         assert_array_equal(x[1][0][0],z[0][1])
         assert_array_equal(x[1][1][0],z[1][1])
         assert_array_equal(x[1][2][0],z[2][1])
+        powerTest = z >= 0
+        self.assertTrue(powerTest.all())
 
         x = phase_pow_multi([4,9,8],dat,[100,200,300],widths=[6,5,4])
         self.assertEqual(N.shape(x),(2,3,2,1000))
@@ -135,6 +151,10 @@ class test_morlet_multi(NumpyTestCase):
         assert_array_equal(x[1][1][0],x[1][1][1])
         assert_array_equal(x[0][2][0],x[0][2][1])
         assert_array_equal(x[1][2][0],x[1][2][1])
+        phaseTest = N.abs(x[0]) <= N.pi
+        powerTest = x[1] >= 0
+        self.assertTrue(phaseTest.all())
+        self.assertTrue(powerTest.all())
         
         y = phase_pow_multi([4,9,8],dat,[100,200,300],
                             widths=[6,5,4],toReturn='phase')
@@ -142,6 +162,8 @@ class test_morlet_multi(NumpyTestCase):
         assert_array_equal(x[0][0][0],y[0][1])
         assert_array_equal(x[0][1][0],y[1][1])
         assert_array_equal(x[0][2][0],y[2][1])
+        phaseTest = N.abs(y) <= N.pi
+        self.assertTrue(phaseTest.all())
 
         z = phase_pow_multi([4,9,8],dat,[100,200,300],
                              widths=[6,5,4],toReturn='power')
@@ -149,3 +171,5 @@ class test_morlet_multi(NumpyTestCase):
         assert_array_equal(x[1][0][0],z[0][1])
         assert_array_equal(x[1][1][0],z[1][1])
         assert_array_equal(x[1][2][0],z[2][1])
+        powerTest = z >= 0
+        self.assertTrue(powerTest.all())
