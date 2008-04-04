@@ -18,13 +18,13 @@ from ptsa.helper import reshapeTo2D,reshapeFrom2D,nextPow2,centered
 from ptsa.data import TimeSeries,Dim,Dims,DimData
 from ptsa.fixed_scipy import morlet as morlet_wavelet
 
-def morlet_multi(freqs, widths, samplerate,
+def morlet_multi(freqs, widths, samplerates,
                  sampling_windows=7, complete=True):
     """
     Calculate Morlet wavelets with the total energy normalized to 1.
     
     Calls the scipy.signal.wavelet.morlet() function to generate
-    Morlet wavelets with the specified frequencies, samplerate, and
+    Morlet wavelets with the specified frequencies, samplerates, and
     widths (in cycles); see the docstring for the scipy morlet function
     for details. These wavelets are normalized before they are returned.
     
@@ -44,8 +44,8 @@ def morlet_multi(freqs, widths, samplerate,
         respectively, and if len(widths)==3 the first, middle, and last
         third of wavelets have widths of widths[0], widths[1], and widths[2]
         respectively.
-    samplerate : {float}
-        The sample rate of the signal (e.g., 200 Hz).
+    samplerates : {float, array_like floats}
+        The sample rate(s) of the signal (e.g., 200 Hz).
     sampling_windows : {float, array_like of floates},optional
         How much of the wavelets is sampled. As sampling_window increases,
         the number of samples increases and thus the samples near the edge
@@ -83,34 +83,46 @@ def morlet_multi(freqs, widths, samplerate,
     # ensure the proper dimensions
     freqs = N.atleast_1d(freqs)
     widths = N.atleast_1d(widths)
+    samplerates = N.atleast_1d(samplerates)
     sampling_windows = N.atleast_1d(sampling_windows)
-    
-    # make len(widths)==len(freqs):
-    widths = widths.repeat(len(freqs)/len(widths))
-    if len(widths) != len(freqs):
+
+    # check input:
+    if len(freqs) < 1:
+        raise ValueError("At least one frequency must be specified!")
+    if len(widths) < 1 or len(freqs)%len(widths) != 0:
         raise ValueError("Freqs and widths are not compatible: len(freqs) must "+
                          "be evenly divisible by len(widths).\n"+
                          "len(freqs) = "+str(len(freqs))+"\nlen(widths) = "+
-                         str(len(widths)/(len(freqs)/len(widths))))
-    
-    # make len(sampling_windows)==len(freqs):
-    sampling_windows = sampling_windows.repeat(len(freqs)/len(sampling_windows))
-    if len(sampling_windows) != len(freqs):
+                         str(len(widths)))
+    if len(samplerates) < 1 or len(freqs)%len(samplerates) != 0:
+        raise ValueError("Freqs and samplerates are not compatible:"+
+                         "len(freqs) must be evenly divisible by"+
+                         "len(samplerates).\nlen(freqs) = "+str(len(freqs))+
+                         "\nlen(samplerates) = "+str(len(samplerates)))
+    if len(sampling_windows) < 1 or len(freqs)%len(sampling_windows) != 0:
         raise ValueError("Freqs and sampling_windows are not compatible:"+
                          "len(freqs) must be evenly divisible by"+
                          "len(sampling_windows).\nlen(freqs) = "+str(len(freqs))+
-                         "\nlen(sampling_windows) = "+
-                         str(len(sampling_windows)/(len(freqs)/
-                                                    len(sampling_windows))))
+                         "\nlen(sampling_windows) = "+str(len(sampling_windows)))
+     
     
+    # make len(widths)==len(freqs):
+    widths = widths.repeat(len(freqs)/len(widths))
+    
+    # make len(samplerates)==len(freqs):
+    samplerates = samplerates.repeat(len(freqs)/len(samplerates))
+
+    # make len(sampling_windows)==len(freqs):
+    sampling_windows = sampling_windows.repeat(len(freqs)/len(sampling_windows))
+   
     # std. devs. in the time domain:
     st = widths/(2*N.pi*freqs)
     
     # determine number of samples needed:
-    samples = N.ceil(st*samplerate*sampling_windows)
+    samples = N.ceil(st*samplerates*sampling_windows)
     
-    # each scale depends on frequency, samples, width, and samplerate:
-    scales = (freqs*samples)/(2.*widths*samplerate)
+    # each scale depends on frequency, samples, width, and samplerates:
+    scales = (freqs*samples)/(2.*widths*samplerates)
     
     # generate list of unnormalized wavelets:
     wavelets = [morlet_wavelet(samples[i],w=widths[i],s=scales[i],
@@ -118,7 +130,7 @@ def morlet_multi(freqs, widths, samplerate,
                 for i in xrange(len(scales))]
     
     # generate list of energies for the wavelets:
-    energies = [N.sqrt(N.sum(N.power(N.abs(wavelets[i]),2.))/samplerate)
+    energies = [N.sqrt(N.sum(N.power(N.abs(wavelets[i]),2.))/samplerates[i])
                 for i in xrange(len(scales))]
     
     # normalize the wavelets by dividing each one by its energy:
@@ -128,7 +140,7 @@ def morlet_multi(freqs, widths, samplerate,
     return norm_wavelets
 
 
-def phase_pow_multi(freqs, dat, samplerate, widths=5, toReturn='both',
+def phase_pow_multi(freqs, dat, samplerates, widths=5, toReturn='both',
                     time_axis=-1, freq_axis=0, conv_dtype=N.complex64, **kwargs):
     """
     Calculate phase and power with wavelets across multiple events.
@@ -146,9 +158,9 @@ def phase_pow_multi(freqs, dat, samplerate, widths=5, toReturn='both',
     dat : {array_like}
         The data to determine the phase and power of. Time/samples must be
         last dimension and should include a buffer to avoid edge effects.
-    samplerate : {float}
-        The sample rate of the signal (e.g., 200 Hz).
-    widths : {int, float, array_like of ints or floats}
+    samplerates : {float, array_like of floats}
+        The sample rate(s) of the signal (e.g., 200 Hz).
+    widths : {float, array_like of floats}
         The width(s) of the wavelets in cycles. See docstring of
         morlet_multi() for details.
     toReturn : {'both','power','phase'}, optional
@@ -162,8 +174,9 @@ def phase_pow_multi(freqs, dat, samplerate, widths=5, toReturn='both',
     conv_dtype : {numpy.complex*},optional
         Data type for the convolution array. Using a larger dtype
         (e.g., numpy.complex128) can increase processing time.
-        *** WARNING: Choosing a non-complex dtype will produce wrong
-        results!
+        This value influences the dtype of the output array. In case of
+        numpy.complex64 the dtype of the output array is numpy.float32.
+        Higher complex dtypes produce higher float dtypes in the output.
     **kwargs : {**kwargs},optional
         Additional key word arguments to be passed on to morlet_multi().
     
@@ -173,17 +186,25 @@ def phase_pow_multi(freqs, dat, samplerate, widths=5, toReturn='both',
     returned array(s) has/have one more dimension than dat. The added
     dimension is for the frequencies and is inserted at freq_axis.
     """
+
+    # ensure proper dimensionality (needed for len call later):
+    freqs = N.atleast_1d(freqs)
+    
+    # check input values:
     if toReturn != 'both' and toReturn != 'power' and toReturn != 'phase':
         raise ValueError("toReturn must be \'power\', \'phase\', or \'both\' to "+
                          "specify whether power, phase, or both are to be "+
                          "returned. Invalid value: %s " % toReturn)
 
+    if not N.issubdtype(conv_dtype,N.complex):
+        raise ValueError("conv_dtype must be a complex data type!\n"+
+                         "Invalid value: "+str(conv_dtype))
+
     # generate list of wavelets:
-    wavelets = morlet_multi(freqs,widths,samplerate,**kwargs)
-    
+    wavelets = morlet_multi(freqs,widths,samplerates,**kwargs)
+        
     # make sure we have at least as many data samples as wavelet samples
-    if ((len(wavelets)>0) and
-        (N.max([len(i) for i in wavelets]) >  dat.shape[time_axis])):
+    if (N.max([len(i) for i in wavelets]) >  dat.shape[time_axis]):
         raise ValueError("The number of data samples is insufficient compared "+
                          "to the number of wavelet samples. Try increasing "+
                          "data samples by using a (longer) buffer.\n data "+
