@@ -10,39 +10,36 @@
 import re
 import numpy as N
 
+from ptsa.data.attrarray import AttrArray
 
 ###############################
 # New dimensioned array class
 ###############################
 
+class Dim(AttrArray):
+    _required_attrs = ['name']
+    
+    def __new__(cls, data, name, copy=False, **kwargs):
+        # set the kwargs to have name
+        kwargs['name'] = name
 
-class DimArray(N.ndarray):
+        # XXX You can force to be 1D here
+        
+        # call the parent classes new
+        return AttrArray.__new__(cls, data, copy, **kwargs)
+
+
+class DimArray(AttrArray):
     """
     """
+    _required_attrs = ['dims']
+    
     def __new__(cls, data, dims, copy=False, **kwargs):
-        # copy the data if necessary
-        if copy:
-            result = data.copy()
-        else:
-            result = data
 
-        # set the view of the result
-        result = result.view(cls)
+        # XXX do things to make sure dims are correct size
 
-        # set the dims as an attr
-        result._attr = kwargs
-        result._attr['dims'] = dims
-
-        # loop and add kwargs as attributes
-        # maybe leave for finalize if that's what it's supposed to do
-
-        # do I need to copy or not?
-
-        # return the result
-        return result
-
-    def __array_finalize__(self,obj):
-        # XXX change this to copy the _attr then make them all attr
-        for tag in ['_attr']:
-            setattr(self, tag, copylib.copy(getattr(obj, tag, None)))
-
+        # set the kwargs to have name
+        kwargs['dims'] = dims
+        
+        # call the parent classes new
+        return AttrArray.__new__(cls, data, copy, **kwargs)

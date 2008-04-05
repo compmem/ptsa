@@ -26,6 +26,10 @@ class AttrArray(N.ndarray):
     print x.othername
     
     """
+
+    # subclasses will fill this with things like 'name'
+    _required_attrs = []
+
     def __new__(cls, data, copy=False, **kwargs):
         # copy the data if necessary
         if copy:
@@ -45,6 +49,13 @@ class AttrArray(N.ndarray):
             for tag in result._attrs:
                 setattr(result, tag, result._attrs[tag])
 
+        # make sure they set the required attributes
+        for attr in cls._required_attrs:
+            if not result._attrs.has_key(attr):
+                 raise AttributeError, \
+                       "Attribute %s is required to initialize dataset" % \
+                       attr
+        
         # return the result
         return result
 
@@ -56,14 +67,22 @@ class AttrArray(N.ndarray):
     
     def __setattr__(self, name, value):
         # set the value in the attribute list
-        ret = super(self.__class__,self).__setattr__(name, value)
+        #ret = super(self.__class__,self).__setattr__(name, value)
+        ret = N.ndarray.__setattr__(self, name, value)
         if name != '_attrs':
             # do add attrs to itself
             self._attrs[name] = value
         return ret
 
     def __delattr__(self, name):
-        ret = super(self.__class__,self).__delattr__(name)
+        if name in self._required_attrs:
+            raise AttributeError, \
+                  "Attribute %s is required, so you can not delete it." % \
+                  name
+        #ret = super(self.__class__,self).__delattr__(name)
+        ret = N.ndarray.__delattr__(self, name)
         if self._attrs.has_key(name):
             del self._attrs[name]
         return ret
+
+
