@@ -17,18 +17,13 @@ from ptsa.data import DimArray
 class test_DimArray(NumpyTestCase):
     def setUp(self):
         pass
-#         td = TestData()
-#         self.dat200 = td.dat200
-#         self.dims200 = td.dims200
-#         self.dat50 = td.dat50
-#         self.dims50 = td.dims50
-
-    def test_init(self):
-        pass
+    
+    def test_new(self):
+        dat = DimArray(N.random.rand(5,10),
+                       dims=(Dim(range(5),name='freqs',unit='Hz'),
+                             Dim(range(10),name='time',unit='sec')))
 
     def test_func(self):
-        dat = DimArray(N.random.rand(),
-                       dims=())
 
         # what we want
 
