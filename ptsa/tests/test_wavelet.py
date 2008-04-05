@@ -31,10 +31,10 @@ class test_morlet_multi(NumpyTestCase):
         x = morlet_multi(2,4,200,complete=True)
         y = morlet_multi(2,4,200,complete=False)
         # Make sure we got one wavelet in each case:
-        assert_equal(len(x),1)
-        assert_equal(len(y),1)
+        self.assertEqual(len(x),1)
+        self.assertEqual(len(y),1)
         # Test if complete and incomplete wavelet have same lengths:
-        assert_equal(len(x[0]),len(y[0]))
+        self.assertEqual(len(x[0]),len(y[0]))
         # Test if complete wavelet is less than incomplete wavelet:
         assert_array_less(x[0],y[0])
 
