@@ -52,10 +52,8 @@ class AttrArray(N.ndarray):
         # make sure they set the required attributes
         for attr in cls._required_attrs:
             if not result._attrs.has_key(attr):
-                 raise AttributeError, \
-                       "Attribute %s is required to initialize dataset" % \
-                       attr
-        
+                 raise AttributeError("Attribute "+attr+" is required, and must "+
+                                 "be provided for initialization!")        
         # return the result
         return result
 
@@ -68,6 +66,9 @@ class AttrArray(N.ndarray):
     def __setattr__(self, name, value):
         # set the value in the attribute list
         #ret = super(self.__class__,self).__setattr__(name, value)
+        if (value is None) and (name in self._required_attrs):
+            raise AttributeError("Attribute "+name +" is required, and cannot "+
+                                 "be set to None!")
         ret = N.ndarray.__setattr__(self, name, value)
         if name != '_attrs':
             # do add attrs to itself
@@ -76,9 +77,8 @@ class AttrArray(N.ndarray):
 
     def __delattr__(self, name):
         if name in self._required_attrs:
-            raise AttributeError, \
-                  "Attribute %s is required, so you can not delete it." % \
-                  name
+            raise AttributeError("Attribute "+name +" is required, and cannot "+
+                                 "be deleted!")
         #ret = super(self.__class__,self).__delattr__(name)
         ret = N.ndarray.__delattr__(self, name)
         if self._attrs.has_key(name):
