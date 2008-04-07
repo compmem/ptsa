@@ -16,6 +16,10 @@ import copy as copylib
 
 class AttrArray(N.ndarray):
     """
+    Subclass of NumPy's ndarray class that allows you to set custom
+    array attributes both as kwargs during instantiation and on the
+    fly.
+    
     Try this on for size:
 
     x = AttrArray(N.random.rand(5), name='jubba')
@@ -37,7 +41,7 @@ class AttrArray(N.ndarray):
         else:
             result = data
 
-        # set the view of the result
+        # set the view of the result to the new class
         result = result.view(cls)
 
         # set the attrs, copying if necessary

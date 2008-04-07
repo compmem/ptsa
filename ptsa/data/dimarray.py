@@ -17,6 +17,11 @@ from ptsa.data.attrarray import AttrArray
 ###############################
 
 class Dim(AttrArray):
+    """
+    Class that defines a dimension.  It has one required attribute
+    (name), but you can also specify other custom attributes, such as
+    units.
+    """
     _required_attrs = ['name']
     
     def __new__(cls, data, name, copy=False, **kwargs):
@@ -31,6 +36,15 @@ class Dim(AttrArray):
 
 class DimArray(AttrArray):
     """
+    Class that keeps track of the dimensions of a NumPy ndarray.  You
+    must specify a list of Dim instances that match the number and
+    size of the array.
+
+    The DimArray class provides a number of convenience methods above
+    and beyond normal ndarrays.  These include the ability to refer to
+    dimensions by name and to select subsets of the data based on
+    complex queries using the dimension names.
+    
     """
     _required_attrs = ['dims']
     
