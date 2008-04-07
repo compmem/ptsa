@@ -30,7 +30,7 @@ class Dim(AttrArray):
 
         # XXX You can force to be 1D here
         
-        # call the parent classes new
+        # call the parent class's new
         return AttrArray.__new__(cls, data, copy, **kwargs)
 
 
@@ -40,8 +40,8 @@ class DimArray(AttrArray):
     must specify a list of Dim instances that match the number and
     size of the array.
 
-    The DimArray class provides a number of convenience methods above
-    and beyond normal ndarrays.  These include the ability to refer to
+    The DimArray class provides a number of conveniences above and
+    beyond normal ndarrays.  These include the ability to refer to
     dimensions by name and to select subsets of the data based on
     complex queries using the dimension names.
     
