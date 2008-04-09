@@ -10,7 +10,7 @@
 import numpy as N
 from numpy.testing import NumpyTest, NumpyTestCase
 
-from ptsa.data import DimArray
+from ptsa.data.dimarray import DimArray, Dim
 
 
 # DimArray class

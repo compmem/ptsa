@@ -17,17 +17,58 @@ class test_AttrArray(NumpyTestCase):
         pass
 
     def test_new(self):
-        # test new instantiation
-        # attributes are defined by kwargs
-        dat = AttrArray(N.random.rand(10),name='randvals')
+        # test new instantiation (attributes are defined by kwargs)
+
+        # instatiation with a numpy ndarray:
+        shape = (10,)
+        arr = N.random.random_sample(shape)
+        dat_array = AttrArray(arr,name='randvals')
+        self.assertTrue(dat_array.name == 'randvals')
+        self.assertEquals(shape,dat_array.shape)
+        self.assertTrue((dat_array==arr).all())
+        shape = (1,2,3,4)
+        arr = N.random.random_sample(shape)
+        dat_array = AttrArray(arr,name='randvals')
+        self.assertTrue(dat_array.name == 'randvals')
+        self.assertEquals(shape,dat_array.shape)
+        self.assertTrue((dat_array==arr).all())
+        shape = (10,9,8,7,6,1,8,8)
+        arr = N.random.random_sample(shape)
+        dat_array = AttrArray(arr,name='randvals',
+                              test1=33, test2='test')
+        self.assertTrue(dat_array.name == 'randvals')
+        self.assertTrue(dat_array.test1 == 33)
+        self.assertTrue(dat_array.test2 == 'test')
+        self.assertEquals(shape,dat_array.shape)
+        self.assertTrue((dat_array==arr).all())
+
+        # instantiation with a list:
+        lst = range(10)
+        dat_list = AttrArray(lst,name='range')
+        self.assertTrue(dat_list.name == 'range')
+        self.assertTrue((lst==dat_list).all())
+        lst = [['a','b','c']]
+        dat_list = AttrArray(lst,name='list')
+        self.assertTrue(dat_list.name == 'list')
+        self.assertTrue((lst==dat_list).all())
+        lst = [[1,2,3],[4.5,6,7]]
+        dat_list = AttrArray(lst,name='list')
+        self.assertTrue(dat_list.name == 'list')
+        self.assertTrue((lst==dat_list).all())
+
+        # instantiation with a AttrArray:
+        dat_attrarray = AttrArray(dat_array,name='attrarray')
+        dat_attrarray = AttrArray(dat_list,newname='attrarray',test=44)
+        
+        
 
     def test_getattr(self):
         dat = AttrArray(N.random.rand(10),name='randvals')
-        self.assertEquals(dat.name == 'randvals')
+        self.assertTrue(dat.name == 'randvals')
 
     def test_method(self):
         # make sure ndarray methods work and return a new AttrArray
         # instance with the attributes intact
         dat = AttrArray(N.random.rand(10),name='randvals')
         sdat = N.sqrt(dat)
-        self.assertEquals(sdat.name == 'randvals')
+        self.assertTrue(sdat.name == 'randvals')

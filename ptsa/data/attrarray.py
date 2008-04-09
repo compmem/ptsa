@@ -31,41 +31,100 @@ class AttrArray(N.ndarray):
     
     """
 
-    # subclasses will fill this with things like 'name'
+    # required attributes (can be specified by subclasses)
     _required_attrs = []
 
-    def __new__(cls, data, copy=False, **kwargs):
-        # copy the data if necessary
-        if copy:
-            result = data.copy()
+    def __new__(cls, data, dtype=None, copy=True, **kwargs):
+        if isinstance(data,AttrArray):
+            # If data is already an AttrArray, we just need to worry
+            # about dtype, copying, and any new attributes specified
+            # in kwargs.
+            # Use dtype of data, if nothing is specified:
+            dtype2 = data.dtype
+            if (dtype is None):
+                dtype == dtype2
+            if copy:
+                # if dtype hasn't changed we can just copy data,
+                # otherwise we need to recast data:
+                if (dtype==dtype2):
+                    result = data.copy()
+                else:
+                    result = data.astype(dtype)
+                # update any attributes that may have been copied from
+                # data with the new attributes specified in kwargs:
+                newattrs = copylib.copy(kwargs)
+                if (result._attrs is None):
+                    result._attrs = newattrs
+                else:
+                    result._attrs.update(newattrs)
+            else:
+                # if dtype hasn't changed we can just copy data,
+                # otherwise we need to recast data (NOTE: recasting
+                # always produces a copy, so if a new dtype is
+                # specified, we are always making a copy of data, even
+                # if copy=False is specified):
+                if (dtype == dtype2):
+                    result = data
+                else:
+                    result = data.astype(dtype)
+                # update any attributes that may already be present in
+                # data with the new attributes specified in kwargs:
+                if (result._attrs is None):
+                    result._attrs = kwargs
+                else:
+                    result._attrs.update(kwargs)
+        elif isinstance(data,N.ndarray):
+            # If data is already a numpy ndarray, we just need to
+            # produce a new view and take care of dtype, copying, and
+            # any new attributes specified in kwargs.
+            # Use dtype of data, if nothing is specified:
+            dtype2 = data.dtype
+            if (dtype is None):
+                dtype == dtype2
+            if copy:
+                # if dtype hasn't changed we can just produce a view
+                # of the copied data, otherwise we need to recast data
+                # first:
+                if (dtype==dtype2):
+                    result = data.copy().view(cls)
+                else:
+                    result = data.astype(dtype).view(cls)
+                # numpy ndarrays don't have an _attrs attribute, so we
+                # can just copy the kwargs:
+                result._attrs = copylib.copy(kwargs)
+            else:
+                # if dtype hasn't changed we can just produce a view
+                # of the copied data, otherwise we need to recast data
+                # first (NOTE: recasting always produces a copy, so if
+                # a new dtype is specified, we are always making a
+                # copy of data, even if copy=False is specified):
+                if (dtype==dtype2):
+                    result = data.view(cls)
+                else:
+                    result = data.astype(dtype).view(cls)
+                # numpy ndarrays don't have an _attrs attribute, so we
+                # can just assign the kwargs:
+                result._attrs = kwargs
         else:
-            result = data
-
-        # set the view of the result to the new class
-        result = result.view(cls)
-
-        # set the attrs, copying if necessary
-        if copy:
-            result._attrs = copylib.copy(kwargs)
-        else:
-            result._attrs = kwargs
-        if not result._attrs is None:
-            for tag in result._attrs:
-                setattr(result, tag, result._attrs[tag])
-
-        # make sure they set the required attributes
-        for attr in cls._required_attrs:
-            if not result._attrs.has_key(attr):
-                 raise AttributeError("Attribute "+attr+" is required, and must "+
-                                 "be provided for initialization!")        
-        # return the result
+            # If data is not a numpy ndarray, we need to make an array from
+            # it and produce a AttrArray view:
+            result = N.array(data,dtype=dtype,copy=copy).view(cls)
+            # Now assign any attributes:
+            if copy:
+                result._attrs = copylib.copy(kwargs)
+            else:
+                result._attrs = kwargs
+        # Set all attributes in result._attr:
+        result._setAllAttr()
+        # Ensure that the required attributes are present:
+        result._chkReqAttr()
+        # Return the result:
         return result
 
     def __array_finalize__(self,obj):
         # XXX perhaps save the copy state and only copy if requested
         self._attrs = copylib.copy(getattr(obj, '_attrs', {}))
-        for tag in self._attrs:
-            setattr(self, tag, self._attrs[tag])
+        self._setAllAttr()
     
     def __setattr__(self, name, value):
         # set the value in the attribute list
@@ -89,4 +148,20 @@ class AttrArray(N.ndarray):
             del self._attrs[name]
         return ret
 
+    def _setAllAttr(self):
+        """
+        Set all attributes in self._attr
+        """
+        if (not self._attrs is None):
+            for tag in self._attrs:
+                setattr(self, tag, self._attrs[tag])
 
+    def _chkReqAttr(self):
+        """
+        Make sure the required attributes are set
+        """
+        for attr in self._required_attrs:
+            if ((not self._attrs.has_key(attr)) or
+                (self._attrs[attr] is None)):
+                raise AttributeError("Attribute "+attr+" is required, and must"+
+                                     " be provided for initialization!")        
