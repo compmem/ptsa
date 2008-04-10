@@ -24,24 +24,27 @@ class test_DimArray(NumpyTestCase):
                              Dim(range(10),name='time',unit='sec')))
 
     def test_func(self):
+        dat = DimArray(N.random.rand(5,10),
+                       dims=(Dim(range(5),name='freqs',unit='Hz'),
+                             Dim(range(10),name='time',unit='sec')))
 
         # what we want
 
         # get the ind of a dim
-        t_ind = dat.dim('time')
-        f_ind = dat.dim('freqs')
+        #t_ind = dat.dim('time')
+        #f_ind = dat.dim('freqs')
 
         # get a dim's data
-        times = dat.time
-        times = dat['time']
-        times = dat.dims['time']
-        freqs = dat['freqs']
+        #times = dat.time
+        #times = dat['time']
+        #times = dat.dims['time']
+        #freqs = dat['freqs']
         
         # get data, itself
-        dat['(time>=-200) & (time<=1000)','freqs==4']
-        dat[:,2:8]
+        #dat['(time>=-200) & (time<=1000)','freqs==4']
+        #dat[:,2:8]
         
         # call methods of class
-        dat.mean(axis='time')
-        dat.mean(axis=dat.dim('time'))
+        #dat.mean(axis='time')
+        #dat.mean(axis=dat.dim('time'))
         

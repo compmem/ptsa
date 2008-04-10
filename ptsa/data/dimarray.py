@@ -31,7 +31,7 @@ class Dim(AttrArray):
         # XXX You can force to be 1D here
         
         # call the parent class's new
-        return AttrArray.__new__(cls, data, copy, **kwargs)
+        return AttrArray.__new__(cls, data, copy=copy, **kwargs)
 
 
 class DimArray(AttrArray):
@@ -56,4 +56,4 @@ class DimArray(AttrArray):
         kwargs['dims'] = dims
         
         # call the parent classes new
-        return AttrArray.__new__(cls, data, copy, **kwargs)
+        return AttrArray.__new__(cls, data, copy=copy, **kwargs)

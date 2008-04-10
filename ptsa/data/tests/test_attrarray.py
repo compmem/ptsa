@@ -7,7 +7,7 @@
 #
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ##
 
-import numpy as N
+import numpy as np
 from numpy.testing import NumpyTest, NumpyTestCase
 
 from ptsa.data import AttrArray
@@ -18,7 +18,7 @@ class test_AttrArray(NumpyTestCase):
 
     def test_new(self):
         # test new instantiation (attributes are defined by kwargs)
-
+        
         # instatiation with a numpy ndarray:
         shape = (10,)
         arr = N.random.random_sample(shape)
@@ -26,22 +26,37 @@ class test_AttrArray(NumpyTestCase):
         self.assertTrue(dat_array.name == 'randvals')
         self.assertEquals(shape,dat_array.shape)
         self.assertTrue((dat_array==arr).all())
+        # another instatioation with an ndarray, but this time with dtype set:
         shape = (1,2,3,4)
         arr = N.random.random_sample(shape)
-        dat_array = AttrArray(arr,name='randvals')
+        dat_array = AttrArray(arr,name='randvals',dtype=np.float32)
         self.assertTrue(dat_array.name == 'randvals')
         self.assertEquals(shape,dat_array.shape)
         self.assertTrue((dat_array==arr).all())
+        self.assertTrue(dat_array.dtype=np.float32)
+
+        # another ndarray, with copy = True vs. copy = False
         shape = (10,9,8,7,6,1,8,8)
         arr = N.random.random_sample(shape)
-        dat_array = AttrArray(arr,name='randvals',
-                              test1=33, test2='test')
+        dat_array = AttrArray(arr,name='randvals', test1=33,
+                              test2='test', copy = True)
         self.assertTrue(dat_array.name == 'randvals')
         self.assertTrue(dat_array.test1 == 33)
         self.assertTrue(dat_array.test2 == 'test')
         self.assertEquals(shape,dat_array.shape)
         self.assertTrue((dat_array==arr).all())
-
+        dat_array[0] += 5
+        self.assertTrue(dat_array[0]-5 == arr[0])
+        dat_array = AttrArray(arr,name='randvals', test1=33,
+                              test2='test', copy = False)
+        self.assertTrue(dat_array.name == 'randvals')
+        self.assertTrue(dat_array.test1 == 33)
+        self.assertTrue(dat_array.test2 == 'test')
+        self.assertEquals(shape,dat_array.shape)
+        self.assertTrue((dat_array==arr).all())
+        dat_array[0] += 5
+        self.assertTrue(dat_array[0] == arr[0])
+        
         # instantiation with a list:
         lst = range(10)
         dat_list = AttrArray(lst,name='range')
@@ -58,7 +73,10 @@ class test_AttrArray(NumpyTestCase):
 
         # instantiation with a AttrArray:
         dat_attrarray = AttrArray(dat_array,name='attrarray')
+        self.assertTrue(dat_attrarray.name == 'attrarray')
         dat_attrarray = AttrArray(dat_list,newname='attrarray',test=44)
+        self.assertTrue(dat_attrarray.name == 'attrarray')
+        self.assertTrue(dat_attrarray.test == 44)
         
         
 
