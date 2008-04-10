@@ -36,6 +36,9 @@ class test_AttrArray(NumpyTestCase):
         self.assertTrue(dat_array.dtype=np.float32)
 
         # another ndarray, with copy = True vs. copy = False
+        # XXX are you sure you are actually testing TvsF copy?
+        # Copying has to do with whether the data is actually
+        # the same object or not.
         shape = (10,9,8,7,6,1,8,8)
         arr = N.random.random_sample(shape)
         dat_array = AttrArray(arr,name='randvals', test1=33,
