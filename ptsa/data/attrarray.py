@@ -108,10 +108,7 @@ class AttrArray(N.ndarray):
         else:
             # If data is not a numpy ndarray, we need to make an array from
             # it and produce a AttrArray view:
-            if dtype is None:
-                result = N.array(data,copy=copy).view(cls)
-            else:
-                result = N.array(data,dtype=dtype,copy=copy).view(cls)
+            result = N.array(data,dtype=dtype,copy=copy).view(cls)
             # Now assign any attributes:
             if copy:
                 result._attrs = copylib.copy(kwargs)
