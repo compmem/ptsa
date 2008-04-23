@@ -7,14 +7,14 @@
 #
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ##
 
-import numpy as N
+import numpy as np
 import copy as copylib
 
 ###############################
 # New array class with attributes
 ###############################
 
-class AttrArray(N.ndarray):
+class AttrArray(np.ndarray):
     """
     Subclass of NumPy's ndarray class that allows you to set custom
     array attributes both as kwargs during instantiation and on the
@@ -22,11 +22,11 @@ class AttrArray(N.ndarray):
     
     Try this on for size:
 
-    x = AttrArray(N.random.rand(5), name='jubba')
+    x = AttrArray(np.random.rand(5), name='jubba')
     print x.name
     x.othername = 'wubba'
     print x.othername
-    xs = N.sqrt(x)
+    xs = np.sqrt(x)
     print x.othername
     
     """
@@ -73,7 +73,7 @@ class AttrArray(N.ndarray):
                     result._attrs = kwargs
                 else:
                     result._attrs.update(kwargs)
-        elif isinstance(data,N.ndarray):
+        elif isinstance(data,np.ndarray):
             # If data is already a numpy ndarray, we just need to
             # produce a new view and take care of dtype, copying, and
             # any new attributes specified in kwargs.
@@ -108,23 +108,26 @@ class AttrArray(N.ndarray):
         else:
             # If data is not a numpy ndarray, we need to make an array from
             # it and produce a AttrArray view:
-            result = N.array(data,dtype=dtype,copy=copy).view(cls)
+            result = np.array(data,dtype=dtype,copy=copy).view(cls)
             # Now assign any attributes:
             if copy:
                 result._attrs = copylib.copy(kwargs)
             else:
                 result._attrs = kwargs
         # Set all attributes in result._attr:
-        result._setAllAttr()
+        #result._setAllAttr()
         # Ensure that the required attributes are present:
-        result._chkReqAttr()
+        #result._chkReqAttr()
         # Return the result:
         return result
 
     def __array_finalize__(self,obj):
         # XXX perhaps save the copy state and only copy if requested
         self._attrs = copylib.copy(getattr(obj, '_attrs', {}))
+        # Set all attributes:
         self._setAllAttr()
+        # Ensure that the required attributes are present:
+        self._chkReqAttr()
     
     def __setattr__(self, name, value):
         # set the value in the attribute list
@@ -132,7 +135,7 @@ class AttrArray(N.ndarray):
         if (value is None) and (name in self._required_attrs):
             raise AttributeError("Attribute "+name +" is required, and cannot "+
                                  "be set to None!")
-        ret = N.ndarray.__setattr__(self, name, value)
+        ret = np.ndarray.__setattr__(self, name, value)
         if name != '_attrs':
             # do add attrs to itself
             self._attrs[name] = value
@@ -143,7 +146,7 @@ class AttrArray(N.ndarray):
             raise AttributeError("Attribute "+name +" is required, and cannot "+
                                  "be deleted!")
         #ret = super(self.__class__,self).__delattr__(name)
-        ret = N.ndarray.__delattr__(self, name)
+        ret = np.ndarray.__delattr__(self, name)
         if self._attrs.has_key(name):
             del self._attrs[name]
         return ret

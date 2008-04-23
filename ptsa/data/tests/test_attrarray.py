@@ -21,14 +21,14 @@ class test_AttrArray(NumpyTestCase):
         
         # instatiation with a numpy ndarray:
         shape = (10,)
-        arr = N.random.random_sample(shape)
+        arr = np.random.random_sample(shape)
         dat_array = AttrArray(arr,name='randvals')
         self.assertTrue(dat_array.name == 'randvals')
         self.assertEquals(shape,dat_array.shape)
         self.assertTrue((dat_array==arr).all())
         # another instatioation with an ndarray, but this time with dtype set:
         shape = (1,2,3,4)
-        arr = N.random.random_sample(shape)
+        arr = np.random.random_sample(shape)
         dat_array = AttrArray(arr,name='randvals',dtype=np.float32)
         self.assertTrue(dat_array.name == 'randvals')
         self.assertEquals(shape,dat_array.shape)
@@ -36,11 +36,8 @@ class test_AttrArray(NumpyTestCase):
         self.assertTrue(dat_array.dtype=np.float32)
 
         # another ndarray, with copy = True vs. copy = False
-        # XXX are you sure you are actually testing TvsF copy?
-        # Copying has to do with whether the data is actually
-        # the same object or not.
         shape = (10,9,8,7,6,1,8,8)
-        arr = N.random.random_sample(shape)
+        arr = np.random.random_sample(shape)
         dat_array = AttrArray(arr,name='randvals', test1=33,
                               test2='test', copy = True)
         self.assertTrue(dat_array.name == 'randvals')
@@ -84,12 +81,12 @@ class test_AttrArray(NumpyTestCase):
         
 
     def test_getattr(self):
-        dat = AttrArray(N.random.rand(10),name='randvals')
+        dat = AttrArray(np.random.rand(10),name='randvals')
         self.assertTrue(dat.name == 'randvals')
 
     def test_method(self):
         # make sure ndarray methods work and return a new AttrArray
         # instance with the attributes intact
-        dat = AttrArray(N.random.rand(10),name='randvals')
-        sdat = N.sqrt(dat)
+        dat = AttrArray(np.random.rand(10),name='randvals')
+        sdat = np.sqrt(dat)
         self.assertTrue(sdat.name == 'randvals')
