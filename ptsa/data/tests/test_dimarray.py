@@ -49,12 +49,7 @@ class test_DimArray(NumpyTestCase):
         # should throw ValueError if dims is not a list:
         self.assertRaises(TypeError,DimArray,np.random.rand(5,10),
                           dims = np.arange(4))
-        # should throw ValueError if dims do not match data shape:
-        self.assertRaises(TypeError,DimArray,np.random.rand(5,10),
-                          dims=[Dim(range(10),name='freqs',unit='Hz'),
-                                Dim(range(5),name='time',unit='sec')])
-        self.assertRaises(TypeError,DimArray,np.random.rand(5,10),
-                          dims=[Dim(range(5),name='freqs',unit='Hz')])
+
         # should throw ValueError if dims contains non-Dim instances:
         self.assertRaises(TypeError,DimArray,np.random.rand(5,10),
                           dims=[Dim(range(5),name='freqs',unit='Hz'),
@@ -62,9 +57,14 @@ class test_DimArray(NumpyTestCase):
         self.assertRaises(TypeError,DimArray,np.random.rand(5,10),
                           dims=[AttrArray(range(5),name='freqs',unit='Hz'),
                                 Dim(range(10),name='time',unit='sec')])
-        
-
-        
+ 
+        # should throw ValueError if dims do not match data shape:
+        self.assertRaises(TypeError,DimArray,np.random.rand(5,10),
+                          dims=[Dim(range(10),name='freqs',unit='Hz'),
+                                Dim(range(5),name='time',unit='sec')])
+        self.assertRaises(TypeError,DimArray,np.random.rand(5,10),
+                          dims=[Dim(range(5),name='freqs',unit='Hz')])
+       
         dat = DimArray(np.random.rand(5,10),
                        dims=[Dim(range(5),name='freqs',unit='Hz'),
                              Dim(range(10),name='time',unit='sec')])
