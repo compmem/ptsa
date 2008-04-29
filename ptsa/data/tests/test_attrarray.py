@@ -34,6 +34,7 @@ class test_AttrArray(NumpyTestCase):
         self.assertEquals(shape,dat_array.shape)
         self.assertTrue((dat_array==arr).all())
         self.assertTrue(dat_array.dtype=np.float32)
+        
 
         # another ndarray, with copy = True vs. copy = False
         shape = (10,9,8,7,6,1,8,8)
@@ -76,17 +77,21 @@ class test_AttrArray(NumpyTestCase):
         self.assertTrue(dat_attrarray.name == 'attrarray')
         dat_attrarray = AttrArray(dat_list,newname='attrarray',test=44)
         self.assertTrue(dat_attrarray.name == 'attrarray')
-        self.assertTrue(dat_attrarray.test == 44)
-        
-        
+        self.assertTrue(dat_attrarray.test == 44)        
+
+    def test_setattr(self):
+        dat = AttrArray(np.random.rand(10),name='randvals')
+        # add a custom attribute:
+        dat_array.custom = 'attribute'
+        self.assertEquals(dat_array.custom,'attribute')
 
     def test_getattr(self):
         dat = AttrArray(np.random.rand(10),name='randvals')
-        self.assertTrue(dat.name == 'randvals')
+        self.assertEquals(dat.name,'randvals')
 
     def test_method(self):
         # make sure ndarray methods work and return a new AttrArray
         # instance with the attributes intact
         dat = AttrArray(np.random.rand(10),name='randvals')
         sdat = np.sqrt(dat)
-        self.assertTrue(sdat.name == 'randvals')
+        self.assertEquals(sdat.name,'randvals')

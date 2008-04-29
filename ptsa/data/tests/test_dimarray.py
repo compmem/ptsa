@@ -12,6 +12,7 @@ from numpy.testing import NumpyTest, NumpyTestCase
 from numpy.random import random_sample as rnd
 
 from ptsa.data.dimarray import DimArray, Dim
+from ptsa.data.attrarray import AttrArray
 
 
 
@@ -28,8 +29,13 @@ class test_Dim(NumpyTestCase):
         # should work fine with any number of dimensions as long as it
         # is squeezable or expandable to 1-D:
         tst = Dim(rnd((3,1,1,1,1)),name='test')
-        tst = Dim(np.array(5),name='test')
-        tst = Dim(range(2),name='test')
+        self.assertEquals(tst.name,'test')
+        tst = Dim(np.array(5),name='test2')
+        self.assertEquals(tst.name,'test2')
+        # custom attributes should work, too:
+        tst = Dim(range(2),name='test3',custom='attribute')
+        self.assertEquals(tst.name,'test3')
+        self.assertEquals(tst.custom,'attribute')
 
 
 # DimArray class
@@ -38,14 +44,35 @@ class test_DimArray(NumpyTestCase):
         pass
     
     def test_new(self):
+        # should throw TypeError if dims are not specified:
+        self.assertRaises(TypeError,DimArray,np.random.rand(5,10))
+        # should throw ValueError if dims is not a list:
+        self.assertRaises(TypeError,DimArray,np.random.rand(5,10),
+                          dims = np.arange(4))
+        # should throw ValueError if dims do not match data shape:
+        self.assertRaises(TypeError,DimArray,np.random.rand(5,10),
+                          dims=[Dim(range(10),name='freqs',unit='Hz'),
+                                Dim(range(5),name='time',unit='sec')])
+        self.assertRaises(TypeError,DimArray,np.random.rand(5,10),
+                          dims=[Dim(range(5),name='freqs',unit='Hz')])
+        # should throw ValueError if dims contains non-Dim instances:
+        self.assertRaises(TypeError,DimArray,np.random.rand(5,10),
+                          dims=[Dim(range(5),name='freqs',unit='Hz'),
+                                AttrArray(range(10),name='time',unit='sec')])
+        self.assertRaises(TypeError,DimArray,np.random.rand(5,10),
+                          dims=[AttrArray(range(5),name='freqs',unit='Hz'),
+                                Dim(range(10),name='time',unit='sec')])
+        
+
+        
         dat = DimArray(np.random.rand(5,10),
-                       dims=(Dim(range(5),name='freqs',unit='Hz'),
-                             Dim(range(10),name='time',unit='sec')))
+                       dims=[Dim(range(5),name='freqs',unit='Hz'),
+                             Dim(range(10),name='time',unit='sec')])
 
     def test_func(self):
         dat = DimArray(np.random.rand(5,10),
-                       dims=(Dim(range(5),name='freqs',unit='Hz'),
-                             Dim(range(10),name='time',unit='sec')))
+                       dims=[Dim(range(5),name='freqs',unit='Hz'),
+                             Dim(range(10),name='time',unit='sec')])
 
         # what we want
 
