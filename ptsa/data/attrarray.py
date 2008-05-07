@@ -31,8 +31,12 @@ class AttrArray(np.ndarray):
     
     """
 
-    # required attributes (can be specified by subclasses)
-    _required_attrs = []
+    # required attributes (can be specified by subclasses): a
+    # dictionary with with required attribute names as keys and the
+    # required attribute data types as values. If no particular data
+    # type is required, "object" should be specified. E.g.,
+    # {'name':str} or {'misc':object}
+    _required_attrs = None
 
     def __new__(cls, data, dtype=None, copy=True, **kwargs):
         if isinstance(data,AttrArray):
@@ -42,7 +46,7 @@ class AttrArray(np.ndarray):
             # Use dtype of data, if nothing is specified:
             dtype2 = data.dtype
             if (dtype is None):
-                dtype == dtype2
+                dtype = dtype2
             if copy:
                 # if dtype hasn't changed we can just copy data,
                 # otherwise we need to recast data:
@@ -80,7 +84,7 @@ class AttrArray(np.ndarray):
             # Use dtype of data, if nothing is specified:
             dtype2 = data.dtype
             if (dtype is None):
-                dtype == dtype2
+                dtype = dtype2
             if copy:
                 # if dtype hasn't changed we can just produce a view
                 # of the copied data, otherwise we need to recast data
@@ -89,9 +93,13 @@ class AttrArray(np.ndarray):
                     result = data.copy().view(cls)
                 else:
                     result = data.astype(dtype).view(cls)
-                # numpy ndarrays don't have an _attrs attribute, so we
-                # can just copy the kwargs:
-                result._attrs = copylib.copy(kwargs)
+                newattrs = copylib.copy(kwargs)
+                if not hasattr(result,'_attrs'):
+                    result._attrs = newattrs
+                elif (result._attrs is None):
+                    result._attrs = newattrs
+                else:
+                    result._attrs.update(newattrs)
             else:
                 # if dtype hasn't changed we can just produce a view
                 # of the copied data, otherwise we need to recast data
@@ -102,9 +110,14 @@ class AttrArray(np.ndarray):
                     result = data.view(cls)
                 else:
                     result = data.astype(dtype).view(cls)
-                # numpy ndarrays don't have an _attrs attribute, so we
-                # can just assign the kwargs:
-                result._attrs = kwargs
+                # update any attributes that may already be present in
+                # data with the new attributes specified in kwargs:
+                if not hasattr(result,'_attrs'):
+                    result._attrs = kwargs
+                elif (result._attrs is None):
+                    result._attrs = kwargs
+                else:
+                    result._attrs.update(kwargs)
         else:
             # If data is not a numpy ndarray, we need to make an array from
             # it and produce a AttrArray view:
@@ -120,7 +133,7 @@ class AttrArray(np.ndarray):
         #result._chkReqAttr()
         # Return the result:
         return result
-
+    
     def __array_finalize__(self,obj):
         # XXX perhaps save the copy state and only copy if requested
         self._attrs = copylib.copy(getattr(obj, '_attrs', {}))
@@ -132,9 +145,14 @@ class AttrArray(np.ndarray):
     def __setattr__(self, name, value):
         # set the value in the attribute list
         #ret = super(self.__class__,self).__setattr__(name, value)
-        if (value is None) and (name in self._required_attrs):
-            raise AttributeError("Attribute "+name +" is required, and cannot "+
-                                 "be set to None!")
+        #if (value is None) and (name in self._required_attrs.keys()):
+        if not (self._required_attrs is None):
+            if ((name in self._required_attrs.keys()) and
+                (not isinstance(value,self._required_attrs[name]))):
+                raise AttributeError("Attribute '"+name +"' must be "+
+                                     str(self._required_attrs[name])+
+                                     "\nSupplied value and type:\n"+
+                                     str(value)+"\n"+str(type(value)))
         ret = np.ndarray.__setattr__(self, name, value)
         if name != '_attrs':
             # do add attrs to itself
@@ -142,8 +160,8 @@ class AttrArray(np.ndarray):
         return ret
 
     def __delattr__(self, name):
-        if name in self._required_attrs:
-            raise AttributeError("Attribute "+name +" is required, and cannot "+
+        if name in self._required_attrs.keys():
+            raise AttributeError("Attribute '"+name +"' is required, and cannot "+
                                  "be deleted!")
         #ret = super(self.__class__,self).__delattr__(name)
         ret = np.ndarray.__delattr__(self, name)
@@ -163,8 +181,14 @@ class AttrArray(np.ndarray):
         """
         Make sure the required attributes are set
         """
-        for attr in self._required_attrs:
-            if ((not self._attrs.has_key(attr)) or
-                (self._attrs[attr] is None)):
-                raise AttributeError("Attribute "+attr+" is required, and must"+
-                                     " be provided for initialization!")        
+        # if there are no required attributes, no check is required:
+        if self._required_attrs is None: return
+        
+        for name in self._required_attrs.keys():
+            if ((not self._attrs.has_key(name)) or
+                (not isinstance(self._attrs[name], self._required_attrs[name]))):
+                raise AttributeError("Attribute '"+name+"' is required, and "+
+                                     "must be "+str(self._required_attrs[name]))
+            
+
+
