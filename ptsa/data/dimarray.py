@@ -128,14 +128,22 @@ class DimArray(AttrArray):
         self._chkReqAttr()
         # setup the regexp
         self._set_dims_regexp()
-        # ensure that the dims attribute is valid:
+        # ensure _getitem flag is off
         self._getitem = False
+        # if this method is called from __getitem__, don't check dims
+        # (they are adjusted later by __getitem__):
         if (isinstance(obj,DimArray) and obj._getitem): return
+        # ensure that the dims attribute is valid:
         self._chkDims()
 
     def _set_dims_regexp(self):
-        # save the names list and a regexp for it
-        self.names = [dim.name for dim in self.dims]
+        """Save the names list and a regexp for it"""
+        names = [dim.name for dim in self.dims]
+        # ensure names are unique:
+        if len(np.unique(names)) != len(names):
+            raise AttributeError("Dimension names must be unique!\nnames: "+
+                                 str(names))
+        self.names = names
         regexpNames = '\\b'+'\\b|\\b'.join(self.names)+'\\b'
         self._namesRE = re.compile(regexpNames)
 
@@ -148,15 +156,15 @@ class DimArray(AttrArray):
         """
         # Ensure list:
         if not isinstance(self.dims,list):
-            raise ValueError("The dims attribute must be a list "+
+            raise AttributeError("The dims attribute must be a list "+
                              "of Dim instances!\ndims:\n"+str(self.dims))
         # Ensure that list is made up of only Dim instances:
         if not np.array([isinstance(x,Dim) for x in self.dims]).all():
-            raise ValueError("The dims attribute must contain "+
+            raise AttributeError("The dims attribute must contain "+
                              "only Dim instances!\ndims:\n"+str(self.dims))
         # Ensure that the lengths of the Dim instances match the array shape:
         if self.shape != tuple([len(d) for d in self.dims]):
-            raise ValueError("The length of the dims must match the shape of "+
+            raise AttributeError("The length of the dims must match the shape of "+
                              "the DimArray!\nDimArray shape: "+str(self.shape)+
                              "\nShape of the dims:\n"+
                              str(tuple([len(d) for d in self.dims])))

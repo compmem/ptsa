@@ -59,11 +59,24 @@ class test_DimArray(NumpyTestCase):
                                 Dim(range(10),name='time',unit='sec')])
  
         # should throw Error if dims do not match data shape:
-        self.assertRaises(ValueError,DimArray,np.random.rand(5,10),
+        self.assertRaises(AttributeError,DimArray,np.random.rand(5,10),
                           dims=[Dim(range(10),name='freqs',unit='Hz'),
                                 Dim(range(5),name='time',unit='sec')])
-        self.assertRaises(ValueError,DimArray,np.random.rand(5,10),
+        self.assertRaises(AttributeError,DimArray,np.random.rand(5,10),
                           dims=[Dim(range(5),name='freqs',unit='Hz')])
+
+        # should throw Error if 2 dims have the same name:
+        self.assertRaises(AttributeError,DimArray,np.random.rand(10,5),
+                          dims=[Dim(range(10),name='dim1',unit='Hz'),
+                                Dim(range(5),name='dim1',unit='sec')])
+        self.assertRaises(AttributeError,DimArray,np.random.rand(10,3,5),
+                          dims=[Dim(range(10),name='dim1',unit='Hz'),
+                                Dim(range(3),name='dim2',unit='Hz'),
+                                Dim(range(5),name='dim1',unit='sec')])
+        self.assertRaises(AttributeError,DimArray,np.random.rand(10,3,5),
+                          dims=[Dim(range(10),name='dim1',unit='Hz'),
+                                Dim(range(3),name='dim1',unit='Hz'),
+                                Dim(range(5),name='dim1',unit='sec')])
 
         # this is a proper initialization:
         dat = DimArray(np.random.rand(5,10),
