@@ -215,6 +215,7 @@ class DimArray(AttrArray):
 
 
     def __getitem__(self, index):
+        # embedd in try block to ensure that _getitem flag is reset (in finally)
         try:
             if isinstance(index,str):
                 # see if it's just a single dimension name
@@ -226,22 +227,56 @@ class DimArray(AttrArray):
                 else:
                     # call select_ind and return the slice into the data
                     m_ind,ind = self._select_ind(index)
-                    self._getitem = True
-                    # set up the new data
+                    # create the new dimensions:
+                    newdims = [dim[ind[d]] for dim,d in
+                               zip(copylib.copy(self.dims),range(len(ind)))]
+                    # make new index for indexing the data below:
                     index = m_ind
-                    ret = np.ndarray.__getitem__(self,index)
-            else: # possibly deal with tuples and kwargs separately here
-                # dummy code to initialize ind (all dims are retained):
-                ind = [np.ones(dim.shape,np.bool) for dim in self.dims]
-                self._getitem = True
-                ret = np.ndarray.__getitem__(self,index)#[m_ind]
+            elif isinstance(index,int):
+                # a single int as index eliminates the first dimension:
+                newdims = copylib.copy(self.dims)
+                newdims.pop(0)
+            elif isinstance(index,slice) or isinstance(index,np.ndarray):
+                # a single slice is taken over the first dimension:
+                newdims = copylib.copy(self.dims)
+                newdims[0]=newdims[0][index]
+            elif isinstance(index,tuple):
+                # for tuples, loop over the elements:
+                newdims = copylib.copy(self.dims)
+                adj_i = 0 # adjusted index (if dimensions are eliminated)
+                for i,ind in enumerate(index):
+                    if isinstance(ind,int):
+                        # eliminate respective dim and update adj_i accordingly:
+                        newdims.pop(adj_i)
+                        adj_i -= 1
+                    elif isinstance(ind,slice) or isinstance(ind,np.ndarray):
+                        # apply the slice or array to the respective dimension
+                        newdims[adj_i] = newdims[adj_i][ind]
+                    else: # not sure if there are other legitimate indices here
+                        raise NotImplementedError("This index is not (yet?) "+
+                                                  " implemented!",type(ind),
+                                                  str(ind),str(i),str(adj_i),
+                                                  type(index),str(index))
+                    # increment adjusted index:
+                    adj_i += 1
+            else: # not sure if there are other legitimate indices here
+                raise NotImplementedError("This index is not (yet?) "+
+                                          "implemented!",type(index),str(index))
+            
+            # Now that the dimensions are updated, we need to get the data:
+            # set _getitem flag for __array_finalize__:
+            self._getitem = True
+            # get the data:
+            ret = np.ndarray.__getitem__(self,index)
+            # if the resulting data is scalar, return it:
+            if ret.ndim == 0:
+                return ret
+            else: # othewise, adjust the dimensions:
+                # set new dimensions:
+                ret.dims = newdims
+                # finalize the new array and return:
+                ret.__array_finalize__(ret)
+                return ret            
         finally:
+            # reset the _getitem flag:
             self._getitem = False
-
-        if ret.ndim == 0:
-            return ret
-        else:
-            newdims = [dim[ind[d]] for dim,d in
-                       zip(copylib.copy(self.dims),range(len(ind)))]
-            ret.dims = newdims
-            return ret
