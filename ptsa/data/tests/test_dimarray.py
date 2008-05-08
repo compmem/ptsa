@@ -107,7 +107,6 @@ class test_DimArray(NumpyTestCase):
 
     def test_getitem(self):
         dat_array = np.random.rand(2,4,5)
-        dat_array[:,:,4] = dat_array[:,:,3]*2 # to make the last test work
         dat = DimArray(dat_array,
                        dims=[Dim(range(2),name='dim1',unit='Hz'),
                              Dim(range(4),name='dim2',bla='bla'),
@@ -190,7 +189,7 @@ class test_DimArray(NumpyTestCase):
         # check that the right values are returned:
         self.assertEquals(dat['dim3!=2'][0,0,0],dat_array[0,0,0])
         self.assertEquals(dat['dim3!=2'][1,2,1],dat_array[1,2,1])
-        self.assertEquals(dat['dim3!=2'][1,2,3],dat_array[1,2,3]*2)
+        self.assertEquals(dat['dim3!=2'][1,2,3],dat_array[1,2,4])
         
 
     def test_func(self):
