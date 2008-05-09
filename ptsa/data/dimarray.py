@@ -219,7 +219,6 @@ class DimArray(AttrArray):
         return m_ind,ind
 
 
-
     def __getitem__(self, index):
         # embedd in try block to ensure that _getitem flag is reset (in finally)
         try:
@@ -231,13 +230,8 @@ class DimArray(AttrArray):
                     # corresponding dimension
                     return self.dims[self.names.index(res.group())]
                 else:
-                    # call select_ind and return the slice into the data
-                    m_ind,ind = self._select_ind(index)
-                    # create the new dimensions:
-                    newdims = [dim[ind[d]] for dim,d in
-                               zip(copylib.copy(self.dims),range(len(ind)))]
-                    # make new index for indexing the data below:
-                    index = m_ind
+                    # call select to do the work
+                    return self.select(index)
             elif isinstance(index,int):
                 # a single int as index eliminates the first dimension:
                 newdims = copylib.copy(self.dims)
@@ -286,3 +280,19 @@ class DimArray(AttrArray):
         finally:
             # reset the _getitem flag:
             self._getitem = False
+
+
+    def select(self,*args,**kwargs):
+        """
+        Return a copy of the data filtered with the select conditions.
+
+        data.select('time>0','events.recalled==True')
+        or
+        data.select(time=data['time']>0,events=data['events'].recalled==True)
+        or 
+        data.find("time>kwargs['t']","events.recalled==kwargs['val']",t=0,val=True)
+
+        To get a tuple of index arrays for the selected conditions use the find method.
+        """
+        m_ind,ind = self._select_ind(*args,**kwargs)
+        return self[m_ind]
