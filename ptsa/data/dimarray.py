@@ -69,9 +69,11 @@ class Dim(AttrArray):
             if ndim == 1:
                 self.shape = newshape
                 return
+            elif ndim == 0:
+                self.shape = (1,)
             else:
                 raise ValueError("Dim instances must be 1-dimensional!\ndim:\n"+
-                                 str(self))
+                                 str(self)+"\nnewshape:",newshape)
         # if the array is 0-D, make it 1-D:
         elif self.ndim == 0:
             self.shape = (1)

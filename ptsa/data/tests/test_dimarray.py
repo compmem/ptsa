@@ -203,7 +203,13 @@ class test_DimArray(NumpyTestCase):
         self.assertEquals(dat['dim3!=2'][0,0,0],dat_array[0,0,0])
         self.assertEquals(dat['dim3!=2'][1,2,1],dat_array[1,2,1])
         self.assertEquals(dat['dim3!=2'][1,2,3],dat_array[1,2,4])
-        
+
+        # check indexing with a tuple of arrays and with 1-level dimensions:
+        dim1=Dim(['dim'],'dim1')
+        dim2=Dim([1,2],'dim2')
+        dim3=Dim([3,4,5],'dim3')
+        dat=DimArray([[[6,7,8],[9,10,11]]],[dim1,dim2,dim3])
+        self.assertEquals(dat[np.ix_([0],[0,1],[0,1])].shape,(1,2,2))        
 
     def test_func(self):
         dat = DimArray(np.random.rand(5,10),
