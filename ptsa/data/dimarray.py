@@ -120,12 +120,8 @@ class DimArray(AttrArray):
         return dimarray.view(cls)
 
     def __array_finalize__(self,obj):
-        # XXX perhaps save the copy state and only copy if requested
-        self._attrs = copylib.copy(getattr(obj, '_attrs', {}))
-        # Set all attributes:
-        self._setAllAttr()
-        # Ensure that the required attributes are present:
-        self._chkReqAttr()
+        # call the AttrArray finalize
+        AttrArray.__array_finalize__(self,obj)
         # setup the regexp
         self._set_dims_regexp()
         # ensure _getitem flag is off
