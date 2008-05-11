@@ -288,7 +288,7 @@ class DimArray(AttrArray):
 
     def select(self,*args,**kwargs):
         """
-        Return a copy of the data filtered with the select conditions.
+        Return a slice of the data filtered with the select conditions.
 
         data.select('time>0','events.recalled==True')
         or
