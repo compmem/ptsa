@@ -314,8 +314,7 @@ class DimArray(AttrArray):
             ret.dims.pop(axis)
             ret = func(ret,axis=axis,**kwargs)
             return ret.view(self.__class__)
-        
-        
+             
        
     def mean(self,axis=None,**kwargs):
         return self._apply_func(AttrArray.mean,axis=axis,**kwargs)
