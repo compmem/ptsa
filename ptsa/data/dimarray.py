@@ -133,6 +133,7 @@ class DimArray(AttrArray):
         if (isinstance(obj,DimArray) and obj._getitem): return
         # ensure that the dims attribute is valid:
         self._chkDims()
+                
 
     def _set_dims_regexp(self):
         """Save the names list and a regexp for it"""
@@ -141,12 +142,19 @@ class DimArray(AttrArray):
         if len(np.unique(names)) != len(names):
             raise AttributeError("Dimension names must be unique!\nnames: "+
                                  str(names))
-        self.names = names
-        regexpNames = '\\b'+'\\b|\\b'.join(self.names)+'\\b'
+        self._names = names
+        regexpNames = '\\b'+'\\b|\\b'.join(self._names)+'\\b'
         self._namesRE = re.compile(regexpNames)
 
-        regexpNameOnly = '(?<!.)\\b' + '\\b(?!.)|(?<!.)\\b'.join(self.names) + '\\b(?!.)'
+        regexpNameOnly = '(?<!.)\\b' + '\\b(?!.)|(?<!.)\\b'.join(self._names) + '\\b(?!.)'
         self._nameOnlyRE = re.compile(regexpNameOnly)
+
+    def get_names(self):
+        self._set_dims_regexp()
+        return self._names
+        
+    names = property(get_names,doc="Dimension names (read only)")
+
 
     def _chkDims(self):
         """
@@ -281,6 +289,11 @@ class DimArray(AttrArray):
             # reset the _getitem flag:
             self._getitem = False
 
+    def copy(self):
+        ret = copylib.deepcopy(self)
+        ret.dims = copylib.deepcopy(self.dims)
+        return ret
+        
 
     def select(self,*args,**kwargs):
         """
@@ -296,3 +309,17 @@ class DimArray(AttrArray):
         """
         m_ind,ind = self._select_ind(*args,**kwargs)
         return self[m_ind]
+
+    def _apply_func(self,func,axis,**kwargs):
+        ret = self.copy()
+        ret = ret.view(AttrArray)
+        if axis is None:
+            return func(ret,axis=axis,**kwargs)
+        else:
+            ret.dims.pop(axis)
+            ret = func(ret,axis=axis,**kwargs)
+            return ret.view(self.__class__)
+             
+       
+    def mean(self,axis=None,**kwargs):
+        return self._apply_func(AttrArray.mean,axis=axis,**kwargs)
