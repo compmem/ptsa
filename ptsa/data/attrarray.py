@@ -127,11 +127,9 @@ class AttrArray(np.ndarray):
                 result._attrs = copylib.copy(kwargs)
             else:
                 result._attrs = kwargs
-        # Set all attributes in result._attr:
-        #result._setAllAttr()
-        # Ensure that the required attributes are present:
-        #result._chkReqAttr()
-        # Return the result:
+                
+        # Finalize and return the result:
+        result.__array_finalize__(result)
         return result
     
     def __array_finalize__(self,obj):
@@ -139,6 +137,7 @@ class AttrArray(np.ndarray):
         self._attrs = copylib.copy(getattr(obj, '_attrs', {}))
         # Set all attributes:
         self._setAllAttr()
+        #print 'fin',self._attrs,obj._attrs,type(obj)
         # Ensure that the required attributes are present:
         self._chkReqAttr()
     
