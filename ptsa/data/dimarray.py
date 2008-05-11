@@ -148,8 +148,13 @@ class DimArray(AttrArray):
 
         regexpNameOnly = '(?<!.)\\b' + '\\b(?!.)|(?<!.)\\b'.join(self._names) + '\\b(?!.)'
         self._nameOnlyRE = re.compile(regexpNameOnly)
-    names = property(lambda self: copylib.copy(self._names),doc=
-                     "Dimension names (read only)")
+
+    def get_names(self):
+        self._set_dims_regexp()
+        return self._names
+        
+    names = property(get_names,doc="Dimension names (read only)")
+
 
     def _chkDims(self):
         """
