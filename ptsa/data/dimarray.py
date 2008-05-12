@@ -306,6 +306,36 @@ class DimArray(AttrArray):
             ret = func(ret,axis=axis,**kwargs)
             return ret.view(self.__class__)
              
-       
-    def mean(self,axis=None,**kwargs):
-        return self._apply_func(AttrArray.mean,axis=axis,**kwargs)
+
+    
+    def mean(self, axis=None, dtype=None, out=None):
+        if isinstance(axis,str):
+            # must convert to index dim
+            axis = self.names.index(axis)
+        ret = self.view(AttrArray).mean(axis=axis, dtype=dtype, out=out)
+        if axis is None:
+            # just return what we got
+            return ret
+        else:
+            # pop the dim
+            ret.dims.pop(axis)
+            return ret.view(self.__class__)
+    
+    def std(self, axis=None, dtype=None, out=None):
+        if isinstance(axis,str):
+            # must convert to index dim
+            axis = self.names.index(axis)
+        ret = self.view(AttrArray).std(axis=axis, dtype=dtype, out=out)
+        if axis is None:
+            # just return what we got
+            return ret
+        else:
+            # pop the dim
+            ret.dims.pop(axis)
+            return ret.view(self.__class__)
+
+# set the doc strings
+DimArray.mean.im_func.func_doc = np.ndarray.mean.__doc__            
+DimArray.std.im_func.func_doc = np.ndarray.std.__doc__            
+
+    
