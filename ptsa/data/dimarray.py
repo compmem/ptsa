@@ -115,6 +115,8 @@ class DimArray(AttrArray):
     _required_attrs = {'dims':list}
     names = property(lambda self: [dim.name for dim in self.dims],
                      doc="Dimension names (read only)")
+    # XXX Won't the following make it recompile the regular expression
+    # every time you access it? 
     _namesRE = property(lambda self: re.compile(
                         '\\b'+'\\b|\\b'.join(self.names)+'\\b'))
     _nameOnlyRE = property(lambda self: re.compile('(?<!.)\\b' +
