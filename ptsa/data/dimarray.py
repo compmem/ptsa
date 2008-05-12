@@ -113,12 +113,10 @@ class DimArray(AttrArray):
         Additional custom attributes.    
     """
     _required_attrs = {'dims':list}
-    names = property(lambda self: [dim.name for dim in self.dims],
+    dim_names = property(lambda self: [dim.name for dim in self.dims],
                      doc="Dimension names (read only)")
-    _namesRE = property(lambda self: re.compile(
-                        '\\b'+'\\b|\\b'.join(self.names)+'\\b'))
-    _nameOnlyRE = property(lambda self: re.compile('(?<!.)\\b' +
-                           '\\b(?!.)|(?<!.)\\b'.join(self.names) + '\\b(?!.)'))
+    _dim_namesRE = property(lambda self: re.compile('(?<!.)\\b' +
+                           '\\b(?!.)|(?<!.)\\b'.join(self.dim_names) + '\\b(?!.)'))
     
     def __new__(cls, data, dims, dtype=None, copy=True, **kwargs):
         # set the kwargs to have name
@@ -161,9 +159,9 @@ class DimArray(AttrArray):
                              str(tuple([len(d) for d in self.dims])))
         
         # Ensure unique dimension names:
-        if len(np.unique(self.names)) != len(self.names):
+        if len(np.unique(self.dim_names)) != len(self.dim_names):
             raise AttributeError("Dimension names must be unique!\nnames: "+
-                                 str(self.names))
+                                 str(self.dim_names))
 
 
 
@@ -182,7 +180,7 @@ class DimArray(AttrArray):
 
             # figure out which dimension we're dealing with
             foundDim = False
-            for d,k in enumerate(self.names):
+            for d,k in enumerate(self.dim_names):
                 # RE makes sure to not replace substrings
                 if re.search(r'\b'+k+r'\b',filterStr):
                     # this is our dimension
@@ -207,9 +205,9 @@ class DimArray(AttrArray):
             
         # loop over the kwargs
         for key,value in kwargs.iteritems():
-            if key in self.names:
+            if key in self.dim_names:
                 # get the proper dimension to cull
-                d = self.names.index(key)
+                d = self.dim_names.index(key)
                 ind[d] = ind[d] & value
 
         # create the final master index
@@ -223,25 +221,25 @@ class DimArray(AttrArray):
         try:
             if isinstance(index,str):
                 # see if it's just a single dimension name
-                res = self._nameOnlyRE.search(index)
+                res = self._dim_namesRE.search(index)
                 if res:
                     # we have a single name, so return the
                     # corresponding dimension
-                    return self.dims[self.names.index(res.group())]
+                    return self.dims[self.dim_names.index(res.group())]
                 else:
                     # call select to do the work
                     return self.select(index)
             elif isinstance(index,int):
                 # a single int as index eliminates the first dimension:
-                newdims = copylib.copy(self.dims)
+                newdims = copylib.deepcopy(self.dims)
                 newdims.pop(0)
             elif isinstance(index,slice) or isinstance(index,np.ndarray):
                 # a single slice is taken over the first dimension:
-                newdims = copylib.copy(self.dims)
+                newdims = copylib.deepcopy(self.dims)
                 newdims[0]=newdims[0][index]
             elif isinstance(index,tuple):
                 # for tuples, loop over the elements:
-                newdims = copylib.copy(self.dims)
+                newdims = copylib.deepcopy(self.dims)
                 adj_i = 0 # adjusted index (if dimensions are eliminated)
                 for i,ind in enumerate(index):
                     if isinstance(ind,int):
