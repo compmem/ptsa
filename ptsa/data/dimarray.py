@@ -47,12 +47,13 @@ class Dim(AttrArray):
         return dim.view(cls)
 
     def __array_finalize__(self, obj):
+        AttrArray.__array_finalize__(self,obj)
         # XXX perhaps save the copy state and only copy if requested
-        self._attrs = copylib.copy(getattr(obj, '_attrs', {}))
+        #self._attrs = copylib.copy(getattr(obj, '_attrs', {}))
         # Set all attributes:
-        self._setAllAttr()
+        #self._setAllAttr()
         # Ensure that the required attributes are present:
-        self._chkReqAttr()
+        #self._chkReqAttr()
         
         #self._getitem = False
         #if (isinstance(obj, Dim) and obj._getitem): return
@@ -112,6 +113,12 @@ class DimArray(AttrArray):
         Additional custom attributes.    
     """
     _required_attrs = {'dims':list}
+    names = property(lambda self: [dim.name for dim in self.dims],
+                     doc="Dimension names (read only)")
+    _namesRE = property(lambda self: re.compile(
+                        '\\b'+'\\b|\\b'.join(self.names)+'\\b'))
+    _nameOnlyRE = property(lambda self: re.compile('(?<!.)\\b' +
+                           '\\b(?!.)|(?<!.)\\b'.join(self.names) + '\\b(?!.)'))
     
     def __new__(cls, data, dims, dtype=None, copy=True, **kwargs):
         # set the kwargs to have name
@@ -124,8 +131,6 @@ class DimArray(AttrArray):
     def __array_finalize__(self,obj):
         # call the AttrArray finalize
         AttrArray.__array_finalize__(self,obj)
-        # setup the regexp
-        self._set_dims_regexp()
         # ensure _getitem flag is off
         self._getitem = False
         # if this method is called from __getitem__, don't check dims
@@ -133,28 +138,6 @@ class DimArray(AttrArray):
         if (isinstance(obj,DimArray) and obj._getitem): return
         # ensure that the dims attribute is valid:
         self._chkDims()
-                
-
-    def _set_dims_regexp(self):
-        """Save the names list and a regexp for it"""
-        names = [dim.name for dim in self.dims]
-        # ensure names are unique:
-        if len(np.unique(names)) != len(names):
-            raise AttributeError("Dimension names must be unique!\nnames: "+
-                                 str(names))
-        self._names = names
-        regexpNames = '\\b'+'\\b|\\b'.join(self._names)+'\\b'
-        self._namesRE = re.compile(regexpNames)
-
-        regexpNameOnly = '(?<!.)\\b' + '\\b(?!.)|(?<!.)\\b'.join(self._names) + '\\b(?!.)'
-        self._nameOnlyRE = re.compile(regexpNameOnly)
-
-    def get_names(self):
-        self._set_dims_regexp()
-        return self._names
-        
-    names = property(get_names,doc="Dimension names (read only)")
-
 
     def _chkDims(self):
         """
@@ -164,16 +147,24 @@ class DimArray(AttrArray):
         if not isinstance(self.dims,list):
             raise AttributeError("The dims attribute must be a list "+
                              "of Dim instances!\ndims:\n"+str(self.dims))
+        
         # Ensure that list is made up of only Dim instances:
         if not np.array([isinstance(x,Dim) for x in self.dims]).all():
             raise AttributeError("The dims attribute must contain "+
                              "only Dim instances!\ndims:\n"+str(self.dims))
+        
         # Ensure that the lengths of the Dim instances match the array shape:
         if self.shape != tuple([len(d) for d in self.dims]):
             raise AttributeError("The length of the dims must match the shape of "+
                              "the DimArray!\nDimArray shape: "+str(self.shape)+
                              "\nShape of the dims:\n"+
                              str(tuple([len(d) for d in self.dims])))
+        
+        # Ensure unique dimension names:
+        if len(np.unique(self.names)) != len(self.names):
+            raise AttributeError("Dimension names must be unique!\nnames: "+
+                                 str(self.names))
+
 
 
     def _select_ind(self,*args,**kwargs):

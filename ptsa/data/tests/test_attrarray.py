@@ -8,7 +8,7 @@
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ##
 
 import numpy as np
-from numpy.testing import NumpyTest, NumpyTestCase
+from numpy.testing import NumpyTest, NumpyTestCase, assert_array_equal,assert_array_almost_equal
 
 from ptsa.data import AttrArray
 
@@ -32,8 +32,9 @@ class test_AttrArray(NumpyTestCase):
         dat_array = AttrArray(arr,name='randvals',dtype=np.float32)
         self.assertTrue(dat_array.name == 'randvals')
         self.assertEquals(shape,dat_array.shape)
-        self.assertTrue((dat_array==arr).all())
-        self.assertTrue(dat_array.dtype=np.float32)
+        # XXX not sure why only "almost" equal:
+        assert_array_almost_equal(dat_array,arr)
+        self.assertTrue(dat_array.dtype==np.float32)
         
 
         # another ndarray, with copy = True vs. copy = False
@@ -45,9 +46,10 @@ class test_AttrArray(NumpyTestCase):
         self.assertTrue(dat_array.test1 == 33)
         self.assertTrue(dat_array.test2 == 'test')
         self.assertEquals(shape,dat_array.shape)
-        self.assertTrue((dat_array==arr).all())
+        assert_array_equal(dat_array,arr)
         dat_array[0] += 5
-        self.assertTrue(dat_array[0]-5 == arr[0])
+        # XXX not sure why only "almost" equal:
+        assert_array_almost_equal((dat_array[0]-5), arr[0])
         dat_array = AttrArray(arr,name='randvals', test1=33,
                               test2='test', copy = False)
         self.assertTrue(dat_array.name == 'randvals')
@@ -56,7 +58,7 @@ class test_AttrArray(NumpyTestCase):
         self.assertEquals(shape,dat_array.shape)
         self.assertTrue((dat_array==arr).all())
         dat_array[0] += 5
-        self.assertTrue(dat_array[0] == arr[0])
+        assert_array_equal(dat_array[0],arr[0])
         
         # instantiation with a list:
         lst = range(10)
@@ -76,14 +78,14 @@ class test_AttrArray(NumpyTestCase):
         dat_attrarray = AttrArray(dat_array,name='attrarray')
         self.assertTrue(dat_attrarray.name == 'attrarray')
         dat_attrarray = AttrArray(dat_list,newname='attrarray',test=44)
-        self.assertTrue(dat_attrarray.name == 'attrarray')
+        self.assertTrue(dat_attrarray.newname == 'attrarray')
         self.assertTrue(dat_attrarray.test == 44)        
 
     def test_setattr(self):
         dat = AttrArray(np.random.rand(10),name='randvals')
         # add a custom attribute:
-        dat_array.custom = 'attribute'
-        self.assertEquals(dat_array.custom,'attribute')
+        dat.custom = 'attribute'
+        self.assertEquals(dat.custom,'attribute')
 
     def test_getattr(self):
         dat = AttrArray(np.random.rand(10),name='randvals')
