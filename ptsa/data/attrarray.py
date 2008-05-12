@@ -164,7 +164,6 @@ class AttrArray(np.ndarray):
     
     def __array_finalize__(self,obj):
         # XXX perhaps save the copy state and only copy if requested
-        print "finalize: %s" % (self.__class__)
         if not hasattr(self, '_attrs'):
             self._attrs = copylib.deepcopy(getattr(obj, '_attrs', {}))
 

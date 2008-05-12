@@ -179,25 +179,25 @@ class test_DimArray(NumpyTestCase):
         self.assertEquals(len(dat['dim1==0'].dims[0]),1)
         self.assertEquals(len(dat['dim1==0'].dims[1]),4)
         self.assertEquals(len(dat['dim1==0'].dims[2]),5)
-        self.assertEquals(dat['dim1==0'].names,['dim1','dim2','dim3'])
+        self.assertEquals(dat['dim1==0'].dim_names,['dim1','dim2','dim3'])
 
         self.assertEquals(dat['dim2==1'].shape,(2,1,5))
         self.assertEquals(len(dat['dim2==1'].dims[0]),2)
         self.assertEquals(len(dat['dim2==1'].dims[1]),1)
         self.assertEquals(len(dat['dim2==1'].dims[2]),5)
-        self.assertEquals(dat['dim2==1'].names,['dim1','dim2','dim3'])
+        self.assertEquals(dat['dim2==1'].dim_names,['dim1','dim2','dim3'])
 
         self.assertEquals(dat['dim2<2'].shape,(2,2,5))
         self.assertEquals(len(dat['dim2<2'].dims[0]),2)
         self.assertEquals(len(dat['dim2<2'].dims[1]),2)
         self.assertEquals(len(dat['dim2<2'].dims[2]),5)
-        self.assertEquals(dat['dim2<2'].names,['dim1','dim2','dim3'])
+        self.assertEquals(dat['dim2<2'].dim_names,['dim1','dim2','dim3'])
         
         self.assertEquals(dat['dim3!=2'].shape,(2,4,4))
         self.assertEquals(len(dat['dim3!=2'].dims[0]),2)
         self.assertEquals(len(dat['dim3!=2'].dims[1]),4)
         self.assertEquals(len(dat['dim3!=2'].dims[2]),4)
-        self.assertEquals(dat['dim3!=2'].names,['dim1','dim2','dim3'])
+        self.assertEquals(dat['dim3!=2'].dim_names,['dim1','dim2','dim3'])
 
         # check that the right values are returned:
         self.assertEquals(dat['dim3!=2'][0,0,0],dat_array[0,0,0])
