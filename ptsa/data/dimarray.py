@@ -116,7 +116,8 @@ class DimArray(AttrArray):
     dim_names = property(lambda self: [dim.name for dim in self.dims],
                      doc="Dimension names (read only)")
     _dim_namesRE = property(lambda self: re.compile('(?<!.)\\b' +
-                           '\\b(?!.)|(?<!.)\\b'.join(self.dim_names) + '\\b(?!.)'))
+                      '\\b(?!.)|(?<!.)\\b'.join(self.dim_names) + '\\b(?!.)'))
+
     
     def __new__(cls, data, dims, dtype=None, copy=True, **kwargs):
         # set the kwargs to have name
@@ -302,6 +303,36 @@ class DimArray(AttrArray):
             ret = func(ret,axis=axis,**kwargs)
             return ret.view(self.__class__)
              
-       
-    def mean(self,axis=None,**kwargs):
-        return self._apply_func(AttrArray.mean,axis=axis,**kwargs)
+
+    
+    def mean(self, axis=None, dtype=None, out=None):
+        if isinstance(axis,str):
+            # must convert to index dim
+            axis = self.names.index(axis)
+        ret = self.view(AttrArray).mean(axis=axis, dtype=dtype, out=out)
+        if axis is None:
+            # just return what we got
+            return ret
+        else:
+            # pop the dim
+            ret.dims.pop(axis)
+            return ret.view(self.__class__)
+    
+    def std(self, axis=None, dtype=None, out=None):
+        if isinstance(axis,str):
+            # must convert to index dim
+            axis = self.names.index(axis)
+        ret = self.view(AttrArray).std(axis=axis, dtype=dtype, out=out)
+        if axis is None:
+            # just return what we got
+            return ret
+        else:
+            # pop the dim
+            ret.dims.pop(axis)
+            return ret.view(self.__class__)
+
+# set the doc strings
+DimArray.mean.im_func.func_doc = np.ndarray.mean.__doc__            
+DimArray.std.im_func.func_doc = np.ndarray.std.__doc__            
+
+    
