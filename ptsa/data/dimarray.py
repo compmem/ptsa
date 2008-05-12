@@ -303,12 +303,11 @@ class DimArray(AttrArray):
             ret = func(ret,axis=axis,**kwargs)
             return ret.view(self.__class__)
              
-
     
     def mean(self, axis=None, dtype=None, out=None):
         if isinstance(axis,str):
             # must convert to index dim
-            axis = self.names.index(axis)
+            axis = self.dim_names.index(axis)
         ret = self.view(AttrArray).mean(axis=axis, dtype=dtype, out=out)
         if axis is None:
             # just return what we got
@@ -321,7 +320,7 @@ class DimArray(AttrArray):
     def std(self, axis=None, dtype=None, out=None):
         if isinstance(axis,str):
             # must convert to index dim
-            axis = self.names.index(axis)
+            axis = self.dim_names.index(axis)
         ret = self.view(AttrArray).std(axis=axis, dtype=dtype, out=out)
         if axis is None:
             # just return what we got
