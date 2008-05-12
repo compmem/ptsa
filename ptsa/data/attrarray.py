@@ -14,6 +14,8 @@ import copy as copylib
 # New array class with attributes
 ###############################
 
+import pdb
+
 class AttrArray(np.ndarray):
     """
     Subclass of NumPy's ndarray class that allows you to set custom
@@ -38,103 +40,134 @@ class AttrArray(np.ndarray):
     # {'name':str} or {'misc':object}
     _required_attrs = None
 
-    def __new__(cls, data, dtype=None, copy=True, **kwargs):
-        if isinstance(data,AttrArray):
-            # If data is already an AttrArray, we just need to worry
-            # about dtype, copying, and any new attributes specified
-            # in kwargs.
-            # Use dtype of data, if nothing is specified:
-            dtype2 = data.dtype
-            if (dtype is None):
-                dtype = dtype2
-            if copy:
-                # if dtype hasn't changed we can just copy data,
-                # otherwise we need to recast data:
-                if (dtype==dtype2):
-                    result = data.copy()
-                else:
-                    result = data.astype(dtype)
-                # update any attributes that may have been copied from
-                # data with the new attributes specified in kwargs:
-                newattrs = copylib.copy(kwargs)
-                if (result._attrs is None):
-                    result._attrs = newattrs
-                else:
-                    result._attrs.update(newattrs)
-            else:
-                # if dtype hasn't changed we can just copy data,
-                # otherwise we need to recast data (NOTE: recasting
-                # always produces a copy, so if a new dtype is
-                # specified, we are always making a copy of data, even
-                # if copy=False is specified):
-                if (dtype == dtype2):
-                    result = data
-                else:
-                    result = data.astype(dtype)
-                # update any attributes that may already be present in
-                # data with the new attributes specified in kwargs:
-                if (result._attrs is None):
-                    result._attrs = kwargs
-                else:
-                    result._attrs.update(kwargs)
-        elif isinstance(data,np.ndarray):
-            # If data is already a numpy ndarray, we just need to
-            # produce a new view and take care of dtype, copying, and
-            # any new attributes specified in kwargs.
-            # Use dtype of data, if nothing is specified:
-            dtype2 = data.dtype
-            if (dtype is None):
-                dtype = dtype2
-            if copy:
-                # if dtype hasn't changed we can just produce a view
-                # of the copied data, otherwise we need to recast data
-                # first:
-                if (dtype==dtype2):
-                    result = data.copy().view(cls)
-                else:
-                    result = data.astype(dtype).view(cls)
-                newattrs = copylib.copy(kwargs)
-                if not hasattr(result,'_attrs'):
-                    result._attrs = newattrs
-                elif (result._attrs is None):
-                    result._attrs = newattrs
-                else:
-                    result._attrs.update(newattrs)
-            else:
-                # if dtype hasn't changed we can just produce a view
-                # of the copied data, otherwise we need to recast data
-                # first (NOTE: recasting always produces a copy, so if
-                # a new dtype is specified, we are always making a
-                # copy of data, even if copy=False is specified):
-                if (dtype==dtype2):
-                    result = data.view(cls)
-                else:
-                    result = data.astype(dtype).view(cls)
-                # update any attributes that may already be present in
-                # data with the new attributes specified in kwargs:
-                if not hasattr(result,'_attrs'):
-                    result._attrs = kwargs
-                elif (result._attrs is None):
-                    result._attrs = kwargs
-                else:
-                    result._attrs.update(kwargs)
+    def __new__(cls, data, dtype=None, copy=False, **kwargs):
+        # get the data in the proper format, copied if desired
+        result = np.array(data, dtype=dtype, copy=copy)
+
+        # transform the data to the new class
+        result = result.view(cls)
+
+        # get the new attrs, kwargs has priority
+        newattrs = {}
+        if copy:
+            if hasattr(data,'_attrs'):
+                # add those to the list of attributes
+                newattrs = copylib.deepcopy(data._attrs)
+            newattrs.update(copylib.deepcopy(kwargs))
         else:
-            # If data is not a numpy ndarray, we need to make an array from
-            # it and produce a AttrArray view:
-            result = np.array(data,dtype=dtype,copy=copy).view(cls)
-            # Now assign any attributes:
-            if copy:
-                result._attrs = copylib.copy(kwargs)
-            else:
-                result._attrs = kwargs
-                
-        # Finalize and return the result:
-        result.__array_finalize__(result)
+            if hasattr(data,'_attrs'):
+                newattrs.update(data._attrs)
+            newattrs.update(kwargs)
+
+        # Set all attributes:
+        result._attrs = newattrs
+
+        result._setAllAttr()
+
+        # Ensure that the required attributes are present:
+        result._chkReqAttr()
+
         return result
+            
+#         if isinstance(data,AttrArray):
+#             # If data is already an AttrArray, we just need to worry
+#             # about dtype, copying, and any new attributes specified
+#             # in kwargs.
+#             # Use dtype of data, if nothing is specified:
+#             dtype2 = data.dtype
+#             if (dtype is None):
+#                 dtype = dtype2
+#             if copy:
+#                 # if dtype hasn't changed we can just copy data,
+#                 # otherwise we need to recast data:
+#                 if (dtype==dtype2):
+#                     result = data.copy()
+#                 else:
+#                     result = data.astype(dtype)
+#                 # update any attributes that may have been copied from
+#                 # data with the new attributes specified in kwargs:
+#                 newattrs = copylib.copy(kwargs)
+#                 if (result._attrs is None):
+#                     result._attrs = newattrs
+#                 else:
+#                     result._attrs.update(newattrs)
+#             else:
+#                 # if dtype hasn't changed we can just copy data,
+#                 # otherwise we need to recast data (NOTE: recasting
+#                 # always produces a copy, so if a new dtype is
+#                 # specified, we are always making a copy of data, even
+#                 # if copy=False is specified):
+#                 if (dtype == dtype2):
+#                     result = data
+#                 else:
+#                     result = data.astype(dtype)
+#                 # update any attributes that may already be present in
+#                 # data with the new attributes specified in kwargs:
+#                 if (result._attrs is None):
+#                     result._attrs = kwargs
+#                 else:
+#                     result._attrs.update(kwargs)
+#         elif isinstance(data,np.ndarray):
+#             # If data is already a numpy ndarray, we just need to
+#             # produce a new view and take care of dtype, copying, and
+#             # any new attributes specified in kwargs.
+#             # Use dtype of data, if nothing is specified:
+#             dtype2 = data.dtype
+#             if (dtype is None):
+#                 dtype = dtype2
+#             if copy:
+#                 # if dtype hasn't changed we can just produce a view
+#                 # of the copied data, otherwise we need to recast data
+#                 # first:
+#                 if (dtype==dtype2):
+#                     result = data.copy().view(cls)
+#                 else:
+#                     result = data.astype(dtype).view(cls)
+#                 newattrs = copylib.copy(kwargs)
+#                 if not hasattr(result,'_attrs'):
+#                     result._attrs = newattrs
+#                 elif (result._attrs is None):
+#                     result._attrs = newattrs
+#                 else:
+#                     result._attrs.update(newattrs)
+#             else:
+#                 # if dtype hasn't changed we can just produce a view
+#                 # of the copied data, otherwise we need to recast data
+#                 # first (NOTE: recasting always produces a copy, so if
+#                 # a new dtype is specified, we are always making a
+#                 # copy of data, even if copy=False is specified):
+#                 if (dtype==dtype2):
+#                     result = data.view(cls)
+#                 else:
+#                     result = data.astype(dtype).view(cls)
+#                 # update any attributes that may already be present in
+#                 # data with the new attributes specified in kwargs:
+#                 if not hasattr(result,'_attrs'):
+#                     result._attrs = kwargs
+#                 elif (result._attrs is None):
+#                     result._attrs = kwargs
+#                 else:
+#                     result._attrs.update(kwargs)
+#         else:
+#             # If data is not a numpy ndarray, we need to make an array from
+#             # it and produce a AttrArray view:
+#             result = np.array(data,dtype=dtype,copy=copy).view(cls)
+#             # Now assign any attributes:
+#             if copy:
+#                 result._attrs = copylib.copy(kwargs)
+#             else:
+#                 result._attrs = kwargs
+                
+#         # Finalize and return the result:
+#         result.__array_finalize__(result)
+#         return result
     
     def __array_finalize__(self,obj):
         # XXX perhaps save the copy state and only copy if requested
-        self._attrs = copylib.deepcopy(getattr(obj, '_attrs', {}))
+        print "finalize: %s" % (self.__class__)
+        if not hasattr(self, '_attrs'):
+            self._attrs = copylib.deepcopy(getattr(obj, '_attrs', {}))
+
         # Set all attributes:
         self._setAllAttr()
         #print 'fin',self._attrs,obj._attrs,type(obj)
@@ -152,17 +185,28 @@ class AttrArray(np.ndarray):
                                      str(self._required_attrs[name])+
                                      "\nSupplied value and type:\n"+
                                      str(value)+"\n"+str(type(value)))
+
+        # save whether it already existed
+        # must do this before the call to ndarray.__setattr__
+        if hasattr(self,name):
+            attr_existed = True
+        else:
+            attr_existed = False
+
+        # call the ndarray set attr
         ret = np.ndarray.__setattr__(self, name, value)
-        if name != '_attrs':
-            # do add attrs to itself
+
+        # update the attrs if necessary
+        if self._attrs.has_key(name) or \
+                (name != '_attrs' and not attr_existed):
             self._attrs[name] = value
+
         return ret
 
     def __delattr__(self, name):
         if name in self._required_attrs.keys():
             raise AttributeError("Attribute '"+name +"' is required, and cannot "+
                                  "be deleted!")
-        #ret = super(self.__class__,self).__delattr__(name)
         ret = np.ndarray.__delattr__(self, name)
         if self._attrs.has_key(name):
             del self._attrs[name]
