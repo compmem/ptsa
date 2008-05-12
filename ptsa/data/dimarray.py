@@ -282,7 +282,7 @@ class DimArray(AttrArray):
 
     def copy(self):
         ret = copylib.deepcopy(self)
-        ret.dims = copylib.deepcopy(self.dims)
+        ret.dims = copylib.copy(self.dims)
         return ret
         
 
@@ -302,8 +302,8 @@ class DimArray(AttrArray):
         return self[m_ind]
 
     def _apply_func(self,func,axis,**kwargs):
-        ret = self.copy()
-        ret = ret.view(AttrArray)
+        #ret = self.copy()
+        ret = self.view(AttrArray)
         if axis is None:
             return func(ret,axis=axis,**kwargs)
         else:
