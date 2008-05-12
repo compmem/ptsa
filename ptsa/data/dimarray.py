@@ -280,13 +280,7 @@ class DimArray(AttrArray):
                 return ret            
         finally:
             # reset the _getitem flag:
-            self._getitem = False
-
-    def copy(self):
-        ret = copylib.deepcopy(self)
-        ret.dims = copylib.deepcopy(self.dims)
-        return ret
-        
+            self._getitem = False        
 
     def select(self,*args,**kwargs):
         """
@@ -304,8 +298,7 @@ class DimArray(AttrArray):
         return self[m_ind]
 
     def _apply_func(self,func,axis,**kwargs):
-        ret = self.copy()
-        ret = ret.view(AttrArray)
+        ret = self.view(AttrArray)
         if axis is None:
             return func(ret,axis=axis,**kwargs)
         else:
