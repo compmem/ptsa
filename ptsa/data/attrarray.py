@@ -134,7 +134,7 @@ class AttrArray(np.ndarray):
     
     def __array_finalize__(self,obj):
         # XXX perhaps save the copy state and only copy if requested
-        self._attrs = copylib.copy(getattr(obj, '_attrs', {}))
+        self._attrs = copylib.deepcopy(getattr(obj, '_attrs', {}))
         # Set all attributes:
         self._setAllAttr()
         #print 'fin',self._attrs,obj._attrs,type(obj)
