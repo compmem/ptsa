@@ -48,23 +48,16 @@ class AttrArray(np.ndarray):
         result = result.view(cls)
 
         # get the new attrs, kwargs has priority
+        # always do deep copy of attrs
         newattrs = {}
-        if copy:
-            if hasattr(data,'_attrs'):
-                # add those to the list of attributes
-                newattrs = copylib.deepcopy(data._attrs)
-            newattrs.update(copylib.deepcopy(kwargs))
-        else:
-            if hasattr(data,'_attrs'):
-                newattrs.update(data._attrs)
-            newattrs.update(kwargs)
+        if hasattr(data,'_attrs'):
+            # add those to the list of attributes
+            newattrs = copylib.deepcopy(data._attrs)
+        newattrs.update(copylib.deepcopy(kwargs))
 
-        # Set all attributes:
+        # Set and check all attributes:
         result._attrs = newattrs
-
         result._setAllAttr()
-
-        # Ensure that the required attributes are present:
         result._chkReqAttr()
 
         return result
@@ -164,13 +157,12 @@ class AttrArray(np.ndarray):
     
     def __array_finalize__(self,obj):
         # XXX perhaps save the copy state and only copy if requested
-        print "finalize: %s" % (self.__class__)
         if not hasattr(self, '_attrs'):
             self._attrs = copylib.deepcopy(getattr(obj, '_attrs', {}))
 
         # Set all attributes:
         self._setAllAttr()
-        #print 'fin',self._attrs,obj._attrs,type(obj)
+
         # Ensure that the required attributes are present:
         self._chkReqAttr()
     

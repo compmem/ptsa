@@ -38,7 +38,7 @@ class Dim(AttrArray):
     """
     _required_attrs = {'name':str}
     
-    def __new__(cls, data, name, dtype=None, copy=True, **kwargs):
+    def __new__(cls, data, name, dtype=None, copy=False, **kwargs):
         # set the kwargs to have name
         kwargs['name'] = name
         # make new AttrArray:
@@ -119,7 +119,7 @@ class DimArray(AttrArray):
                       '\\b(?!.)|(?<!.)\\b'.join(self.dim_names) + '\\b(?!.)'))
 
     
-    def __new__(cls, data, dims, dtype=None, copy=True, **kwargs):
+    def __new__(cls, data, dims, dtype=None, copy=False, **kwargs):
         # set the kwargs to have name
         kwargs['dims'] = dims
         # make new AttrArray:
