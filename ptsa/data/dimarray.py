@@ -294,41 +294,56 @@ class DimArray(AttrArray):
         m_ind,ind = self._select_ind(*args,**kwargs)
         return self[m_ind]
 
-    def _apply_func(self,func,axis,**kwargs):
-        ret = self.view(AttrArray)
-        if axis is None:
-            return func(ret,axis=axis,**kwargs)
-        else:
-            ret.dims.pop(axis)
-            ret = func(ret,axis=axis,**kwargs)
-            return ret.view(self.__class__)
+    def get_axis(self,axis):
+        """
+        Get the axis number for a dimension name.
+
+        Provides a convenient way to ensure an axis number, because it
+        converts dimension names to axis numbers, but returns
+        non-string input unchanged. Should only be needed in
+        exceptional cases outside a class definition as any function
+        that takes an axis keyword should also accept the
+        corresponding dimension name.
+
+        Parameters
+        __________
+        axis : {str}
+            The name of a dimension.
+            
+        Returns
+        _______
+        The axis number corresponding to the dimension name.
+        If axis is not a string, it is returned unchanged.        
+        """
+        if isinstance(axis,str):
+            # must convert to index dim
+            axis = self.dim_names.index(axis)
+        return axis
              
+    def _ret_func(self, ret, axis):
+        """
+        Return function output for functions that take an axis
+        argument after adjusting dims properly.
+        """
+        if axis is None:
+            # just return what we got
+            return ret
+        else:
+            # pop the dim
+            ret.dims.pop(axis)
+            return ret.view(self.__class__)
     
     def mean(self, axis=None, dtype=None, out=None):
-        if isinstance(axis,str):
-            # must convert to index dim
-            axis = self.dim_names.index(axis)
-        ret = self.view(AttrArray).mean(axis=axis, dtype=dtype, out=out)
-        if axis is None:
-            # just return what we got
-            return ret
-        else:
-            # pop the dim
-            ret.dims.pop(axis)
-            return ret.view(self.__class__)
+        axis = self.get_axis(axis)
+        ret = self.view(AttrArray).mean(axis=axis,dtype=dtype, out=out)
+        return self._ret_func(ret,axis)
     
     def std(self, axis=None, dtype=None, out=None):
-        if isinstance(axis,str):
-            # must convert to index dim
-            axis = self.dim_names.index(axis)
+        axis = self.get_axis(axis)
         ret = self.view(AttrArray).std(axis=axis, dtype=dtype, out=out)
-        if axis is None:
-            # just return what we got
-            return ret
-        else:
-            # pop the dim
-            ret.dims.pop(axis)
-            return ret.view(self.__class__)
+        return self._ret_func(ret,axis)
+
+
 
 # set the doc strings
 DimArray.mean.im_func.func_doc = np.ndarray.mean.__doc__            

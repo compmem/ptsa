@@ -8,7 +8,8 @@
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ##
 
 import numpy as np
-from numpy.testing import NumpyTest, NumpyTestCase
+from numpy.testing import NumpyTest, NumpyTestCase, assert_array_equal,\
+     assert_array_almost_equal
 from numpy.random import random_sample as rnd
 
 from ptsa.data.dimarray import DimArray, Dim
@@ -218,30 +219,35 @@ class test_DimArray(NumpyTestCase):
         dim3=Dim([3,4,5],'dim3')
         dat=DimArray([[[6,7,8],[9,10,11]]],[dim1,dim2,dim3])
         self.assertEquals(dat.select(dim2=dat['dim2']>1,dim3=dat['dim3']>3).shape,(1,1,2))
-        
 
-    def test_func(self):
-        dat = DimArray(np.random.rand(5,10),
-                       dims=[Dim(range(5),name='freqs',unit='Hz'),
-                             Dim(range(10),name='time',unit='sec')])
+    def test_get_axis(self):
+        dat = DimArray(np.random.rand(5,10,3),
+                       dims=[Dim(range(5),name='one'),
+                             Dim(range(10),name='two'),
+                             Dim(range(3),name='three')],test='tst')
+        self.assertEqual(dat.get_axis(0),0)
+        self.assertEqual(dat.get_axis(1),1)
+        self.assertEqual(dat.get_axis(2),2)
+        self.assertEqual(dat.get_axis('one'),0)
+        self.assertEqual(dat.get_axis('two'),1)
+        self.assertEqual(dat.get_axis('three'),2)
+       
+    def test_funcs(self):
+        arr = np.random.rand(5,10,3)
+        dat = DimArray(arr,dims=[Dim(range(5),name='one'),
+                                 Dim(range(10),name='two'),
+                                 Dim(range(3),name='three')],test='tst')
 
-        # what we want
-
-        # get the ind of a dim
-        #t_ind = dat.dim('time')
-        #f_ind = dat.dim('freqs')
-
-        # get a dim's data
-        #times = dat.time
-        #times = dat['time']
-        #times = dat.dims['time']
-        #freqs = dat['freqs']
-        
-        # get data, itself
-        #dat['(time>=-200) & (time<=1000)','freqs==4']
-        #dat[:,2:8]
-        
-        # call methods of class
-        #dat.mean(axis='time')
-        #dat.mean(axis=dat.dim('time'))
+        # add when fixed in numpy: np.std
+        funcs = [np.mean]
+        axes_arr = [None,0,1,2,0,1,2]
+        axes_dat = [None,0,1,2,'one','two','three']
+        for func in funcs:
+            for a in range(len(axes_arr)):
+                arr_func = func(arr,axis=axes_arr[a])
+                dat_func = func(dat,axis=axes_dat[a])
+                assert_array_equal(arr_func,dat_func)
+                if axes_dat[a] is not None:
+                    self.assertTrue(isinstance(dat_func,DimArray))
+                    self.assertEquals(dat_func.test,'tst')
         
