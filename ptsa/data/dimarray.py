@@ -188,20 +188,16 @@ class DimArray(AttrArray):
                     foundDim = True
 
                     # replace the string
-                    print 'fs1', filterStr
                     filterStr = re.sub(r'\b'+k+r'\b','self["'+k+'"]',filterStr)
-                    print 'fs2',filterStr
 
                     # get the new index
-                    #newind = eval(filterStr)
+                    newind = eval(filterStr)
                     
                     # apply it to the dimension index
-                    #ind[d] = ind[d] & newind
+                    ind[d] = ind[d] & newind
 
                     # break this loop to continue the next
                     #break
-            newind = eval(filterStr)
-            ind[d] = ind[d] & newind
             # if we get to here, the provided string did not specify any dimensions
             if not foundDim:
                 # XXX eventually this should be a custom exception
