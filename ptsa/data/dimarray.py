@@ -113,11 +113,14 @@ class DimArray(AttrArray):
         Additional custom attributes.    
     """
     _required_attrs = {'dims':list}
-    dim_names = property(lambda self: [dim.name for dim in self.dims],
-                     doc="Dimension names (read only)")
-    _dim_namesRE = property(lambda self: re.compile('(?<!.)\\b' +
-                      '\\b(?!.)|(?<!.)\\b'.join(self.dim_names) + '\\b(?!.)'))
-
+    dim_names = property(lambda self:
+                  [dim.name for dim in self.dims],
+                  doc="Dimension names (read only)")
+    _dim_namesRE = property(lambda self:
+                     re.compile('(?<!.)\\b\\b(?!.)|(?<!.)\\b'.join(self.dim_names)
+                     + '\\b(?!.)'))
+    T = property(lambda self: self.transpose())
+    imag = property(lambda self: self.__imag__())
     
     def __new__(cls, data, dims, dtype=None, copy=False, **kwargs):
         # set the kwargs to have name
@@ -327,22 +330,211 @@ class DimArray(AttrArray):
         """
         if axis is None:
             # just return what we got
-            return ret
+            return ret.view(np.ndarray)
         else:
             # pop the dim
             ret.dims.pop(axis)
             return ret.view(self.__class__)
     
+    
+    def all(self, axis=None):
+        axis = self.get_axis(axis)
+        ret = self.view(AttrArray).all(axis=axis)
+        return self._ret_func(ret,axis)
+    
+    def any(self, axis=None, out=None):
+        axis = self.get_axis(axis)
+        ret = self.view(AttrArray).any(axis=axis, out=out)
+        return self._ret_func(ret,axis)        
+
+    def argmax(self, axis=None, out=None):
+        axis = self.get_axis(axis)
+        ret = self.view(AttrArray).argmax(axis=axis, out=out)
+        return self._ret_func(ret,axis)        
+
+    def argmin(self, axis=None, out=None):
+        axis = self.get_axis(axis)
+        ret = self.view(AttrArray).argmin(axis=axis, out=out)
+        return self._ret_func(ret,axis)        
+
+    def argsort(self, axis=-1, kind='quicksort', order=None):
+        if axis is None:
+            return self.view(np.ndarray).argsort(axis=axis, kind=kind,
+                                                 order=order)
+        else:
+            axis = self.get_axis(axis)
+            ret = self.base.argsort(axis=axis, kind=kind, order=order)
+            return ret.view(self.__class__)
+
+    ####################################################################
+    # Not sure why specifying clip (and particularly the below hack
+    # with the dims) is necessary. It'd be good to find out exactly
+    # what's going on. Other attributes may get lost with the current
+    # setup.
+    def clip(self, a_min, a_max, out=None):
+        ret = self.view(AttrArray).clip(a_min, a_max, out=out)
+        ret.dims = copylib.copy(self.dims)
+        return ret.view(self.__class__)
+
+    def compress(self, condition, axis=None, out=None):
+        if axis is None:
+            return self.view(np.ndarray).compress(condition, axis=axis, out=out)
+        else:
+            axis = self.get_axis(axis)
+            ret = self.view(AttrArray).compress(condition, axis=axis, out=out)
+            cnd = np.array(condition)
+            ret.dims[axis] = ret.dims[axis][cnd]
+            return ret.view(self.__class__)
+
+    def cumprod(self, axis=None, dtype=None, out=None):
+        if axis is None:
+            return self.view(np.ndarray).cumprod(axis=axis, dtype=dtype,
+                                                  out=out)
+        else:
+            axis = self.get_axis(axis)
+            ret = self.base.cumprod(axis=axis, dtype=dtype, out=out)
+            return ret.view(self.__class__)
+
+    def cumsum(self, axis=None, dtype=None, out=None):
+        if axis is None:
+            return self.view(np.ndarray).cumsum(axis=axis, dtype=dtype,
+                                                out=out)
+        else:
+            axis = self.get_axis(axis)
+            ret = self.base.cumsum(axis=axis, dtype=dtype, out=out)
+            return ret.view(self.__class__)
+
+    def diagonal(self, *args, **kwargs):
+        return self.view(np.ndarray).diagonal(*args, **kwargs)
+
+    def flatten(self, *args, **kwargs):
+        return self.view(np.ndarray).flatten(*args, **kwargs)
+
+    ####################################################################
+    # Not sure why specifying imag (and particularly the below hack
+    # with the dims) is necessary. It'd be good to find out exactly
+    # what's going on. Other attributes may get lost with the current
+    # setup. This is just a helper function for the imag property.
+    def __imag__(self):
+        ret = self.view(AttrArray).imag
+        ret.dims = copylib.copy(self.dims)
+        return ret.view(self.__class__)
+
+    def max(self, axis=None, out=None):
+        axis = self.get_axis(axis)
+        ret = self.view(AttrArray).max(axis=axis, out=out)
+        return self._ret_func(ret,axis)
+
     def mean(self, axis=None, dtype=None, out=None):
         axis = self.get_axis(axis)
         ret = self.view(AttrArray).mean(axis=axis,dtype=dtype, out=out)
         return self._ret_func(ret,axis)
-    
+
+    def min(self, axis=None, out=None):
+        axis = self.get_axis(axis)
+        ret = self.view(AttrArray).min(axis=axis, out=out)
+        return self._ret_func(ret,axis)
+
+    def nonzero(self, *args, **kwargs):
+        return self.view(np.ndarray).nonzero(*args, **kwargs)
+
+    def prod(self, axis=None, dtype=None, out=None):
+        axis = self.get_axis(axis)
+        ret = self.view(AttrArray).prod(axis=axis, dtype=dtype, out=out)
+        return self._ret_func(ret,axis)
+
+    def ptp(self, axis=None, out=None):
+        axis = self.get_axis(axis)
+        ret = self.view(AttrArray).ptp(axis=axis, out=out)
+        return self._ret_func(ret,axis)
+
+    def ravel(self, *args, **kwargs):
+        return self.view(np.ndarray).ravel(*args, **kwargs)
+
+    def repeat(self, repeats, axis=None):
+        if axis is None:
+            return self.view(np.ndarray).repeat(repeats=repeats, axis=axis)
+        else:
+            axis = self.get_axis(axis)
+            ret = self.view(AttrArray).repeat(repeats, axis=axis)
+            ret.dims[axis] = ret.dims[axis].repeat(repeats)
+            return ret.view(self.__class__)
+
+    def reshape(self, *args, **kwargs):
+        raise NotImplementedError("Reshaping is not possible for dimensioned "+
+                                  "arrays. Convert to (e.g.) numpy.ndarray!")
+
+    def resize(self, *args, **kwargs):
+        raise NotImplementedError("Resizing is not possible for dimensioned "+
+                                  "arrays. Convert to (e.g.) numpy.ndarray!")
+
+    def sort(self, axis=-1, kind='quicksort', order=None):
+        if axis is None:
+            raise ValueError("Please specify an axis! To sort a flattened "+
+                             "array convert to (e.g.) numpy.ndarray.")
+        axis = self.get_axis(axis)
+        self.base.sort(axis=axis, kind=kind, order=order)
+        self.dims[axis].sort(axis=axis, kind=kind, order=order)
+        return None
+
+    def squeeze(self):
+        ret = self.view(AttrArray).squeeze()
+        d = 0
+        for dms in ret.dims:
+            if len(ret.dims[d]) == 1:
+                ret.dims.pop(d)
+            else:
+                d += 1
+        return ret.view(self.__class__)
+
     def std(self, axis=None, dtype=None, out=None):
         axis = self.get_axis(axis)
         ret = self.view(AttrArray).std(axis=axis, dtype=dtype, out=out)
         return self._ret_func(ret,axis)
 
+    def sum(self, axis=None, dtype=None, out=None):
+        axis = self.get_axis(axis)
+        ret = self.view(AttrArray).sum(axis=axis, dtype=dtype, out=out)
+        return self._ret_func(ret,axis)
+
+    def swapaxes(self, *args, **kwargs):
+        raise NotImplementedError("Swaping axies is not defined for DimArrays!")
+
+    def take(self, indices, axis=None, out=None, mode='raise'):
+        if axis is None:
+            return self.view(np.ndarray).take(indices, axis=axis, out=out, mode=mode)
+        else:
+            axis = self.get_axis(axis)
+            ret = self.view(AttrArray).take(indices, axis=axis, out=out, mode=mode)
+            ret.dims[axis] = ret.dims[axis].take(indices, axis=0, out=out, mode=mode)
+            return ret.view(self.__class__)
+        
+    def trace(self, *args, **kwargs):
+        return self.view(np.ndarray).trace(*args, **kwargs)
+
+    def transpose(self, *axes):
+        axes = np.squeeze(axes)
+        axes = [self.get_axis(a) for a in axes]
+        ret = self.view(AttrArray).transpose(*axes)
+        if len(axes) == 0:
+            ret.dims.reverse()
+        else:
+            ret.dims = [ret.dims[a] for a in axes]
+        return ret.view(self.__class__)
+
+    def var(self, axis=None, dtype=None, out=None, ddof=0):
+        axis = self.get_axis(axis)
+        ret = self.view(AttrArray).var(axis=axis, dtype=dtype, out=out, ddof=ddof)
+        return self._ret_func(ret,axis)
+        
+        
+        
+    
+        
+        
+    
+    
+    
 
 
 # set the doc strings
