@@ -12,8 +12,8 @@ from numpy.testing import NumpyTest, NumpyTestCase, assert_array_equal,\
      assert_array_almost_equal
 from numpy.random import random_sample as rnd
 
-from ptsa.data.dimarray import DimArray, Dim
-from ptsa.data.attrarray import AttrArray
+from dimarray import DimArray, Dim
+from dimarray import AttrArray
 
 
 

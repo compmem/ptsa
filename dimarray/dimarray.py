@@ -10,8 +10,8 @@
 import numpy as np
 import copy as copylib
 import re
-#import ptsa.data.attrarray
-from ptsa.data.attrarray import AttrArray
+
+from attrarray import AttrArray
 
 ###############################
 # New dimensioned array class

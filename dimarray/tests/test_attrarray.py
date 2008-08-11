@@ -11,7 +11,7 @@ import numpy as np
 from numpy.testing import NumpyTest, NumpyTestCase, assert_array_equal,\
      assert_array_almost_equal
 
-from ptsa.data import AttrArray
+from dimarray import AttrArray
 
 class test_AttrArray(NumpyTestCase):
     def setUp(self):
