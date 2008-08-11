@@ -10,6 +10,7 @@
 import numpy as np
 import copy as copylib
 import re
+#import ptsa.data.attrarray
 from ptsa.data.attrarray import AttrArray
 
 ###############################
@@ -117,10 +118,10 @@ class DimArray(AttrArray):
                   [dim.name for dim in self.dims],
                   doc="Dimension names (read only)")
     _dim_namesRE = property(lambda self:
-                     re.compile('(?<!.)\\b\\b(?!.)|(?<!.)\\b'.join(self.dim_names)
+                     re.compile('(?<!.)\\b'+
+                     '\\b(?!.)|(?<!.)\\b'.join(self.dim_names)
                      + '\\b(?!.)'))
     T = property(lambda self: self.transpose())
-    imag = property(lambda self: self.__imag__())
     
     def __new__(cls, data, dims, dtype=None, copy=False, **kwargs):
         # set the kwargs to have name
@@ -186,7 +187,7 @@ class DimArray(AttrArray):
             foundDim = False
             for d,k in enumerate(self.dim_names):
                 # RE makes sure to not replace substrings
-                if re.search(r'\b'+k+r'\b',filterStr):
+                if re.search(r'\b'+k+r'\b',filterStr) is not None:
                     # this is our dimension
                     foundDim = True
 
@@ -337,9 +338,9 @@ class DimArray(AttrArray):
             return ret.view(self.__class__)
     
     
-    def all(self, axis=None):
+    def all(self, axis=None, out=None):
         axis = self.get_axis(axis)
-        ret = self.view(AttrArray).all(axis=axis)
+        ret = self.view(AttrArray).all(axis=axis, out=out)
         return self._ret_func(ret,axis)
     
     def any(self, axis=None, out=None):
@@ -365,16 +366,6 @@ class DimArray(AttrArray):
             axis = self.get_axis(axis)
             ret = self.base.argsort(axis=axis, kind=kind, order=order)
             return ret.view(self.__class__)
-
-    ####################################################################
-    # Not sure why specifying clip (and particularly the below hack
-    # with the dims) is necessary. It'd be good to find out exactly
-    # what's going on. Other attributes may get lost with the current
-    # setup.
-    def clip(self, a_min, a_max, out=None):
-        ret = self.view(AttrArray).clip(a_min, a_max, out=out)
-        ret.dims = copylib.copy(self.dims)
-        return ret.view(self.__class__)
 
     def compress(self, condition, axis=None, out=None):
         if axis is None:
@@ -410,16 +401,6 @@ class DimArray(AttrArray):
     def flatten(self, *args, **kwargs):
         return self.view(np.ndarray).flatten(*args, **kwargs)
 
-    ####################################################################
-    # Not sure why specifying imag (and particularly the below hack
-    # with the dims) is necessary. It'd be good to find out exactly
-    # what's going on. Other attributes may get lost with the current
-    # setup. This is just a helper function for the imag property.
-    def __imag__(self):
-        ret = self.view(AttrArray).imag
-        ret.dims = copylib.copy(self.dims)
-        return ret.view(self.__class__)
-
     def max(self, axis=None, out=None):
         axis = self.get_axis(axis)
         ret = self.view(AttrArray).max(axis=axis, out=out)
@@ -427,7 +408,7 @@ class DimArray(AttrArray):
 
     def mean(self, axis=None, dtype=None, out=None):
         axis = self.get_axis(axis)
-        ret = self.view(AttrArray).mean(axis=axis,dtype=dtype, out=out)
+        ret = self.view(AttrArray).mean(axis=axis, dtype=dtype, out=out)
         return self._ret_func(ret,axis)
 
     def min(self, axis=None, out=None):
@@ -461,10 +442,18 @@ class DimArray(AttrArray):
             return ret.view(self.__class__)
 
     def reshape(self, *args, **kwargs):
+        """Reshaping is not possible for dimensioned arrays. Calling
+        this method will throw a NotImplementedError exception. If
+        reshaping is desired the array needs to be converted to a
+        different data type (e.g., numpy.ndarray), first!"""
         raise NotImplementedError("Reshaping is not possible for dimensioned "+
                                   "arrays. Convert to (e.g.) numpy.ndarray!")
 
     def resize(self, *args, **kwargs):
+        """Resizing is not possible for dimensioned arrays. Calling
+        this method will throw a NotImplementedError exception. If
+        resizing is desired the array needs to be converted to a
+        different data type (e.g., numpy.ndarray), first!"""
         raise NotImplementedError("Resizing is not possible for dimensioned "+
                                   "arrays. Convert to (e.g.) numpy.ndarray!")
 
@@ -473,7 +462,8 @@ class DimArray(AttrArray):
             raise ValueError("Please specify an axis! To sort a flattened "+
                              "array convert to (e.g.) numpy.ndarray.")
         axis = self.get_axis(axis)
-        self.base.sort(axis=axis, kind=kind, order=order)
+        self.view(AttrArray).sort(axis=axis, kind=kind, order=order)
+        self.view(self.__class__)
         self.dims[axis].sort(axis=axis, kind=kind, order=order)
         return None
 
@@ -487,9 +477,9 @@ class DimArray(AttrArray):
                 d += 1
         return ret.view(self.__class__)
 
-    def std(self, axis=None, dtype=None, out=None):
+    def std(self, axis=None, dtype=None, out=None, ddof=0):
         axis = self.get_axis(axis)
-        ret = self.view(AttrArray).std(axis=axis, dtype=dtype, out=out)
+        ret = self.view(AttrArray).std(axis=axis, dtype=dtype, out=out, ddof=0)
         return self._ret_func(ret,axis)
 
     def sum(self, axis=None, dtype=None, out=None):
@@ -497,8 +487,14 @@ class DimArray(AttrArray):
         ret = self.view(AttrArray).sum(axis=axis, dtype=dtype, out=out)
         return self._ret_func(ret,axis)
 
-    def swapaxes(self, *args, **kwargs):
-        raise NotImplementedError("Swaping axies is not defined for DimArrays!")
+    def swapaxes(self, axis1, axis2):
+        axis1 = self.get_axis(axis1)
+        axis2 = self.get_axis(axis2)
+        ret = self.view(AttrArray).swapaxes(axis1,axis2)
+        tmp = ret.dims[axis1]
+        ret.dims[axis1] = ret.dims[axis2]
+        ret.dims[axis2] = tmp
+        return ret.view(self.__class__)
 
     def take(self, indices, axis=None, out=None, mode='raise'):
         if axis is None:
@@ -514,31 +510,49 @@ class DimArray(AttrArray):
 
     def transpose(self, *axes):
         axes = np.squeeze(axes)
-        axes = [self.get_axis(a) for a in axes]
-        ret = self.view(AttrArray).transpose(*axes)
-        if len(axes) == 0:
-            ret.dims.reverse()
-        else:
+        if len(axes.shape)==len(self):
+            axes = [self.get_axis(a) for a in axes]
+            ret = self.view(AttrArray).transpose(*axes)
             ret.dims = [ret.dims[a] for a in axes]
+        else:
+            ret = self.view(AttrArray).transpose()
+            ret.dims.reverse()
         return ret.view(self.__class__)
 
     def var(self, axis=None, dtype=None, out=None, ddof=0):
         axis = self.get_axis(axis)
         ret = self.view(AttrArray).var(axis=axis, dtype=dtype, out=out, ddof=ddof)
         return self._ret_func(ret,axis)
-        
-        
-        
-    
-        
-        
-    
-    
-    
 
 
 # set the doc strings
+DimArray.all.im_func.func_doc = np.ndarray.all.__doc__            
+DimArray.any.im_func.func_doc = np.ndarray.any.__doc__            
+DimArray.argmax.im_func.func_doc = np.ndarray.argmax.__doc__            
+DimArray.argmin.im_func.func_doc = np.ndarray.argmin.__doc__            
 DimArray.mean.im_func.func_doc = np.ndarray.mean.__doc__            
+DimArray.argsort.im_func.func_doc = np.ndarray.argsort.__doc__            
+DimArray.compress.im_func.func_doc = np.ndarray.compress.__doc__            
+DimArray.cumprod.im_func.func_doc = np.ndarray.cumprod.__doc__            
+DimArray.cumsum.im_func.func_doc = np.ndarray.cumsum.__doc__            
+DimArray.diagonal.im_func.func_doc = np.ndarray.diagonal.__doc__            
+DimArray.flatten.im_func.func_doc = np.ndarray.flatten.__doc__            
+DimArray.max.im_func.func_doc = np.ndarray.max.__doc__            
+DimArray.mean.im_func.func_doc = np.ndarray.mean.__doc__            
+DimArray.min.im_func.func_doc = np.ndarray.min.__doc__            
+DimArray.nonzero.im_func.func_doc = np.ndarray.nonzero.__doc__            
+DimArray.prod.im_func.func_doc = np.ndarray.prod.__doc__            
+DimArray.ptp.im_func.func_doc = np.ndarray.ptp.__doc__            
+DimArray.ravel.im_func.func_doc = np.ndarray.ravel.__doc__            
+DimArray.repeat.im_func.func_doc = np.ndarray.repeat.__doc__            
+DimArray.sort.im_func.func_doc = np.ndarray.sort.__doc__            
+DimArray.squeeze.im_func.func_doc = np.ndarray.squeeze.__doc__            
 DimArray.std.im_func.func_doc = np.ndarray.std.__doc__            
+DimArray.sum.im_func.func_doc = np.ndarray.sum.__doc__            
+DimArray.swapaxes.im_func.func_doc = np.ndarray.swapaxes.__doc__            
+DimArray.take.im_func.func_doc = np.ndarray.take.__doc__            
+DimArray.trace.im_func.func_doc = np.ndarray.trace.__doc__            
+DimArray.transpose.im_func.func_doc = np.ndarray.transpose.__doc__            
+DimArray.var.im_func.func_doc = np.ndarray.var.__doc__            
 
     

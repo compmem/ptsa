@@ -18,26 +18,26 @@ class TestArray(np.ndarray):
     def __new__(cls, data, info):
         # ensure ndarray
         result = np.array(data)
-
+        
         # transform the data to the new class
         result = result.view(cls)
-
+        
         # set the custom attribute
         result.info = info
-
+        
         # return new custom array
         return result
-
+    
     def __array_finalize__(self, obj):
         # provide info for what's happening
-        print "finalize:\t%s\n\t\t%s" % (self.__class__, obj.__class__)
+        #print "finalize:\t%s\n\t\t%s" % (self.__class__, obj.__class__)
         # set the custom attribute
         self.info = getattr(obj,'info','')
         # provide more info
-        if hasattr(obj,'info'):
-            print "\t\t%s : %s" % (self.info, obj.info)
-        else:
-            print "\t\t%s : None" % (self.info)
+        #if hasattr(obj,'info'):
+        #    print "\t\t%s : %s" % (self.info, obj.info)
+        #else:
+        #    print "\t\t%s : None" % (self.info)
 
 
 class AttrArray(np.ndarray):

@@ -233,21 +233,202 @@ class test_DimArray(NumpyTestCase):
         self.assertEqual(dat.get_axis('three'),2)
        
     def test_funcs(self):
-        arr = np.random.rand(5,10,3)
+        """Test the numpy functions"""
+        # make ndarray an Dimaray with identical data
+        arr = np.random.rand(5,10,3,1)
         dat = DimArray(arr,dims=[Dim(range(5),name='one'),
                                  Dim(range(10),name='two'),
-                                 Dim(range(3),name='three')],test='tst')
+                                 Dim(range(3),name='three'),
+                                 Dim(range(1),name='four')],test='tst')
 
-        # add when fixed in numpy: np.std
-        funcs = [np.mean]
-        axes_arr = [None,0,1,2,0,1,2]
-        axes_dat = [None,0,1,2,'one','two','three']
+        # these are functions that take an axis argument:
+        funcs = [np.mean,np.all,np.any,np.argmax,np.argmin,np.argsort,
+                 np.cumprod,np.cumsum,np.max,np.mean,np.min,np.prod,
+                 np.ptp,np.std,np.sum,np.var]
+        
+        # The axes for the ndarray:
+        axes_arr = [None,0,1,2,3,0,1,2,3]
+        # The axes for the DimArray (we want to test indexing them by
+        # number and name):
+        axes_dat = [None,0,1,2,3,'one','two','three','four']
+
+        # loop through the functions and axes:
         for func in funcs:
             for a in range(len(axes_arr)):
+                # apply the function to the ndarray and the DimArray
                 arr_func = func(arr,axis=axes_arr[a])
                 dat_func = func(dat,axis=axes_dat[a])
+                # make sure they are the same:
                 assert_array_equal(arr_func,dat_func)
-                if axes_dat[a] is not None:
+                if not(axes_dat[a] is None):
+                    # ensure we still have a DimArray
                     self.assertTrue(isinstance(dat_func,DimArray))
+                    # ensure that the attributes are preserved
                     self.assertEquals(dat_func.test,'tst')
+                    
+        # same tests as above but this time calling the DimArray
+        # methods directly (this test is necessary because it is in
+        # principle possoble for the numpy function to work and the
+        # DimArray method not to work (or vice versa):
+        for a in range(len(axes_arr)):
+            assert_array_equal(arr.all(axes_arr[a]),dat.all(axes_dat[a]))
+            assert_array_equal(arr.any(axes_arr[a]),dat.any(axes_dat[a]))
+            assert_array_equal(arr.argmax(axes_arr[a]),dat.argmax(axes_dat[a]))
+            assert_array_equal(arr.argmin(axes_arr[a]),dat.argmin(axes_dat[a]))
+            assert_array_equal(arr.argsort(axes_arr[a]),dat.argsort(axes_dat[a]))
+            assert_array_equal(arr.cumprod(axes_arr[a]),dat.cumprod(axes_dat[a]))
+            assert_array_equal(arr.cumsum(axes_arr[a]),dat.cumsum(axes_dat[a]))
+            assert_array_equal(arr.max(axes_arr[a]),dat.max(axes_dat[a]))
+            assert_array_equal(arr.mean(axes_arr[a]),dat.mean(axes_dat[a]))
+            assert_array_equal(arr.min(axes_arr[a]),dat.min(axes_dat[a]))
+            assert_array_equal(arr.prod(axes_arr[a]),dat.prod(axes_dat[a]))
+            assert_array_equal(arr.ptp(axes_arr[a]),dat.ptp(axes_dat[a]))
+            assert_array_equal(arr.std(axes_arr[a]),dat.std(axes_dat[a]))
+            assert_array_equal(arr.sum(axes_arr[a]),dat.sum(axes_dat[a]))
+            assert_array_equal(arr.var(axes_arr[a]),dat.var(axes_dat[a]))
+            if not(axes_dat[a] is None):
+                self.assertTrue(isinstance(dat.all(axes_arr[a]),DimArray))
+                self.assertTrue(isinstance(dat.any(axes_arr[a]),DimArray))
+                self.assertTrue(isinstance(dat.argmax(axes_arr[a]),DimArray))
+                self.assertTrue(isinstance(dat.argmin(axes_arr[a]),DimArray))
+                self.assertTrue(isinstance(dat.argsort(axes_arr[a]),DimArray))
+                self.assertTrue(isinstance(dat.cumprod(axes_arr[a]),DimArray))
+                self.assertTrue(isinstance(dat.cumsum(axes_arr[a]),DimArray))
+                self.assertTrue(isinstance(dat.max(axes_arr[a]),DimArray))
+                self.assertTrue(isinstance(dat.mean(axes_arr[a]),DimArray))
+                self.assertTrue(isinstance(dat.min(axes_arr[a]),DimArray))
+                self.assertTrue(isinstance(dat.prod(axes_arr[a]),DimArray))
+                self.assertTrue(isinstance(dat.ptp(axes_arr[a]),DimArray))
+                self.assertTrue(isinstance(dat.std(axes_arr[a]),DimArray))
+                self.assertTrue(isinstance(dat.sum(axes_arr[a]),DimArray))
+                self.assertTrue(isinstance(dat.var(axes_arr[a]),DimArray))                
+                
+                self.assertEquals(dat.all(axes_arr[a]).test,'tst')
+                self.assertEquals(dat.any(axes_arr[a]).test,'tst')
+                self.assertEquals(dat.argmax(axes_arr[a]).test,'tst')
+                self.assertEquals(dat.argmin(axes_arr[a]).test,'tst')
+                self.assertEquals(dat.argsort(axes_arr[a]).test,'tst')
+                self.assertEquals(dat.cumprod(axes_arr[a]).test,'tst')
+                self.assertEquals(dat.cumsum(axes_arr[a]).test,'tst')
+                self.assertEquals(dat.max(axes_arr[a]).test,'tst')
+                self.assertEquals(dat.mean(axes_arr[a]).test,'tst')
+                self.assertEquals(dat.min(axes_arr[a]).test,'tst')
+                self.assertEquals(dat.prod(axes_arr[a]).test,'tst')
+                self.assertEquals(dat.ptp(axes_arr[a]).test,'tst')
+                self.assertEquals(dat.std(axes_arr[a]).test,'tst')
+                self.assertEquals(dat.sum(axes_arr[a]).test,'tst')
+                self.assertEquals(dat.var(axes_arr[a]).test,'tst')                
+
+        # test functions that require function specific input:
+        for a in range(len(axes_arr)):
+            if axes_arr[a] is None:
+                length = len(arr)
+            else:
+                length = np.shape(arr)[axes_arr[a]]
+            cond = np.random.random(length)>0.5
+            # calling the compress method directly:
+            arr_func = arr.compress(cond,axis=axes_arr[a])
+            dat_func = dat.compress(cond,axis=axes_dat[a])
+            assert_array_equal(arr_func,dat_func)
+            if axes_dat[a] is not None:
+                self.assertTrue(isinstance(dat_func,DimArray))
+                self.assertEquals(dat_func.test,'tst')
+            # calling the numpy compress function:
+            arr_func = np.compress(cond,arr,axis=axes_arr[a])
+            dat_func = np.compress(cond,dat,axis=axes_dat[a])
+            assert_array_equal(arr_func,dat_func)
+            if axes_dat[a] is not None:
+                self.assertTrue(isinstance(dat_func,DimArray))
+                self.assertEquals(dat_func.test,'tst')            
+
+            # the below tests should not run with axis==None:
+            if axes_arr[a] is None:
+                continue
+            
+            reps = np.random.random_integers(low=1, high=10, size=length)
+            # calling the repeat method directly:
+            arr_func = arr.repeat(reps,axis=axes_arr[a])
+            dat_func = dat.repeat(reps,axis=axes_dat[a])
+            assert_array_equal(arr_func,dat_func)
+            if axes_dat[a] is not None:
+                self.assertTrue(isinstance(dat_func,DimArray))
+                self.assertEquals(dat_func.test,'tst')
+            # calling the numpy repeat function:
+            arr_func = np.repeat(arr,reps,axis=axes_arr[a])
+            dat_func = np.repeat(dat,reps,axis=axes_dat[a])
+            assert_array_equal(arr_func,dat_func)
+            if axes_dat[a] is not None:
+                self.assertTrue(isinstance(dat_func,DimArray))
+                self.assertEquals(dat_func.test,'tst')
+
+            # skippint the last dimension for this test for
+            # convenience (the last dimension only has 1 level):
+            if a >= 3:
+                continue
+            # the highest valid index is 2 because the lowest number
+            # of levels of all dimensions (except for the last one
+            # which we skipped) is 3:
+            indcs = np.random.random_integers(low=0, high=2, size=len(arr.shape))
+            # calling the take method directly (squeeze, to get rid of
+            # the last dimension):
+            arr_func = arr.squeeze().take(indcs,axis=axes_arr[a])
+            dat_func = dat.squeeze().take(indcs,axis=axes_dat[a])
+            assert_array_equal(arr_func,dat_func)
+            if axes_dat[a] is not None:
+                self.assertTrue(isinstance(dat_func,DimArray))
+                self.assertEquals(dat_func.test,'tst')
+            # calling the numpy take function directly (squeeze, to get rid of
+            # the last dimension):
+            arr_func = np.take(arr.squeeze(),indcs,axis=axes_arr[a])
+            dat_func = np.take(dat.squeeze(),indcs,axis=axes_dat[a])
+            assert_array_equal(arr_func,dat_func)
+            if axes_dat[a] is not None:
+                self.assertTrue(isinstance(dat_func,DimArray))
+                self.assertEquals(dat_func.test,'tst')
+
+        # This should work with numpy 1.2 (possibly 1.1.1) but doesn't with 1.1.0
+        #arr_func = arr.clip(0.4,0.6)
+        #dat_func = dat.clip(0.4,0.6)
+        #assert_array_equal(arr_func,dat_func)
+        #self.assertTrue(isinstance(dat_func,DimArray))
+        #self.assertEquals(dat_func.test,'tst')
+        #arr_func = np.clip(arr,0.4,0.6)
+        #dat_func = np.clip(dat,0.4,0.6)
+        #assert_array_equal(arr_func,dat_func)
+        #self.assertTrue(isinstance(dat_func,DimArray))
+        #self.assertEquals(dat_func.test,'tst')
+
+        # other functions that don't necessarily take return a
+        # DimArray:
+        funcs = [np.diagonal,np.nonzero,np.ravel,np.squeeze,np.sort,np.trace,np.transpose]
+        for func in funcs:
+            arr_func = func(arr)
+            dat_func = func(dat)
+            assert_array_equal(arr_func,dat_func)
+
+        # same tests as above, but calling the methods directly:
+        assert_array_equal(arr.diagonal(),dat.diagonal())
+        assert_array_equal(arr.nonzero(),dat.nonzero())
+        assert_array_equal(arr.ravel(),dat.ravel())
+        assert_array_equal(arr.squeeze(),dat.squeeze())
+        assert_array_equal(arr.sort(),dat.sort())
+        assert_array_equal(arr.trace(),dat.trace())
+        assert_array_equal(arr.transpose(),dat.transpose())
+        # there is no numpy.flatten() function, so we only call the
+        # method directly:
+        assert_array_equal(arr.flatten(),dat.flatten())
+        
+        assert_array_equal(arr.swapaxes(0,1),dat.swapaxes(0,1))
+        self.assertTrue(isinstance(dat.swapaxes(0,1),DimArray))
+        self.assertEquals(dat.swapaxes(0,1).test,'tst')
+        assert_array_equal(arr.swapaxes(0,1),dat.swapaxes('one','two'))
+        self.assertTrue(isinstance(dat.swapaxes('one','two'),DimArray))
+        self.assertEquals(dat.swapaxes('one','two').test,'tst')
+        assert_array_equal(arr.swapaxes(1,3),dat.swapaxes(1,3))
+        self.assertTrue(isinstance(dat.swapaxes(1,3),DimArray))
+        self.assertEquals(dat.swapaxes(1,3).test,'tst')
+        assert_array_equal(arr.swapaxes(1,3),dat.swapaxes('two','four'))
+        self.assertTrue(isinstance(dat.swapaxes('two','four'),DimArray))
+        self.assertEquals(dat.swapaxes('two','four').test,'tst')
+
         
