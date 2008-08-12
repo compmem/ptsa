@@ -283,6 +283,23 @@ class DimArray(AttrArray):
             # reset the _getitem flag:
             self._getitem = False        
 
+    def find(self,*args,**kwargs):
+        """
+        Returns a tuple of index arrays for the selected conditions. 
+
+        data.find('time>0','events.recalled==True')
+        or
+        data.find(time=data['time']>0,events=data['events'].recalled==True)
+        or 
+        data.find("time>kwargs['t']","events.recalled==kwargs['val']",t=0,val=True)
+
+        data[ind], where ind is the return value of the find method
+        and data.select(filterstring) return the same slices provided
+        that the same filterstring is used.
+        """
+        m_ind,ind = self._select_ind(*args,**kwargs)
+        return m_ind
+
     def select(self,*args,**kwargs):
         """
         Return a slice of the data filtered with the select conditions.
@@ -291,12 +308,70 @@ class DimArray(AttrArray):
         or
         data.select(time=data['time']>0,events=data['events'].recalled==True)
         or 
-        data.find("time>kwargs['t']","events.recalled==kwargs['val']",t=0,val=True)
+        data.select("time>kwargs['t']","events.recalled==kwargs['val']",t=0,val=True)
 
         To get a tuple of index arrays for the selected conditions use the find method.
         """
         m_ind,ind = self._select_ind(*args,**kwargs)
         return self[m_ind]
+
+    def _split_bins(self, dim, bins, function, unit, bin_labels,
+                    dim_unit, error_on_nonexact, **kwargs):
+        
+        if error_on_nonexact:
+            split = np.split
+        else:
+            split = np.array_split
+
+        split_dim = split(self.dims[dim],bins)
+        if bin_labels == 'function':
+            new_dim_dat = np.array([function(x,**kwargs) for x in split_dim])
+            new_dim = Dim(new_dim_dat,self.dim_names[dim],unit=dim_unit)
+        elif bin_labels == 'sequential':
+            new_dim = Dim(np.arange(len(split_dim)),
+                          self.dim_names[dim], unit=dim_unit)
+        elif ((len(np.atleast_1d(bin_labels).shape) == 1) and
+              (len(np.atleast_1d(bin_labels)) == bins)):
+            new_dim = Dim(np.atleast_1d(bin_labels),
+                          self.dim_names[dim], unit=dim_unit)
+        else:
+            raise ValueError("Invalid value for bin_labels. Allowed values are "+
+            "'function','sequential', or a 1-D list/array of labels of the same "+
+            "length as bins.\n bins: "+str(bins)+"\n bin_labels: "+str(bin_labels))
+
+        split_dat = split(self,bins,axis=dim)
+
+        for n,x in enumerate(split_dat):
+            self.view(AttrArray)[self.dim_names[n]==self.dims[n]
+                                 ] = function(x,axis=dim,**kwargs)
+        #Transpose data!
+        self.view(AttrArray).dims[dim] = new_dim
+        self.view(self.__class__)
+
+    def _select_bins(self, dim, bins, function, unit, bin_labels,
+                     dim_unit, error_on_nonexact, **kwargs):
+        dimbin_indx = np.array([((self.dims[dim]>=x[0]) &
+                                 (self.dims[dim]<x[1])) for x in bins])
+
+        if np.shape(bins[-1])[-1] == 3:
+            new_dim_dat = np.array([x[2] for x in bins])
+        elif bin_labels == 'function':
+            new_dim_dat = np.array([function(x,**kwargs) for x in
+                                    [self.dims[dim][indx] for indx in
+                                     dimibin_indx]])
+        elif bin_labels == 'sequential':
+            new_dim_dat = np.arange(len(dimbin_indx))
+        elif ((len(np.atleast_1d(bin_labels).shape) == 1) and
+              (len(np.atleast_1d(bin_lables)) == bins)):
+            new_dim_dat = np.altleast_1d(bin_labels)
+        else:
+            raise ValueError("Invalid value for bin_labels. Allowed values are "+
+            "'function','sequential', or a 1-D list/array of labels of the same "+
+            "length as bins.\n bins: "+str(bins)+"\n bin_labels: "+str(bin_labels))
+
+        new_dim = Dim(new_dim_dat,self.dim_names[dim],unit=dim_unit)
+        ## Unfinished
+                 
 
     def get_axis(self,axis):
         """
