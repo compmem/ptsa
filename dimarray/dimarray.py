@@ -519,8 +519,13 @@ class DimArray(AttrArray):
     def reshape(self, shape, order='C'):
         return np.reshape(self.view(AttrArray),shape,order)
 
-    def resize(self, new_shape):
-        return np.resize(self.view(AttrArray), new_shape, refcheck, order)
+    def resize(self, *args, **kwargs):
+        """Resizing is not possible for dimensioned arrays. Calling
+        this method will throw a NotImplementedError exception. If
+        resizing is desired the array needs to be converted to a
+        different data type (e.g., numpy.ndarray), first!"""
+        raise NotImplementedError("Resizing is not possible for dimensioned "+
+                                  "arrays. Convert to (e.g.) numpy.ndarray!")
 
     def sort(self, axis=-1, kind='quicksort', order=None):
         if axis is None:
@@ -615,7 +620,7 @@ DimArray.ptp.im_func.func_doc = np.ndarray.ptp.__doc__
 DimArray.ravel.im_func.func_doc = castMsg+np.ndarray.ravel.__doc__            
 DimArray.repeat.im_func.func_doc = np.ndarray.repeat.__doc__            
 DimArray.reshape.im_func.func_doc = castMsg+np.ndarray.reshape.__doc__            
-DimArray.resize.im_func.func_doc = castMsg+np.ndarray.resize.__doc__            
+#DimArray.resize.im_func.func_doc = castMsg+np.ndarray.resize.__doc__            
 DimArray.sort.im_func.func_doc = np.ndarray.sort.__doc__            
 DimArray.squeeze.im_func.func_doc = np.ndarray.squeeze.__doc__            
 DimArray.std.im_func.func_doc = np.ndarray.std.__doc__            

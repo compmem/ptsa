@@ -262,11 +262,7 @@ class test_DimArray(NumpyTestCase):
                                  Dim(range(12),name='two'),
                                  Dim(range(3),name='three'),
                                  Dim(range(1),name='four')],test='tst')
-        newshapes = [(5,2,2,3,3),(2,3,5,3,2),(15,12),(6,2,15,1,1,1,1,1,1,1),
-                     180,(1,1,1,180,1,1,1)]
-        for newshape in newshapes:
-            assert_array_equal(arr.resize(newshape),dat.resize(newshape))
-            assert_array_equal(np.resize(arr,newshape),np.resize(dat,newshape))
+        self.assertRaises(NotImplementedError,dat.resize,(5,2,2,3,3))
                
     def test_funcs(self):
         """Test the numpy functions"""
