@@ -15,29 +15,32 @@ import copy as copylib
 #################################
 
 class TestArray(np.ndarray):
-    def __new__(cls, data, info):
+    def __new__(cls, data):
         # ensure ndarray
         result = np.array(data)
         
         # transform the data to the new class
         result = result.view(cls)
         
-        # set the custom attribute
-        result.info = info
+        # set the custom attribute        
+        result.len = len(result)
         
         # return new custom array
         return result
     
     def __array_finalize__(self, obj):
-        # provide info for what's happening
-        #print "finalize:\t%s\n\t\t%s" % (self.__class__, obj.__class__)
         # set the custom attribute
-        self.info = getattr(obj,'info','')
-        # provide more info
-        #if hasattr(obj,'info'):
-        #    print "\t\t%s : %s" % (self.info, obj.info)
-        #else:
-        #    print "\t\t%s : None" % (self.info)
+        self.len = getattr(obj,'len','')
+        setattr(self, 'len', self._attrs[tag])
+        print self.len
+        #print "self.len:",self.len
+        #print "len(self):",len(self)
+        #print "self.len!=len(self):", self.len!=len(self)
+        #if self.len != len(self):
+        #    raise AttributeError("self.len: "+str(self.len)+" len(self): "+str(len(self)))
+    
+    def ravel(self, *args, **kwargs):
+        return self.view(np.ndarray).ravel(*args, **kwargs)
 
 
 class AttrArray(np.ndarray):

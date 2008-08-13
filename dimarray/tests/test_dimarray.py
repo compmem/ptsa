@@ -241,7 +241,33 @@ class test_DimArray(NumpyTestCase):
         self.assertEqual(dat.get_axis('one'),0)
         self.assertEqual(dat.get_axis('two'),1)
         self.assertEqual(dat.get_axis('three'),2)
-       
+
+    def test_reshape(self):
+        # make ndarray an Dimaray with identical data
+        arr = np.random.rand(5,12,3,1)
+        dat = DimArray(arr,dims=[Dim(range(5),name='one'),
+                                 Dim(range(12),name='two'),
+                                 Dim(range(3),name='three'),
+                                 Dim(range(1),name='four')],test='tst')
+        newshapes = [(5,2,2,3,3),(2,3,5,3,2),(15,12),(6,2,15,1,1,1,1,1,1,1),
+                     180,(1,1,1,180,1,1,1)]
+        for newshape in newshapes:
+            assert_array_equal(arr.reshape(newshape),dat.reshape(newshape))
+            assert_array_equal(np.reshape(arr,newshape),np.reshape(dat,newshape))
+        
+    def test_resize(self):
+        # make ndarray an Dimaray with identical data
+        arr = np.random.rand(5,12,3,1)
+        dat = DimArray(arr,dims=[Dim(range(5),name='one'),
+                                 Dim(range(12),name='two'),
+                                 Dim(range(3),name='three'),
+                                 Dim(range(1),name='four')],test='tst')
+        newshapes = [(5,2,2,3,3),(2,3,5,3,2),(15,12),(6,2,15,1,1,1,1,1,1,1),
+                     180,(1,1,1,180,1,1,1)]
+        for newshape in newshapes:
+            assert_array_equal(arr.resize(newshape),dat.resize(newshape))
+            assert_array_equal(np.resize(arr,newshape),np.resize(dat,newshape))
+               
     def test_funcs(self):
         """Test the numpy functions"""
         # make ndarray an Dimaray with identical data
@@ -440,5 +466,7 @@ class test_DimArray(NumpyTestCase):
         assert_array_equal(arr.swapaxes(1,3),dat.swapaxes('two','four'))
         self.assertTrue(isinstance(dat.swapaxes('two','four'),DimArray))
         self.assertEquals(dat.swapaxes('two','four').test,'tst')
+
+        
 
         

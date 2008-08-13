@@ -339,8 +339,8 @@ class DimArray(AttrArray):
             "'function','sequential', or a 1-D list/array of labels of the same "+
             "length as bins.\n bins: "+str(bins)+"\n bin_labels: "+str(bin_labels))
 
-        split_dat = split(self,bins,axis=dim)
-
+        split_dat = split(self.view(AttrArray),bins,axis=dim)
+        #new_dat = np.array([function(x,axis=dim,**kwargs) for x in split_dat])
         for n,x in enumerate(split_dat):
             self.view(AttrArray)[self.dim_names[n]==self.dims[n]
                                  ] = function(x,axis=dim,**kwargs)
@@ -406,7 +406,7 @@ class DimArray(AttrArray):
         """
         if axis is None:
             # just return what we got
-            return ret.view(np.ndarray)
+            return ret.view(AttrArray)
         else:
             # pop the dim
             ret.dims.pop(axis)
@@ -435,16 +435,16 @@ class DimArray(AttrArray):
 
     def argsort(self, axis=-1, kind='quicksort', order=None):
         if axis is None:
-            return self.view(np.ndarray).argsort(axis=axis, kind=kind,
+            return self.view(AttrArray).argsort(axis=axis, kind=kind,
                                                  order=order)
         else:
             axis = self.get_axis(axis)
-            ret = self.base.argsort(axis=axis, kind=kind, order=order)
+            ret = self.view(AttrArray).argsort(axis=axis, kind=kind, order=order)
             return ret.view(self.__class__)
 
     def compress(self, condition, axis=None, out=None):
         if axis is None:
-            return self.view(np.ndarray).compress(condition, axis=axis, out=out)
+            return self.view(AttrArray).compress(condition, axis=axis, out=out)
         else:
             axis = self.get_axis(axis)
             ret = self.view(AttrArray).compress(condition, axis=axis, out=out)
@@ -454,27 +454,27 @@ class DimArray(AttrArray):
 
     def cumprod(self, axis=None, dtype=None, out=None):
         if axis is None:
-            return self.view(np.ndarray).cumprod(axis=axis, dtype=dtype,
+            return self.view(AttrArray).cumprod(axis=axis, dtype=dtype,
                                                   out=out)
         else:
             axis = self.get_axis(axis)
-            ret = self.base.cumprod(axis=axis, dtype=dtype, out=out)
+            ret = self.view(AttrArray).cumprod(axis=axis, dtype=dtype, out=out)
             return ret.view(self.__class__)
 
     def cumsum(self, axis=None, dtype=None, out=None):
         if axis is None:
-            return self.view(np.ndarray).cumsum(axis=axis, dtype=dtype,
+            return self.view(AttrArray).cumsum(axis=axis, dtype=dtype,
                                                 out=out)
         else:
             axis = self.get_axis(axis)
-            ret = self.base.cumsum(axis=axis, dtype=dtype, out=out)
+            ret = self.view(AttrArray).cumsum(axis=axis, dtype=dtype, out=out)
             return ret.view(self.__class__)
 
     def diagonal(self, *args, **kwargs):
-        return self.view(np.ndarray).diagonal(*args, **kwargs)
+        return self.view(AttrArray).diagonal(*args, **kwargs)
 
     def flatten(self, *args, **kwargs):
-        return self.view(np.ndarray).flatten(*args, **kwargs)
+        return self.view(AttrArray).flatten(*args, **kwargs)
 
     def max(self, axis=None, out=None):
         axis = self.get_axis(axis)
@@ -492,7 +492,7 @@ class DimArray(AttrArray):
         return self._ret_func(ret,axis)
 
     def nonzero(self, *args, **kwargs):
-        return self.view(np.ndarray).nonzero(*args, **kwargs)
+        return self.view(AttrArray).nonzero(*args, **kwargs)
 
     def prod(self, axis=None, dtype=None, out=None):
         axis = self.get_axis(axis)
@@ -505,32 +505,22 @@ class DimArray(AttrArray):
         return self._ret_func(ret,axis)
 
     def ravel(self, *args, **kwargs):
-        return self.view(np.ndarray).ravel(*args, **kwargs)
+        return self.view(AttrArray).ravel(*args, **kwargs)
 
     def repeat(self, repeats, axis=None):
         if axis is None:
-            return self.view(np.ndarray).repeat(repeats=repeats, axis=axis)
+            return self.view(AttrArray).repeat(repeats=repeats, axis=axis)
         else:
             axis = self.get_axis(axis)
             ret = self.view(AttrArray).repeat(repeats, axis=axis)
             ret.dims[axis] = ret.dims[axis].repeat(repeats)
             return ret.view(self.__class__)
 
-    def reshape(self, *args, **kwargs):
-        """Reshaping is not possible for dimensioned arrays. Calling
-        this method will throw a NotImplementedError exception. If
-        reshaping is desired the array needs to be converted to a
-        different data type (e.g., numpy.ndarray), first!"""
-        raise NotImplementedError("Reshaping is not possible for dimensioned "+
-                                  "arrays. Convert to (e.g.) numpy.ndarray!")
+    def reshape(self, shape, order='C'):
+        return np.reshape(self.view(AttrArray),shape,order)
 
-    def resize(self, *args, **kwargs):
-        """Resizing is not possible for dimensioned arrays. Calling
-        this method will throw a NotImplementedError exception. If
-        resizing is desired the array needs to be converted to a
-        different data type (e.g., numpy.ndarray), first!"""
-        raise NotImplementedError("Resizing is not possible for dimensioned "+
-                                  "arrays. Convert to (e.g.) numpy.ndarray!")
+    def resize(self, new_shape):
+        return np.resize(self.view(AttrArray), new_shape, refcheck, order)
 
     def sort(self, axis=-1, kind='quicksort', order=None):
         if axis is None:
@@ -540,7 +530,6 @@ class DimArray(AttrArray):
         self.view(AttrArray).sort(axis=axis, kind=kind, order=order)
         self.view(self.__class__)
         self.dims[axis].sort(axis=axis, kind=kind, order=order)
-        return None
 
     def squeeze(self):
         ret = self.view(AttrArray).squeeze()
@@ -573,7 +562,7 @@ class DimArray(AttrArray):
 
     def take(self, indices, axis=None, out=None, mode='raise'):
         if axis is None:
-            return self.view(np.ndarray).take(indices, axis=axis, out=out, mode=mode)
+            return self.view(AttrArray).take(indices, axis=axis, out=out, mode=mode)
         else:
             axis = self.get_axis(axis)
             ret = self.view(AttrArray).take(indices, axis=axis, out=out, mode=mode)
@@ -581,7 +570,7 @@ class DimArray(AttrArray):
             return ret.view(self.__class__)
         
     def trace(self, *args, **kwargs):
-        return self.view(np.ndarray).trace(*args, **kwargs)
+        return self.view(AttrArray).trace(*args, **kwargs)
 
     def transpose(self, *axes):
         axes = np.squeeze(axes)
@@ -601,6 +590,11 @@ class DimArray(AttrArray):
 
 
 # set the doc strings
+castMsg =\
+"""
+*********************************************************************************
+ ***  CAUTION: the output of this method is downcast to AttrArray. 
+  *   Some attributes may no longer be valid after this Method is applied!\n\n"""
 DimArray.all.im_func.func_doc = np.ndarray.all.__doc__            
 DimArray.any.im_func.func_doc = np.ndarray.any.__doc__            
 DimArray.argmax.im_func.func_doc = np.ndarray.argmax.__doc__            
@@ -610,23 +604,25 @@ DimArray.argsort.im_func.func_doc = np.ndarray.argsort.__doc__
 DimArray.compress.im_func.func_doc = np.ndarray.compress.__doc__            
 DimArray.cumprod.im_func.func_doc = np.ndarray.cumprod.__doc__            
 DimArray.cumsum.im_func.func_doc = np.ndarray.cumsum.__doc__            
-DimArray.diagonal.im_func.func_doc = np.ndarray.diagonal.__doc__            
-DimArray.flatten.im_func.func_doc = np.ndarray.flatten.__doc__            
+DimArray.diagonal.im_func.func_doc = castMsg+np.ndarray.diagonal.__doc__            
+DimArray.flatten.im_func.func_doc = castMsg+np.ndarray.flatten.__doc__            
 DimArray.max.im_func.func_doc = np.ndarray.max.__doc__            
 DimArray.mean.im_func.func_doc = np.ndarray.mean.__doc__            
 DimArray.min.im_func.func_doc = np.ndarray.min.__doc__            
 DimArray.nonzero.im_func.func_doc = np.ndarray.nonzero.__doc__            
 DimArray.prod.im_func.func_doc = np.ndarray.prod.__doc__            
 DimArray.ptp.im_func.func_doc = np.ndarray.ptp.__doc__            
-DimArray.ravel.im_func.func_doc = np.ndarray.ravel.__doc__            
+DimArray.ravel.im_func.func_doc = castMsg+np.ndarray.ravel.__doc__            
 DimArray.repeat.im_func.func_doc = np.ndarray.repeat.__doc__            
+DimArray.reshape.im_func.func_doc = castMsg+np.ndarray.reshape.__doc__            
+DimArray.resize.im_func.func_doc = castMsg+np.ndarray.resize.__doc__            
 DimArray.sort.im_func.func_doc = np.ndarray.sort.__doc__            
 DimArray.squeeze.im_func.func_doc = np.ndarray.squeeze.__doc__            
 DimArray.std.im_func.func_doc = np.ndarray.std.__doc__            
 DimArray.sum.im_func.func_doc = np.ndarray.sum.__doc__            
 DimArray.swapaxes.im_func.func_doc = np.ndarray.swapaxes.__doc__            
 DimArray.take.im_func.func_doc = np.ndarray.take.__doc__            
-DimArray.trace.im_func.func_doc = np.ndarray.trace.__doc__            
+DimArray.trace.im_func.func_doc = castMsg+np.ndarray.trace.__doc__            
 DimArray.transpose.im_func.func_doc = np.ndarray.transpose.__doc__            
 DimArray.var.im_func.func_doc = np.ndarray.var.__doc__            
 
