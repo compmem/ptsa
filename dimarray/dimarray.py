@@ -315,50 +315,70 @@ class DimArray(AttrArray):
         m_ind,ind = self._select_ind(*args,**kwargs)
         return self[m_ind]
 
-    def _split_bins(self, dim, bins, function, unit, bin_labels,
-                    dim_unit, error_on_nonexact, **kwargs):
-        
+    def _split_bins(self, dim, bins, function, bin_labels,
+                    error_on_nonexact, **kwargs):
+        """
+        Internal method for making bins when the number of bins or the
+        indices at which to split the data into bins is
+        specified. Cf. make_bins method.
+        """
+        # Determine which function to use for splitting:
         if error_on_nonexact:
             split = np.split
         else:
             split = np.array_split
 
+        # Create the new dimension:
         split_dim = split(self.dims[dim],bins)
         if bin_labels == 'function':
             new_dim_dat = np.array([function(x,**kwargs) for x in split_dim])
-            new_dim = Dim(new_dim_dat,self.dim_names[dim],unit=dim_unit)
+            new_dim = Dim(new_dim_dat,self.dim_names[dim])
         elif bin_labels == 'sequential':
             new_dim = Dim(np.arange(len(split_dim)),
-                          self.dim_names[dim], unit=dim_unit)
+                          self.dim_names[dim])
         elif ((len(np.atleast_1d(bin_labels).shape) == 1) and
               (len(np.atleast_1d(bin_labels)) == bins)):
             new_dim = Dim(np.atleast_1d(bin_labels),
-                          self.dim_names[dim], unit=dim_unit)
+                          self.dim_names[dim])
         else:
             raise ValueError("Invalid value for bin_labels. Allowed values are "+
             "'function','sequential', or a 1-D list/array of labels of the same "+
             "length as bins.\n bins: "+str(bins)+"\n bin_labels: "+str(bin_labels))
 
+        # Create the new data:
         split_dat = split(self.view(AttrArray),bins,axis=dim)
-        #new_dat = np.array([function(x,axis=dim,**kwargs) for x in split_dat])
-        for n,x in enumerate(split_dat):
-            self.view(AttrArray)[self.dim_names[n]==self.dims[n]
-                                 ] = function(x,axis=dim,**kwargs)
-        #Transpose data!
-        self.view(AttrArray).dims[dim] = new_dim
-        self.view(self.__class__)
+        new_dat = np.array([function(x,axis=dim,**kwargs) for x in split_dat])
+        
+        # Now the dimensions of the array need be re-arranged in the correct
+        # order:
+        dim_order = np.arange(len(new_dat.shape))
+        dim_order[dim] = 0
+        dim_order[0:dim] = np.arange(1,dim+1)
+        dim_order[dim+1:len(new_dat.shape)] = np.arange(dim+1,len(new_dat.shape))
+        new_dat = new_dat.transpose(dim_order)
+        
+        # Create and return new DimArray object:
+        new_dims = copylib.deepcopy(self.dims)
+        new_dims[dim] = new_dim
+        new_attrs = self._attrs.copy()
+        new_attrs['dims'] = new_dims
+        return self.__class__(new_dat,**new_attrs)
 
-    def _select_bins(self, dim, bins, function, unit, bin_labels,
-                     dim_unit, error_on_nonexact, **kwargs):
+    def _select_bins(self, dim, bins, function, bin_labels,
+                     error_on_nonexact, **kwargs):
+        """
+        Internal method for making bins when the bins are specified as
+        a list of intervals. Cf. make_bins method.
+        """
+        # Create the new dimension:
         dimbin_indx = np.array([((self.dims[dim]>=x[0]) &
                                  (self.dims[dim]<x[1])) for x in bins])
-
         if np.shape(bins[-1])[-1] == 3:
             new_dim_dat = np.array([x[2] for x in bins])
         elif bin_labels == 'function':
             new_dim_dat = np.array([function(x,**kwargs) for x in
                                     [self.dims[dim][indx] for indx in
-                                     dimibin_indx]])
+                                     dimbin_indx]])
         elif bin_labels == 'sequential':
             new_dim_dat = np.arange(len(dimbin_indx))
         elif ((len(np.atleast_1d(bin_labels).shape) == 1) and
@@ -368,11 +388,125 @@ class DimArray(AttrArray):
             raise ValueError("Invalid value for bin_labels. Allowed values are "+
             "'function','sequential', or a 1-D list/array of labels of the same "+
             "length as bins.\n bins: "+str(bins)+"\n bin_labels: "+str(bin_labels))
+        
+        new_dim = Dim(data=new_dim_dat,name=self.dim_names[dim])
+        
+        # Create the new data:
+        # We need to transpose the data array so that dim is the first
+        # dimension. We store the new order of dimensions in totrans:
+        totrans = range(len(self.shape))
+        totrans[0] = dim
+        totrans[dim] = 0
+        
+        # Now we are ready to do the transpose:
+        tmpdata = self.copy()
+        tmpdata = np.transpose(tmpdata.view(np.ndarray),totrans)
+        
+        # Now loop through each bin applying the function and concatenate the
+        # data:
+        new_dat = None
+        for b,bin in enumerate(bins):
+            bindata = function(tmpdata[dimbin_indx[b]],axis=0,**kwargs)
+            if new_dat is None:
+                new_dat = bindata[np.newaxis,:]
+            else:
+                new_dat = np.r_[new_dat,bindata[np.newaxis,:]]
+        
+        # transpose back:
+        new_dat = new_dat.transpose(totrans)
+        
+        # Create and return new DimArray object:
+        new_dims = copylib.deepcopy(self.dims)
+        new_dims[dim] = new_dim
+        new_attrs = self._attrs.copy()
+        new_attrs['dims'] = new_dims
+        return self.__class__(new_dat,**new_attrs)
 
-        new_dim = Dim(new_dim_dat,self.dim_names[dim],unit=dim_unit)
-        ## Unfinished
-                 
 
+    def make_bins(self,axis,bins,function,bin_labels='function',
+                  error_on_nonexact=True,**kwargs):
+        """
+        Return a copy of the data with dimension dim binned as specified.
+        
+        :Example usage:
+        data.get_bins('time',10,numpy.mean,number_bins=False)
+        data.get_bins('time',[[-100,0,'baseline'],[0,100,'timebin 1'],
+                      [100,200,'timebin 2']],numpy.mean,number_bins=False)
+                        
+        :Parameters:
+        - `axis`: The dimension to be binned. Can be name or number.
+        - `bins`: Specifies how the data should be binned. Acceptable values
+                  are:
+                  * the number of bins (equally spaced, if possible, roughly
+                    equally spaced if not and error_on_nonexact is False).
+                    (Uses numpy.[array]split.)
+                  * A 1-D container (list or tuple) of the indices where the
+                    data should be split into bins. The value for
+                    error_on_nonexact does not influence the result.
+                    (Uses numpy.[array]split.)
+                  * A 2-D containers (lists or tuples) where each container in
+                    the first dimension specifies the min (inclusive) and the max
+                    (exlusive) values and (optionally) a label for each bin. The
+                    value for error_on_nonexact must be True. If labels are
+                    specified in bins, they are used and the value of bin_labels
+                    is ignored.
+        - `function`: The function to aggregate over within the bins. Needs to
+                      take the data as the first argument and an additional axis
+                      argument (numpy.mean is an example of a valid function).
+        - `bins_labels` (optional): {'function','sequential',array_like}
+                         'function' applies the function that is used for binning to the dimension,
+                         'sequential' numbers the bins sequentially. Alternatively, a 1-D container
+                         that contains the bin labels can be specified.
+        - `error_on_nonexact` (optional): Specifies whether roughly equal bin sizes are
+                               acceptable when the data cannot be evenly split in
+                               the specified number of bins (this parameter is
+                               only applicable when bins is an integer specifying
+                               the number of bins). When True, the function
+                               numpy.split is used, when False the function
+                               numpy.array_split is used.
+        - `kwargs` (optional): Optional key word arguments to be passed on to function.
+        
+        :Returns:
+        A new DimArray instance in which one of the dimensions is binned as
+        specified.
+        """
+        # Makes sure dim is index (convert dim name if necessary):
+        dim = self.get_axis(axis)
+        tmp_bins = np.atleast_2d(bins)
+        if len(tmp_bins.shape)>2:
+            raise ValueError('Invalid bins! Acceptable values are: number of '+
+                             'bins, 1-D container of index values, 2-D '+
+                             'container of min and max values and (optionally) '+
+                             'a label for each bin. Provided bins: '+str(bins))
+        if np.atleast_2d(bins).shape[1] == 1:
+            return self._split_bins(dim,bins,function,bin_labels,
+                               error_on_nonexact,**kwargs)
+        elif np.atleast_2d(bins).shape[1] == 2:
+            if not error_on_nonexact:
+                raise ValueError('When bins are explicitly specified, '+
+                                  'error_on_nonexact must be True. Provided '+
+                                  'value: '+str(error_on_nonexact))
+            return self._select_bins(dim,bins,function,bin_labels,
+                                error_on_nonexact,**kwargs)
+        elif np.atleast_2d(bins).shape[1] == 3:
+            if bin_labels != 'function':
+                raise ValueError('Simultaneously specification of bin labels '+
+                                 'in bins and bin_labels is not allowed. '+
+                                 'Provided bins: '+str(bins)+' Provided '+
+                                 'bin_labels: '+ str(bin_labels))
+            if not error_on_nonexact:
+                raise ValueError('When bins are explicitly specified, '+
+                                  'error_on_nonexact must be True. Provided '+
+                                  'value: '+str(error_on_nonexact))
+            return self._select_bins(dim,bins,function,bin_labels,
+                                     error_on_nonexact,**kwargs)
+        else:
+            raise ValueError('Invalid bins! Acceptable values are: number of '+
+                             'bins, 1-D container of index values, 2-D '+
+                             'container of min and max values and (optionally) '+
+                             'a label for each bin. Provided bins: '+str(bins))
+
+    
     def get_axis(self,axis):
         """
         Get the axis number for a dimension name.
@@ -598,7 +732,7 @@ class DimArray(AttrArray):
 castMsg =\
 """
 *********************************************************************************
- ***  CAUTION: the output of this method is downcast to AttrArray. 
+ ***  CAUTION: the output of this method is cast to an AttrArray instance. 
   *   Some attributes may no longer be valid after this Method is applied!\n\n"""
 DimArray.all.im_func.func_doc = np.ndarray.all.__doc__            
 DimArray.any.im_func.func_doc = np.ndarray.any.__doc__            
