@@ -243,24 +243,29 @@ class DimArray(AttrArray):
                 newdims = copylib.deepcopy(self.dims)
                 newdims[0]=newdims[0][index]
             elif isinstance(index,tuple):
-                # for tuples, loop over the elements:
-                newdims = copylib.deepcopy(self.dims)
-                adj_i = 0 # adjusted index (if dimensions are eliminated)
-                for i,ind in enumerate(index):
-                    if isinstance(ind,int):
-                        # eliminate respective dim and update adj_i accordingly:
-                        newdims.pop(adj_i)
-                        adj_i -= 1
-                    elif isinstance(ind,slice) or isinstance(ind,np.ndarray):
-                        # apply the slice or array to the respective dimension
-                        newdims[adj_i] = newdims[adj_i][ind]
-                    else: # not sure if there are other legitimate indices here
-                        raise NotImplementedError("This index is not (yet?) "+
-                                                  " implemented!",type(ind),
-                                                  str(ind),str(i),str(adj_i),
-                                                  type(index),str(index))
-                    # increment adjusted index:
-                    adj_i += 1
+                # for tuples, if strs, send to select
+                if isinstance(index[0],str):
+                    # PBS: CTW, this is new, we need to add in catches
+                    return self.select(*index)
+                else:
+                    # loop over the elements:
+                    newdims = copylib.deepcopy(self.dims)
+                    adj_i = 0 # adjusted index (if dimensions are eliminated)
+                    for i,ind in enumerate(index):
+                        if isinstance(ind,int):
+                            # eliminate respective dim and update adj_i accordingly:
+                            newdims.pop(adj_i)
+                            adj_i -= 1
+                        elif isinstance(ind,slice) or isinstance(ind,np.ndarray):
+                            # apply the slice or array to the respective dimension
+                            newdims[adj_i] = newdims[adj_i][ind]
+                        else: # not sure if there are other legitimate indices here
+                            raise NotImplementedError("This index is not (yet?) "+
+                                                      " implemented!",type(ind),
+                                                      str(ind),str(i),str(adj_i),
+                                                      type(index),str(index))
+                        # increment adjusted index:
+                        adj_i += 1
             else: # not sure if there are other legitimate indices here
                 raise NotImplementedError("This index is not (yet?) "+
                                           "implemented!",type(index),str(index))
