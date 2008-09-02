@@ -172,7 +172,6 @@ class DimArray(AttrArray):
                                  str(self.dim_names))
 
 
-
     def _select_ind(self,*args,**kwargs):
         """
         Returns a tuple of index arrays for the selected conditions and an array
@@ -224,6 +223,7 @@ class DimArray(AttrArray):
         return m_ind,ind
 
     def __getitem__(self, index):
+        # process whether we using fancy string-based indices
         if isinstance(index,str):
             # see if it's just a single dimension name
             res = self._dim_namesRE.search(index)
@@ -232,17 +232,17 @@ class DimArray(AttrArray):
                 # corresponding dimension
                 return self.dims[self.dim_names.index(res.group())]
             else:
-                # call select to do the work
-                #return self.select(index)
+                # call find to get the new index from the string
                 index = self.find(index)
         elif isinstance(index,tuple) and isinstance(index[0],str):
+            # Use find to get the new index from the list of stings
             index = self.find(*index)
 
         # process the data
         self._getitem = True
         ret = np.ndarray.__getitem__(self,index)
 
-        # process the dims
+        # process the dims if necessary
         if isinstance(ret,DimArray):
             # see which to keep and modify the rest
             tokeep = np.arange(len(self.dims))
