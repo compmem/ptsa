@@ -244,9 +244,9 @@ class DimArray(AttrArray):
 
         # process the dims
         if isinstance(ret,DimArray):
-            # PBS: how can we get rid of this deepcopy?
-            ret.dims = copylib.deepcopy(self.dims)
+            # see which to keep and modify the rest
             tokeep = np.arange(len(self.dims))
+            # turn into a tuple for easier processing
             if not isinstance(index,tuple):
                 indlist = (index,)
             else:
