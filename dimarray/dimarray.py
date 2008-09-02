@@ -113,7 +113,7 @@ class DimArray(AttrArray):
     **kwargs : {**kwargs},optional
         Additional custom attributes.    
     """
-    _required_attrs = {'dims':list}
+    _required_attrs = {'dims':np.ndarray}
     dim_names = property(lambda self:
                   [dim.name for dim in self.dims],
                   doc="Dimension names (read only)")
@@ -124,8 +124,10 @@ class DimArray(AttrArray):
     T = property(lambda self: self.transpose())
     
     def __new__(cls, data, dims, dtype=None, copy=False, **kwargs):
-        # set the kwargs to have name
-        kwargs['dims'] = dims
+        # set the kwargs to have dims as an ndarray
+        dimarr = np.empty(len(dims),dtype=Dim)
+        dimarr[:] = dims
+        kwargs['dims'] = dimarr #np.array(dims,dtype=np.object)
         # make new AttrArray:
         dimarray = AttrArray(data,dtype=dtype,copy=copy,**kwargs)
         # convert to DimArray and return:
@@ -147,12 +149,13 @@ class DimArray(AttrArray):
         Ensure that the dims attribute is a list of Dim instances that match the array shape.
         """
         # Ensure list:
-        if not isinstance(self.dims,list):
-            raise AttributeError("The dims attribute must be a list "+
-                             "of Dim instances!\ndims:\n"+str(self.dims))
+#         if not isinstance(self.dims,list):
+#             raise AttributeError("The dims attribute must be a list "+
+#                              "of Dim instances!\ndims:\n"+str(self.dims))
         
         # Ensure that list is made up of only Dim instances:
         if not np.array([isinstance(x,Dim) for x in self.dims]).all():
+            print [x.__class__ for x in self.dims]
             raise AttributeError("The dims attribute must contain "+
                              "only Dim instances!\ndims:\n"+str(self.dims))
         
@@ -220,9 +223,48 @@ class DimArray(AttrArray):
 
         return m_ind,ind
 
-
     def __getitem__(self, index):
+        if isinstance(index,str):
+            # see if it's just a single dimension name
+            res = self._dim_namesRE.search(index)
+            if res:
+                # we have a single name, so return the
+                # corresponding dimension
+                return self.dims[self.dim_names.index(res.group())]
+            else:
+                # call select to do the work
+                #return self.select(index)
+                index = self.find(index)
+        elif isinstance(index,tuple) and isinstance(index[0],str):
+            index = self.find(*index)
+
+        # process the data
+        self._getitem = True
+        ret = np.ndarray.__getitem__(self,index)
+
+        # process the dims
+        if isinstance(ret,DimArray):
+            # PBS: how can we get rid of this deepcopy?
+            ret.dims = copylib.deepcopy(self.dims)
+            tokeep = np.arange(len(self.dims))
+            if not isinstance(index,tuple):
+                indlist = (index,)
+            else:
+                indlist = index
+            for i,ind in enumerate(indlist):
+                if isinstance(ind,int):
+                    # remove that dimension
+                    tokeep = tokeep[tokeep!=i]
+                else:
+                    ret.dims[i] = ret.dims[i][ind]
+            # remove the empty dims
+            ret.dims = ret.dims[tokeep]
+
+        return ret
+
+    def __getitem__old(self, index):
         # embedd in try block to ensure that _getitem flag is reset (in finally)
+        print "in __getitem__(%s)" % (str(index))
         try:
             if isinstance(index,str):
                 # see if it's just a single dimension name
@@ -233,8 +275,12 @@ class DimArray(AttrArray):
                     return self.dims[self.dim_names.index(res.group())]
                 else:
                     # call select to do the work
-                    return self.select(index)
-            elif isinstance(index,int):
+                    #return self.select(index)
+                    index = self.find(index)
+            elif isinstance(index,tuple) and isinstance(index[0],str):
+                index = self.find(index)
+                    
+            if isinstance(index,int):
                 # a single int as index eliminates the first dimension:
                 newdims = copylib.deepcopy(self.dims)
                 newdims.pop(0)
@@ -548,7 +594,8 @@ class DimArray(AttrArray):
             return ret.view(AttrArray)
         else:
             # pop the dim
-            ret.dims.pop(axis)
+            #ret.dims.pop(axis)
+            ret.dims = ret.dims[np.arange(len(ret.dims))!=axis]
             return ret.view(self.__class__)
     
     
@@ -680,7 +727,8 @@ class DimArray(AttrArray):
         d = 0
         for dms in ret.dims:
             if len(ret.dims[d]) == 1:
-                ret.dims.pop(d)
+                #ret.dims.pop(d)
+                ret.dims = ret.dims[np.arange(len(ret.dims))!=d]
             else:
                 d += 1
         return ret.view(self.__class__)
@@ -721,10 +769,12 @@ class DimArray(AttrArray):
         if len(axes.shape)==len(self):
             axes = [self.get_axis(a) for a in axes]
             ret = self.view(AttrArray).transpose(*axes)
-            ret.dims = [ret.dims[a] for a in axes]
+            #ret.dims = [ret.dims[a] for a in axes]
+            ret.dims = ret.dims[axes]
         else:
             ret = self.view(AttrArray).transpose()
-            ret.dims.reverse()
+            #ret.dims.reverse()
+            ret.dims = ret.dims[-1::-1]
         return ret.view(self.__class__)
 
     def var(self, axis=None, dtype=None, out=None, ddof=0):
