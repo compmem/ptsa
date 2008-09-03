@@ -477,7 +477,8 @@ class DimArray(AttrArray):
     def make_bins(self,axis,bins,function,bin_labels='function',
                   error_on_nonexact=True,**kwargs):
         """
-        Return a copy of the data with dimension dim binned as specified.
+        Return a copy of the data with dimension (specified by axis)
+        binned as specified.
         
         :Example usage:
         data.get_bins('time',10,numpy.mean,number_bins=False)
@@ -495,7 +496,7 @@ class DimArray(AttrArray):
                     data should be split into bins. The value for
                     error_on_nonexact does not influence the result.
                     (Uses numpy.[array]split.)
-                  * A 2-D containers (lists or tuples) where each container in
+                  * A 2-D container (lists or tuples) where each container in
                     the first dimension specifies the min (inclusive) and the max
                     (exlusive) values and (optionally) a label for each bin. The
                     value for error_on_nonexact must be True. If labels are
