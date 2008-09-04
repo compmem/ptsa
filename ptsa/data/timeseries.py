@@ -53,12 +53,12 @@ class TimeSeries(DimArray):
         duration = np.atleast_1d(duration)
         if len(duration) != 2:
             duration = duration.repeat(2)
-        num_samp = np.round(float(self.samplerate) * float(duration))
-	if num_samp>0:
+        num_samp = np.round(float(self.samplerate) * duration)
+	if np.any(num_samp>0):
             # remove the buf from the data
-            self = self.take(range(num_samp,
-                                   self.shape[self.taxis]-num_samp),
-                                       self.taxis)
+            return self.take(range(int(num_samp[0]),
+                                   self.shape[self.taxis]-int(num_samp[1])),
+                             self.taxis)
 
     def filtered(self,freq_range,filt_type='stop',order=4):
         """
@@ -67,7 +67,7 @@ class TimeSeries(DimArray):
         filtered_array = filt.buttfilt(self,freq_range,self.samplerate,filt_type,
                                        order,axis=self.taxis)
         attrs = self._attrs.copy()
-        for k in ['dims','tdim','samplerate']:
+        for k in self._required_attrs.keys():
             attrs.pop(k,None)
         return TimeSeries(filtered_array,self.dims.copy(),
                           self.tdim, self.samplerate, **attrs)
@@ -87,14 +87,14 @@ class TimeSeries(DimArray):
         # set the time dimension
         newdims = self.dims.copy()
         attrs = self.dims[self.taxis]._attrs.copy()
-        for k in ['name']:
+        for k in self.dims[self.taxis]._required_attrs.keys():
             attrs.pop(k,None)
         newdims[self.taxis] = Dim(new_time_range,
                                   self.dims[self.taxis].name,
                                   **attrs)
 
         attrs = self._attrs.copy()
-        for k in ['dims','tdim','samplerate']:
+        for k in self._required_attrs.keys():
             attrs.pop(k,None)
         return TimeSeries(newdat, newdims,
                           self.tdim, resampled_rate, **attrs)
