@@ -7,122 +7,95 @@
 #
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ##
 
-from dimdata import DimData
+from dimarray import Dim,DimArray
 from ptsa import filt
 
 from scipy.signal import resample
-import numpy as N
+import numpy as np
 
 
 __docformat__ = 'restructuredtext'
 
 
-class TimeSeries(DimData):
-    """Class to hold timeseries data.  In addition to having all the
-    basic DimData properties, it keeps track of the time dimension,
-    its sample rate, and the units of the data.  It also provides
-    methods for manipulating the time dimension, such as resampling
-    and filtering the data."""
+class TimeSeries(DimArray):
+    """Class to hold continuous timeseries data.  In addition to
+    having all the basic DimArray properties, it keeps track of the
+    time dimension and its sample rate.  It also provides methods for
+    manipulating the time dimension, such as resampling and filtering
+    the data."""
 
-    def __init__(self,data,dims,samplerate,
-                 unit=None,rate_unit=None,tdim=-1,buf_samp=0):
-        """Initialize a time series.
+    _required_attrs = {'dims':np.ndarray,
+                       'tdim':str,
+                       'samplerate':int}
+    taxis = property(lambda self:
+                     self.get_axis(self.tdim),
+                     doc="Numeric time axis (read only).")
 
-        :Parameters:
-          data : ndarray
-            XXX
-          dims : Dims
-            XXX
-
+    def __new__(cls, data, dims, tdim, samplerate,
+                dtype=None, copy=False, **kwargs):
         """
-        # call the base class init
-        DimData.__init__(self,data,dims,unit)
-        
-        # set the timeseries-specific information
-        self.samplerate = samplerate
-        self.rate_unit = rate_unit
-        
-        # get the time dimension
-        if isinstance(tdim,str):
-            # get the dimension from a name
-            self.tdim = self.dim[tdim]
-        else:
-            # is a numerical dimension
-            if tdim >= 0:
-                # use it
-                self.tdim = tdim
-            else:
-                # turn it into a positive dim
-                self.tdim = self.ndim - 1
-        
-        # set the buf information
-        self.buf_samp = buf_samp
-
-    def copy(self):
+        Needs docstring.
         """
-        """
-        newdata = self.data.copy()
-        newdims = self.dims.copy()
-        return TimeSeries(newdata,newdims,self.samplerate,
-                          unit=self.unit,rate_unit=self.rate_unit,
-                          tdim=self.tdim,buf_samp=self.buf_samp)
+        # set the kwargs to have tdim, samplerate
+        kwargs['tdim'] = tdim
+        kwargs['samplerate'] = samplerate
+        # make new DimArray with timeseries attributes
+        ts = DimArray(data, dims, dtype=dtype, copy=copy, **kwargs)
+        # convert to TimeSeries and return:
+        return ts.view(cls)
 
-    def removeBuf(self):
-	"""Use the information contained in the time series to remove the
-	buf reset the time range.  If buf is 0, no action is
-	performed."""
+    def remove_buffer(self, duration):
+	"""Remove the desired buffer duration (in seconds) and reset
+	the time range.  You can provide a tuple for the duration
+	argument if you would like to remove different numbers of
+	samples from the beginning and end of the time series."""
 	# see if we need to remove anything
-	if self.buf_samp>0:
+        duration = np.atleast_1d(duration)
+        if len(duration) != 2:
+            duration = duration.repeat(2)
+        num_samp = np.round(float(self.samplerate) * float(duration))
+	if num_samp>0:
             # remove the buf from the data
-            self.data = self.data.take(range(self.buf_samp,
-                                             self.shape[self.tdim]-self.buf_samp),self.tdim)
+            self = self.take(range(num_samp,
+                                   self.shape[self.taxis]-num_samp),
+                                       self.taxis)
 
-            # remove the buf from the tdim
-            self.dims[self.tdim] = self.dims[self.tdim].select(slice(self.buf_samp,self.shape[self.tdim]-self.buf_samp))
-
-            # reset buf to indicate it was removed
-	    self.buf_samp = 0
-
-            # reset the shape
-            self.shape = self.data.shape
-
-    def filter(self,freqRange,filtType='stop',order=4):
+    def filtered(self,freq_range,filt_type='stop',order=4):
         """
         Filter the data using a Butterworth filter.
         """
-        self.data = filt.buttfilt(self.data,freqRange,self.samplerate,filtType,
-                                    order,axis=self.tdim)
+        filtered_array = filt.buttfilt(self,freq_range,self.samplerate,filt_type,
+                                       order,axis=self.taxis)
+        attrs = self._attrs.copy()
+        for k in ['dims','tdim','samplerate']:
+            attrs.pop(k,None)
+        return TimeSeries(filtered_array,self.dims.copy(),
+                          self.tdim, self.samplerate, **attrs)
 
-    def resample(self,resampledRate,window=None):
+    def resampled(self,resampled_rate,window=None):
         """
         Resample the data and reset all the time ranges.  Uses the
         resample function from scipy.  This method seems to be more
         accurate than the decimate method.
         """
         # resample the data, getting new time range
-        timeRange = self.dims[self.tdim].data
-        newLength = int(N.round(self.data.shape[self.tdim]*resampledRate/float(self.samplerate)))
-        self.data,newTimeRange = resample(self.data,newLength,t=timeRange,axis=self.tdim,window=window)
-
-#         # resample the tdim
-#         # calc the time range in MS
-#         timeRange = self.dims[self.tdim].data
-#         samplesize = N.abs(timeRange[0]-timeRange[1])
-#         newsamplesize = samplesize*self.samplerate/resampledRate
-#         adjustment = (newsamplesize - samplesize)/2.
-#         sampStart = timeRange[0] + adjustment
-#         sampEnd = timeRange[-1] - adjustment
-#         newTimeRange = N.linspace(sampStart,sampEnd,newLength)
+        time_range = self[self.tdim]
+        new_length = int(np.round(len(time_range)*resampled_rate/float(self.samplerate)))
+        newdat,new_time_range = resample(self, new_length, t=time_range,
+                                     axis=self.taxis, window=window)
 
         # set the time dimension
-        self.dims[self.tdim].data = newTimeRange
+        newdims = self.dims.copy()
+        attrs = self.dims[self.taxis]._attrs.copy()
+        for k in ['name']:
+            attrs.pop(k,None)
+        newdims[self.taxis] = Dim(new_time_range,
+                                  self.dims[self.taxis].name,
+                                  **attrs)
 
-        # set the new buf lengths
-        self.buf_samp = int(N.round(float(self.buf_samp)*resampledRate/float(self.samplerate)))
-
-        # set the new samplerate
-        self.samplerate = resampledRate
-
-        # set the new shape
-        self.shape = self.data.shape
+        attrs = self._attrs.copy()
+        for k in ['dims','tdim','samplerate']:
+            attrs.pop(k,None)
+        return TimeSeries(newdat, newdims,
+                          self.tdim, resampled_rate, **attrs)
 
