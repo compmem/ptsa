@@ -7,7 +7,6 @@
 #
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ##
 
-from dimdata import Dim,Dims,DimData
+from dimarray import Dim,DimArray,AttrArray
 from timeseries import TimeSeries
-from dimension import Dimension
 

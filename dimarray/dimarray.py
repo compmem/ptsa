@@ -122,12 +122,14 @@ class DimArray(AttrArray):
                      '\\b(?!.)|(?<!.)\\b'.join(self.dim_names)
                      + '\\b(?!.)'))
     T = property(lambda self: self.transpose())
+    _skip_dim_check = False
     
     def __new__(cls, data, dims, dtype=None, copy=False, **kwargs):
         # set the kwargs to have dims as an ndarray
         dimarr = np.empty(len(dims),dtype=Dim)
         dimarr[:] = dims
         kwargs['dims'] = dimarr #np.array(dims,dtype=np.object)
+
         # make new AttrArray:
         dimarray = AttrArray(data,dtype=dtype,copy=copy,**kwargs)
         # convert to DimArray and return:
@@ -137,10 +139,10 @@ class DimArray(AttrArray):
         # call the AttrArray finalize
         AttrArray.__array_finalize__(self,obj)
         # ensure _getitem flag is off
-        self._getitem = False
+        self._skip_dim_check = False
         # if this method is called from __getitem__, don't check dims
         # (they are adjusted later by __getitem__):
-        if (isinstance(obj,DimArray) and obj._getitem): return
+        if (isinstance(obj,DimArray) and obj._skip_dim_check): return
         # ensure that the dims attribute is valid:
         self._chkDims()
 
@@ -239,7 +241,7 @@ class DimArray(AttrArray):
             index = self.find(*index)
 
         # process the data
-        self._getitem = True
+        self._skip_dim_check = True
         ret = np.ndarray.__getitem__(self,index)
 
         # process the dims if necessary
@@ -318,7 +320,7 @@ class DimArray(AttrArray):
             
             # Now that the dimensions are updated, we need to get the data:
             # set _getitem flag for __array_finalize__:
-            self._getitem = True
+            self._skip_dim_check = True
             # get the data:
             ret = np.ndarray.__getitem__(self,index)
             # if the resulting data is scalar, return it:
@@ -331,8 +333,8 @@ class DimArray(AttrArray):
                 ret.__array_finalize__(ret)
                 return ret            
         finally:
-            # reset the _getitem flag:
-            self._getitem = False        
+            # reset the _skip_dim_check flag:
+            self._skip_dim_check = False        
 
     def find(self,*args,**kwargs):
         """

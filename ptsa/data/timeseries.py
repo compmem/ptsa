@@ -62,7 +62,8 @@ class TimeSeries(DimArray):
 
     def filtered(self,freq_range,filt_type='stop',order=4):
         """
-        Filter the data using a Butterworth filter.
+        Filter the data using a Butterworth filter and return a new
+        TimeSeries instance.
         """
         filtered_array = filt.buttfilt(self,freq_range,self.samplerate,filt_type,
                                        order,axis=self.taxis)
