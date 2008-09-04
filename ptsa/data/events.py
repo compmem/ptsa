@@ -8,12 +8,12 @@
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ##
 
 # global imports
-import numpy as N
+import numpy as np
 
 import string
 import re
 import sys
-from dimdata import Dim,Dims
+from dimarray import Dim
 from timeseries import TimeSeries
 
 #import pdb
@@ -80,7 +80,7 @@ class Events(object):
                 names = names+field
 
         # return the new recarray
-        return self.__class__(N.rec.fromarrays(arrays,names=names))
+        return self.__class__(np.rec.fromarrays(arrays,names=names))
 
     def add_fields(self,**fields):
         """ Add fields from the keyword args provided and return a new
@@ -101,9 +101,9 @@ class Events(object):
                 raise AttributeError, 'Field "'+name+'" already exists.'
             
             # append the array and name
-            if isinstance(data,N.dtype):
+            if isinstance(data,np.dtype):
                 # add empty array the length of the data
-                arrays.append(N.empty(len(self),data))
+                arrays.append(np.empty(len(self),data))
             else:
                 # add the data as an array
                 arrays.append(data)
@@ -116,7 +116,7 @@ class Events(object):
             names = names+name
 
         # return the new recarray
-        return self.__class__(N.rec.fromarrays(arrays,names=names))
+        return self.__class__(np.rec.fromarrays(arrays,names=names))
 
 
 class EegEvents(Events):
@@ -149,12 +149,12 @@ for each event."""
         events = self.data
 
         # speed up by getting unique event sources first
-        usources = N.unique1d(events['eegsrc'])
+        usources = np.unique1d(events['eegsrc'])
 
         # loop over unique sources
         for src in usources:
             # get the eventOffsets from that source
-            ind = N.atleast_1d(events['eegsrc']==src)
+            ind = np.atleast_1d(events['eegsrc']==src)
             if len(ind) <= 1:
                 if ind:
                     srcEvents=self.copy()
@@ -185,13 +185,12 @@ for each event."""
                 eventdata.extend(newdat,0)
 
         if eventdata is None:
-            dims = [Dim('event', N.array(None), 'event'),
-                    Dim('time',N.array(None),None)]
-            eventdata = TimeSeries(N.atleast_2d(N.array(None)),
+            dims = [Dim(np.array(None), 'event'),
+                    Dim(np.array(None), 'time')]
+            eventdata = TimeSeries(np.atleast_2d(np.array(None)),
                                    dims,
                                    samplerate=None,
-                                   tdim=-1,
-                                   buf_samp=0)
+                                   tdim='time')
         return eventdata
     
 
