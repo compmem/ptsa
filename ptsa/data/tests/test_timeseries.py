@@ -92,15 +92,22 @@ class test_TimeSeries(NumpyTestCase):
         self.assertEquals(ts.shape, self.dat200.shape)
         self.assertEquals(ts.taxis, len(self.dat200.shape)-1)
         self.assertEquals(ts.samplerate,200)
+        self.assertRaises(ValueError,TimeSeries,self.dat200,self.dims200,'bla',200)
+        self.assertRaises(ValueError,TimeSeries,self.dat200,self.dims200,'time',-200)
 
         
     def test_remove_buffer(self):
         buf = 200
         numsamp = 4*200
         ts = TimeSeries(self.dat200,self.dims200,'time',200)
-        ts_nobuff = ts.remove_buffer(1.)
+        ts_nobuff = ts.remove_buffer(1)
         self.assertEquals(ts_nobuff.shape[ts_nobuff.taxis],numsamp-2*buf)
         self.assertEquals(len(ts_nobuff['time']),numsamp-2*buf)
+        ts_nobuff = ts.remove_buffer((1,1))
+        self.assertEquals(ts_nobuff.shape[ts_nobuff.taxis],numsamp-2*buf)
+        self.assertEquals(len(ts_nobuff['time']),numsamp-2*buf)
+        # make sure that negative durations throw exception
+        self.assertRaises(ValueError,ts.remove_buffer,-1)
 
     def test_filter(self):
         samplerate = 200

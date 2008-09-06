@@ -14,7 +14,7 @@ from helper import reshapeTo2D, reshapeFrom2D, repeat_to_match_dims
 
 import pdb
 
-def buttfilt(dat,freqRange,sampleRate,filtType,order,axis=-1):
+def buttfilt(dat,freq_range,sample_rate,filt_type,order,axis=-1):
     """Wrapper for a Butterworth filter.
 
     """
@@ -27,13 +27,13 @@ def buttfilt(dat,freqRange,sampleRate,filtType,order,axis=-1):
     dat = reshapeTo2D(dat,axis)
 
     # set up the filter
-    freqRange = asarray(freqRange)
+    freq_range = asarray(freq_range)
 
     # Nyquist frequency
-    nyq=sampleRate/2.;
+    nyq=sample_rate/2.;
 
     # generate the butterworth filter coefficients
-    [b,a]=butter(order,freqRange/nyq,filtType)
+    [b,a]=butter(order,freq_range/nyq,filt_type)
 
     # loop over final dimension
     for i in xrange(dat.shape[0]):
