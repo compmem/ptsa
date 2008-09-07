@@ -109,6 +109,11 @@ class test_TimeSeries(NumpyTestCase):
         # make sure that negative durations throw exception
         self.assertRaises(ValueError,ts.remove_buffer,-1)
 
+    def tst_setattr(self):
+        ts = TimeSeries(self.dat200,self.dims200,'time',200)
+        self.assertRaises(ValueError,ts.__setattr__,'tdim','bla')
+        self.assertRaises(ValueError,ts.__setattr__,'samplerate',-1)
+
     def test_filter(self):
         samplerate = 200
         filtType='stop'
