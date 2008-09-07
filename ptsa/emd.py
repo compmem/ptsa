@@ -11,37 +11,42 @@
 Empirical Mode Decomposition
 """
 
-import numpy as N
+import numpy as np
 import scipy.interpolate
 import scipy.signal
 
-import pdb
+#import pdb
 
-def emd(data,numModes=10,numSifts=10):
+def emd(data,max_modes=10):
     """Calculate the Emprical Mode Decomposition of a signal."""
     # initialize modes
     modes=[]
   
     # perform sifts until we have all modes
     residue=data
-    while not doneSifting(residue):
+    while not _done_sifting(residue):
         # perform a sift
-        imf,residue = doSift(residue)
+        imf,residue = _do_sift(residue)
         
         # append the imf
         modes.append(imf)
-  
+
+        # see if achieved max
+        if len(modes) == max_modes:
+            # we have all we wanted
+            break
+            
     # append the residue
     modes.append(residue)
 
     # return an array of modes
-    return N.asarray(modes)
+    return np.asarray(modes)
 
-def doneSifting(d):
+def _done_sifting(d):
     """We are done sifting is there a monotonic function."""
-    return N.sum(localmax(d))+N.sum(localmax(-d))<=2
+    return np.sum(_localmax(d))+np.sum(_localmax(-d))<=2
 
-def doSift(data):
+def _do_sift(data):
     """
     This function is modified to use the sifting-stopping criteria
     from Huang et al (2003) (this is the suggestion of Peel et al.,
@@ -55,9 +60,9 @@ def doSift(data):
 
     # sift until num extrema and ZC differ by at most 1
     while True:
-        imf=doOneSift(imf)
-        numExtrema,numZC = analyzeIMF(imf)
-        print 'numextrema=%d, numZC=%d' %  (numExtrema, numZC) 
+        imf=_do_one_sift(imf)
+        numExtrema,numZC = _analyze_imf(imf)
+        #print 'numextrema=%d, numZC=%d' %  (numExtrema, numZC) 
         if abs(numExtrema-numZC)<=1:
             break
 
@@ -68,8 +73,8 @@ def doSift(data):
     lastNumExtrema = numExtrema
     lastNumZC = numZC
     while numConstant < desiredNumConstant:
-        imf=doOneSift(imf)
-        numExtrema,numZC = analyzeIMF(imf)
+        imf=_do_one_sift(imf)
+        numExtrema,numZC = _analyze_imf(imf)
         if numExtrema == lastNumExtrema and \
                 numZC == lastNumZC:
             # is the same so increment
@@ -83,8 +88,8 @@ def doSift(data):
         
     # FIX THIS
 #     while True:
-#         imf = doOneSift(imf)
-#         numExtrema[end+1],numZC[end+1] = analyzeIMF(imf)
+#         imf = _do_one_sift(imf)
+#         numExtrema[end+1],numZC[end+1] = _analyze_imf(imf)
 #         print 'FINAL STAGE: numextrema=%d, numZC=%d' % (numExtrema(end), numZC(end))
 #         if length(numExtrema)>=numConstant & \
 #                 all(numExtrema(end-4:end)==numExtrema(end)) & \
@@ -98,10 +103,10 @@ def doSift(data):
     return imf,residue
 
 
-def doOneSift(data):
+def _do_one_sift(data):
 
-    upper=getUpperSpline(data)
-    lower=-getUpperSpline(-data)
+    upper=_get_upper_spline(data)
+    lower=-_get_upper_spline(-data)
     #upper=jinterp(find(maxes),data(maxes),xs);
     #lower=jinterp(find(mins),data(mins),xs);
 
@@ -115,17 +120,17 @@ def doOneSift(data):
     return detail # imf
 
 
-def getUpperSpline(data):
+def _get_upper_spline(data):
     """Get the upper spline using the Mirroring algoirthm from Rilling et
 al. (2003)."""
 
-    maxInds = N.nonzero(localmax(data))[0]
+    maxInds = np.nonzero(_localmax(data))[0]
 
     if len(maxInds) == 1:
         # Special case: if there is just one max, then entire spline
         # is that number
         #s=repmat(data(maxInds),size(data));
-        s = N.ones(len(data))*data[maxInds]
+        s = np.ones(len(data))*data[maxInds]
         return s
 
     # Start points
@@ -149,21 +154,21 @@ al. (2003)."""
         postData=data[maxInds[[-1,-2]]]
 
     # perform the spline fit
-    t=N.r_[preTimes,maxInds,postTimes];
-    d2=N.r_[preData, data[maxInds], postData];
+    t=np.r_[preTimes,maxInds,postTimes];
+    d2=np.r_[preData, data[maxInds], postData];
     #s=interp1(t,d2,1:length(data),'spline');
     # XXX verify the 's' argument
     # needed to change so that fMRI dat would work
-    rep = scipy.interpolate.splrep(t,d2,s=1.0)
+    rep = scipy.interpolate.splrep(t,d2,s=.0)
     s = scipy.interpolate.splev(range(len(data)),rep)
     # plot(1:length(data),data,'b-',1:length(data),s,'k-',t,d2,'r--');  
 
     return s
 
 
-def analyzeIMF(d):
-    numExtrema = N.sum(localmax(d))+N.sum(localmax(-d))
-    numZC = N.sum(N.diff(N.sign(d))!=0)
+def _analyze_imf(d):
+    numExtrema = np.sum(_localmax(d))+np.sum(_localmax(-d))
+    numZC = np.sum(np.diff(np.sign(d))!=0)
     return numExtrema,numZC
 
 # % if debug
@@ -193,21 +198,21 @@ def analyzeIMF(d):
 
   
 
-def localmax(d):
+def _localmax(d):
     """Calculate the local maxima of a vector."""
 
     # this gets a value of -2 if it is an unambiguous local max
     # value -1 denotes that the run its a part of may contain a local max
-    diffvec = N.r_[-N.inf,d,-N.inf]
-    diffScore=N.diff(N.sign(N.diff(diffvec)))
+    diffvec = np.r_[-np.inf,d,-np.inf]
+    diffScore=np.diff(np.sign(np.diff(diffvec)))
                      
     # Run length code with help from:
     #  http://home.online.no/~pjacklam/matlab/doc/mtt/index.html
     # (this is all painfully complicated, but I did it in order to avoid loops...)
 
     # here calculate the position and length of each run
-    runEndingPositions=N.r_[N.nonzero(d[0:-1]!=d[1:])[0],len(d)-1]
-    runLengths = N.diff(N.r_[-1, runEndingPositions])
+    runEndingPositions=np.r_[np.nonzero(d[0:-1]!=d[1:])[0],len(d)-1]
+    runLengths = np.diff(np.r_[-1, runEndingPositions])
     runStarts=runEndingPositions-runLengths + 1
 
     # Now concentrate on only the runs with length>1
@@ -220,11 +225,11 @@ def localmax(d):
 
     # If a run is a local max, then count the middle position (rounded) as the 'max'
     # CHECK THIS
-    maxRunMiddles=N.round(realRunStarts[maxRuns]+realRunLengths[maxRuns]/2.)-1
+    maxRunMiddles=np.round(realRunStarts[maxRuns]+realRunLengths[maxRuns]/2.)-1
 
     # get all the maxima
     maxima=(diffScore==-2)
-    maxima[maxRunMiddles.astype(N.int32)] = True
+    maxima[maxRunMiddles.astype(np.int32)] = True
 
     return maxima
 
@@ -232,28 +237,28 @@ def localmax(d):
 #%maxima([1 end])=false;
 
 
-def calcIF(modes,samplerate):
+def calc_inst_info(modes,samplerate):
     """
     Calculate the instantaneous frequency, amplitude, and phase of
     each mode.
     """
 
-    amp=N.zeros(modes.shape,N.float32);
-    phase=N.zeros(modes.shape,N.float32);
-    f=N.zeros(modes.shape,N.float32);
+    amp=np.zeros(modes.shape,np.float32);
+    phase=np.zeros(modes.shape,np.float32);
+    f=np.zeros(modes.shape,np.float32);
 
     for m in range(len(modes)):
         h=scipy.signal.hilbert(modes[m]);
-        amp[m,:]=N.abs(h);
-        phase[m,:]=N.angle(h);
-        f[m,:] = N.r_[N.nan, 
-                      0.5*(N.angle(-h[2:]*N.conj(h[0:-2]))+N.pi)/(2*N.pi) * samplerate,
-                      N.nan]
+        amp[m,:]=np.abs(h);
+        phase[m,:]=np.angle(h);
+        f[m,:] = np.r_[np.nan, 
+                      0.5*(np.angle(-h[2:]*np.conj(h[0:-2]))+np.pi)/(2*np.pi) * samplerate,
+                      np.nan]
 
         #f(m,:) = [nan 0.5*(angle(-h(t+1).*conj(h(t-1)))+pi)/(2*pi) * sr nan];
     
     # calc the freqs (old way)
-    #f=N.diff(N.unwrap(phase[:,N.r_[0,0:len(modes[0])]]))/(2*N.pi)*samplerate
+    #f=np.diff(np.unwrap(phase[:,np.r_[0,0:len(modes[0])]]))/(2*np.pi)*samplerate
 
     # clip the freqs so they don't go below zero
     #f = f.clip(0,f.max())
