@@ -104,7 +104,7 @@ class DimArray(AttrArray):
     ----------
     data : {array_like}
         The dimensioned data.
-    dims : {numpy.ndarray of Dim instances}
+    dims : {numpy.ndarray of dimarray.Dim instances}
         The dimensions of the data.
     dtype : {numpy.dtype},optional
         The data type.
@@ -125,9 +125,11 @@ class DimArray(AttrArray):
     _skip_dim_check = False
     
     def __new__(cls, data, dims, dtype=None, copy=False, **kwargs):
-        # set the kwargs to have dims as an ndarray
+        # Ensure that any array_like container of dims is turned into a
+        # numpy.ndarray of Dim dtype:
         dimarr = np.empty(len(dims),dtype=Dim)
         dimarr[:] = dims
+        # set the kwargs to have dims as an ndarray
         kwargs['dims'] = dimarr #np.array(dims,dtype=np.object)
 
         # make new AttrArray:
