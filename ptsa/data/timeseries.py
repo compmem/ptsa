@@ -31,7 +31,7 @@ class TimeSeries(DimArray):
     ----------
     data : {array_like}
         The time series data.
-    dims : {numpy.ndarray of dimarray.Dim instances}
+    dims : {numpy.ndarray or list of dimarray.Dim instances}
         The dimensions of the data.
     tdim : {str}
         The name of the time dimension.

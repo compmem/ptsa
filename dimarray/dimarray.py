@@ -104,7 +104,7 @@ class DimArray(AttrArray):
     ----------
     data : {array_like}
         The dimensioned data.
-    dims : {numpy.ndarray of dimarray.Dim instances}
+    dims : {numpy.ndarray or list of dimarray.Dim instances}
         The dimensions of the data.
     dtype : {numpy.dtype},optional
         The data type.
