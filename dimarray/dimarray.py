@@ -485,8 +485,8 @@ class DimArray(AttrArray):
         binned as specified.
         
         :Example usage:
-        data.get_bins('time',10,numpy.mean,number_bins=False)
-        data.get_bins('time',[[-100,0,'baseline'],[0,100,'timebin 1'],
+        data.make_bins('time',10,numpy.mean,number_bins=False)
+        data.make_bins('time',[[-100,0,'baseline'],[0,100,'timebin 1'],
                       [100,200,'timebin 2']],numpy.mean,number_bins=False)
                         
         :Parameters:
