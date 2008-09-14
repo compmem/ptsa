@@ -39,7 +39,11 @@ class Dim(AttrArray):
     """
     _required_attrs = {'name':str}
     
-    def __new__(cls, data, name, dtype=None, copy=False, **kwargs):
+    def __new__(cls, data, name=None, dtype=None, copy=False, **kwargs):
+        if name is None:
+            name = getattr(data,'name',None)
+        if name is None:
+            raise AttributeError("A 'name' attribute must be specified!")
         # set the kwargs to have name
         kwargs['name'] = name
         # make new AttrArray:
@@ -85,7 +89,15 @@ class Dim(AttrArray):
             # indicate a serious bug in ndarray.
             raise ValueError("Invalid number of dimensions!")
 
-
+    def __getitem__(self, index):
+        ret = AttrArray.__getitem__(self,index)            
+        if isinstance(ret,Dim):
+            return ret
+        else:
+            ret = Dim(ret,self.name)
+            for a in self._attrs:
+                setattr(ret,a,self._attrs[a])
+            return ret
 
 class DimArray(AttrArray):
     """
@@ -140,10 +152,11 @@ class DimArray(AttrArray):
     def __array_finalize__(self,obj):
         # call the AttrArray finalize
         AttrArray.__array_finalize__(self,obj)
-        # ensure _getitem flag is off
+        # ensure _skip_dim_check flag is off
         self._skip_dim_check = False
-        # if this method is called from __getitem__, don't check dims
-        # (they are adjusted later by __getitem__):
+        # if this method is called with _skip_dim_check == True, don't
+        # check dims (they need to be adjusted by whatever method
+        # called __array_finalize__ with this flag set):
         if (isinstance(obj,DimArray) and obj._skip_dim_check): return
         # ensure that the dims attribute is valid:
         self._chkDims()
@@ -152,29 +165,56 @@ class DimArray(AttrArray):
         """
         Ensure that the dims attribute is a list of Dim instances that match the array shape.
         """
-        # Ensure list:
-#         if not isinstance(self.dims,list):
-#             raise AttributeError("The dims attribute must be a list "+
-#                              "of Dim instances!\ndims:\n"+str(self.dims))
-        
-        # Ensure that list is made up of only Dim instances:
+        # Ensure that dims is made up of only Dim instances:
         if not np.array([isinstance(x,Dim) for x in self.dims]).all():
             print [x.__class__ for x in self.dims]
             raise AttributeError("The dims attribute must contain "+
-                             "only Dim instances!\ndims:\n"+str(self.dims))
+                                 "only Dim instances!\ndims:\n"+str(self.dims))
         
         # Ensure that the lengths of the Dim instances match the array shape:
         if self.shape != tuple([len(d) for d in self.dims]):
-            raise AttributeError("The length of the dims must match the shape of "+
-                             "the DimArray!\nDimArray shape: "+str(self.shape)+
-                             "\nShape of the dims:\n"+
-                             str(tuple([len(d) for d in self.dims])))
+            raise AttributeError("The length of the dims must match the shape"+
+                                 " of the DimArray!\nDimArray shape: "+
+                                 str(self.shape)+"\nShape of the dims:\n"+
+                                 str(tuple([len(d) for d in self.dims])))
         
         # Ensure unique dimension names:
         if len(np.unique(self.dim_names)) != len(self.dim_names):
             raise AttributeError("Dimension names must be unique!\nnames: "+
                                  str(self.dim_names))
 
+    def _chkNewDims(self,new_dims):
+        """
+        Ensure that the dims attribute is a list of Dim instances that
+        match the array shape.
+        """
+        # Ensure that the new dims is made up of only Dim instances:
+        if not np.array([isinstance(x,Dim) for x in new_dims]).all():
+            print [x.__class__ for x in new_dims]
+            raise AttributeError("The dims attribute must contain "+
+                             "only Dim instances!\nSupplied dims:\n"+
+                                 str(new_dims))
+        
+        # Ensure that the lengths of the Dim instances match the array shape:
+        if self.shape != tuple([len(d) for d in new_dims]):
+            raise AttributeError("The length of the dims must match the shape"+
+                                 " of the DimArray!\nDimArray shape: "+
+                                 str(self.shape)+
+                                 "\nShape of the supplied dims:\n"+
+                                 str(tuple([len(d) for d in new_dims])))
+        
+        # Ensure unique dimension names:
+        new_dim_names = [d.name for d in new_dims]
+        if len(np.unique(new_dim_names)) != len(new_dim_names):
+            raise AttributeError("Dimension names must be unique!\n"+
+                                 "Supplied names: "+str(new_dim_names))
+
+
+    def __setattr__(self, name, value):
+        # ensure that dims is valid:
+        #if (name == 'dims') and not(self._skip_dim_check):
+        #    self._chkNewDims(value)
+        AttrArray.__setattr__(self,name,value)
 
     def _select_ind(self,*args,**kwargs):
         """
@@ -242,29 +282,35 @@ class DimArray(AttrArray):
             # Use find to get the new index from the list of stings
             index = self.find(*index)
 
-        # process the data
-        self._skip_dim_check = True
-        ret = np.ndarray.__getitem__(self,index)
-
-        # process the dims if necessary
-        if isinstance(ret,DimArray):
-            # see which to keep and modify the rest
-            tokeep = np.arange(len(self.dims))
-            # turn into a tuple for easier processing
-            if not isinstance(index,tuple):
-                indlist = (index,)
-            else:
-                indlist = index
-            for i,ind in enumerate(indlist):
-                if isinstance(ind,int):
-                    # remove that dimension
-                    tokeep = tokeep[tokeep!=i]
+        try: # try block to ensure the _skip_dim_check flag gets reset
+             # in the following finally block
+            # process the data
+            self._skip_dim_check = True
+            ret = AttrArray.__getitem__(self,index)
+            
+            # process the dims if necessary
+            if isinstance(ret,DimArray):
+                # see which to keep and modify the rest
+                tokeep = np.arange(len(self.dims))
+                # turn into a tuple for easier processing
+                if not isinstance(index,tuple):
+                    indlist = (index,)
                 else:
+                    indlist = index
+                for i,ind in enumerate(indlist):
                     ret.dims[i] = ret.dims[i][ind]
-            # remove the empty dims
-            ret.dims = ret.dims[tokeep]
+#                     if isinstance(ind,int):
+#                         # remove that dimension
+#                         tokeep = tokeep[tokeep!=i]
+#                     else:
+#                         ret.dims[i] = ret.dims[i][ind]
+                # remove the empty dims
+                ret.dims = ret.dims[tokeep]
 
-        return ret
+            return ret
+        finally:
+            # reset the _skip_dim_check flag:
+            self._skip_dim_check = False
 
     def __getitem__old(self, index):
         # embedd in try block to ensure that _getitem flag is reset (in finally)
@@ -321,7 +367,7 @@ class DimArray(AttrArray):
                                           "implemented!",type(index),str(index))
             
             # Now that the dimensions are updated, we need to get the data:
-            # set _getitem flag for __array_finalize__:
+            # set skip_dim_chek flag for __array_finalize__:
             self._skip_dim_check = True
             # get the data:
             ret = np.ndarray.__getitem__(self,index)
