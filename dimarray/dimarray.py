@@ -163,7 +163,8 @@ class DimArray(AttrArray):
 
     def _chkDims(self):
         """
-        Ensure that the dims attribute is a list of Dim instances that match the array shape.
+        Ensure that the dims attribute is a list of Dim instances that
+        match the array shape.
         """
         # Ensure that dims is made up of only Dim instances:
         if not np.array([isinstance(x,Dim) for x in self.dims]).all():
@@ -209,6 +210,37 @@ class DimArray(AttrArray):
             raise AttributeError("Dimension names must be unique!\n"+
                                  "Supplied names: "+str(new_dim_names))
 
+    def _convert_index(self,index):
+        """
+        Helper function to make indexing by
+        string behave exactly as indexing by number.
+        """
+        # get the old index to compare:
+        old_index = self.find()
+        # comparison vector:
+        cmpvec = [np.any(index[i]!=old_index[i]) for i in
+                  range(len(old_index))]
+        # find the indices that have changed:
+        changed_idx, = np.nonzero(np.ravel(cmpvec))
+        
+        # make a temporary index list (because 'tuple'
+        # objects do not support item assignment):
+        tmp_indx = list(index)
+        # as dimensions are removed, the index needs to be adjusted:
+        idx_adjust = 0
+        for c_idx in changed_idx:
+            # if dimension is reduced to one level, remove that
+            # dimension:
+            if np.max(np.shape(index[c_idx])) == 1:
+                for i,ti in enumerate(tmp_indx):
+                    tmp_indx[i] = np.apply_along_axis(
+                        lambda a: a[0],c_idx-idx_adjust,tmp_indx[i])
+                idx_adjust += 1
+        # update the index
+        index = tuple(tmp_indx)
+        return index,changed_idx
+            
+
 
     def __setattr__(self, name, value):
         # ensure that dims is valid:
@@ -218,8 +250,8 @@ class DimArray(AttrArray):
 
     def _select_ind(self,*args,**kwargs):
         """
-        Returns a tuple of index arrays for the selected conditions and an array
-        of Boolean index arrays.     
+        Returns a tuple of index arrays for the selected conditions
+        and an array of Boolean index arrays.
         """
         # get starting indicies
         ind = [np.ones(dim.shape,np.bool) for dim in self.dims]
@@ -247,8 +279,10 @@ class DimArray(AttrArray):
                     ind[d] = ind[d] & newind
 
                     # break this loop to continue the next
-                    #break
-            # if we get to here, the provided string did not specify any dimensions
+                    # break
+                    
+            # if we get to here, the provided string did not specify
+            # any dimensions
             if not foundDim:
                 # XXX eventually this should be a custom exception
                 raise ValueError("The provided filter string did not specify "+
@@ -267,6 +301,7 @@ class DimArray(AttrArray):
         return m_ind,ind
 
     def __getitem__(self, index):
+        changed_idx = None
         # process whether we using fancy string-based indices
         if isinstance(index,str):
             # see if it's just a single dimension name
@@ -278,13 +313,15 @@ class DimArray(AttrArray):
             else:
                 # call find to get the new index from the string
                 index = self.find(index)
+                index,changed_idx = self._convert_index(index)
+
         elif isinstance(index,tuple) and isinstance(index[0],str):
             # Use find to get the new index from the list of stings
             index = self.find(*index)
-
+            index,changed_idx = self._convert_index(index)
+            
         try: # try block to ensure the _skip_dim_check flag gets reset
-             # in the following finally block
-            # process the data
+            # in the following finally block
             self._skip_dim_check = True
             ret = AttrArray.__getitem__(self,index)
             
@@ -298,12 +335,19 @@ class DimArray(AttrArray):
                 else:
                     indlist = index
                 for i,ind in enumerate(indlist):
-                    ret.dims[i] = ret.dims[i][ind]
-#                     if isinstance(ind,int):
-#                         # remove that dimension
-#                         tokeep = tokeep[tokeep!=i]
-#                     else:
-#                         ret.dims[i] = ret.dims[i][ind]
+                    print changed_idx,
+                    if isinstance(ind,int):
+                        # if a changed dimension was reduced to one
+                        # level, remove that dimension
+                        tokeep = tokeep[tokeep!=i]
+                    elif changed_idx is not None:
+                        if i in changed_idx:
+                            if len(np.shape(np.squeeze(ind)))==0:
+                                # if a changed dimension was reduced to one
+                                # level, remove that dimension
+                                tokeep = tokeep[tokeep!=i]
+                    else:
+                        ret.dims[i] = ret.dims[i][ind]
                 # remove the empty dims
                 ret.dims = ret.dims[tokeep]
 
@@ -349,22 +393,27 @@ class DimArray(AttrArray):
                     adj_i = 0 # adjusted index (if dimensions are eliminated)
                     for i,ind in enumerate(index):
                         if isinstance(ind,int):
-                            # eliminate respective dim and update adj_i accordingly:
+                            # eliminate respective dim and update
+                            # adj_i accordingly:
                             newdims.pop(adj_i)
                             adj_i -= 1
-                        elif isinstance(ind,slice) or isinstance(ind,np.ndarray):
-                            # apply the slice or array to the respective dimension
+                        elif (isinstance(ind,slice) or
+                              isinstance(ind,np.ndarray)):
+                            # apply the slice or array to the
+                            # respective dimension
                             newdims[adj_i] = newdims[adj_i][ind]
-                        else: # not sure if there are other legitimate indices here
-                            raise NotImplementedError("This index is not (yet?) "+
-                                                      " implemented!",type(ind),
-                                                      str(ind),str(i),str(adj_i),
-                                                      type(index),str(index))
+                        else: # not sure if there are other legitimate
+                              # indices here
+                            raise NotImplementedError(
+                                "This index is not (yet?) implemented!",
+                                type(ind), str(ind), str(i), str(adj_i),
+                                type(index),str(index))
                         # increment adjusted index:
                         adj_i += 1
             else: # not sure if there are other legitimate indices here
-                raise NotImplementedError("This index is not (yet?) "+
-                                          "implemented!",type(index),str(index))
+                raise NotImplementedError(
+                    "This index is not (yet?) implemented!",
+                    type(index),str(index))
             
             # Now that the dimensions are updated, we need to get the data:
             # set skip_dim_chek flag for __array_finalize__:
@@ -392,7 +441,8 @@ class DimArray(AttrArray):
         or
         data.find(time=data['time']>0,events=data['events'].recalled==True)
         or 
-        data.find("time>kwargs['t']","events.recalled==kwargs['val']",t=0,val=True)
+        data.find("time>kwargs['t']","events.recalled==kwargs['val']",
+                  t=0,val=True)
 
         data[ind], where ind is the return value of the find method
         and data.select(filterstring) return the same slices provided
@@ -409,9 +459,11 @@ class DimArray(AttrArray):
         or
         data.select(time=data['time']>0,events=data['events'].recalled==True)
         or 
-        data.select("time>kwargs['t']","events.recalled==kwargs['val']",t=0,val=True)
+        data.select("time>kwargs['t']","events.recalled==kwargs['val']",
+                    t=0,val=True)
 
-        To get a tuple of index arrays for the selected conditions use the find method.
+        To get a tuple of index arrays for the selected conditions use
+        the find method.
         """
         m_ind,ind = self._select_ind(*args,**kwargs)
         return self[m_ind]
@@ -442,9 +494,11 @@ class DimArray(AttrArray):
             new_dim = Dim(np.atleast_1d(bin_labels),
                           self.dim_names[dim])
         else:
-            raise ValueError("Invalid value for bin_labels. Allowed values are "+
-            "'function','sequential', or a 1-D list/array of labels of the same "+
-            "length as bins.\n bins: "+str(bins)+"\n bin_labels: "+str(bin_labels))
+            raise ValueError("Invalid value for bin_labels. Allowed values " +
+                             "are 'function','sequential', or a 1-D " +
+                             " list/array of labels of the same length as " +
+                             "bins.\n bins: " + str(bins) + "\n bin_labels: " +
+                             str(bin_labels))
 
         # Create the new data:
         split_dat = split(self.view(AttrArray),bins,axis=dim)
@@ -455,7 +509,8 @@ class DimArray(AttrArray):
         dim_order = np.arange(len(new_dat.shape))
         dim_order[dim] = 0
         dim_order[0:dim] = np.arange(1,dim+1)
-        dim_order[dim+1:len(new_dat.shape)] = np.arange(dim+1,len(new_dat.shape))
+        dim_order[dim+1:len(new_dat.shape)] = np.arange(dim+1,
+                                                        len(new_dat.shape))
         new_dat = new_dat.transpose(dim_order)
         
         # Create and return new DimArray object:
@@ -486,9 +541,11 @@ class DimArray(AttrArray):
               (len(np.atleast_1d(bin_lables)) == bins)):
             new_dim_dat = np.altleast_1d(bin_labels)
         else:
-            raise ValueError("Invalid value for bin_labels. Allowed values are "+
-            "'function','sequential', or a 1-D list/array of labels of the same "+
-            "length as bins.\n bins: "+str(bins)+"\n bin_labels: "+str(bin_labels))
+            raise ValueError("Invalid value for bin_labels. Allowed values " +
+                             "are 'function','sequential', or a 1-D " +
+                             " list/array of labels of the same length as " +
+                             "bins.\n bins: " + str(bins) + "\n bin_labels: " +
+                             str(bin_labels))
         
         new_dim = Dim(data=new_dim_dat,name=self.dim_names[dim])
         
@@ -531,82 +588,102 @@ class DimArray(AttrArray):
         binned as specified.
         
         :Example usage:
+        
         data.make_bins('time',10,numpy.mean,number_bins=False)
         data.make_bins('time',[[-100,0,'baseline'],[0,100,'timebin 1'],
                       [100,200,'timebin 2']],numpy.mean,number_bins=False)
                         
         :Parameters:
+        
         - `axis`: The dimension to be binned. Can be name or number.
-        - `bins`: Specifies how the data should be binned. Acceptable values
-                  are:
-                  * the number of bins (equally spaced, if possible, roughly
-                    equally spaced if not and error_on_nonexact is False).
-                    (Uses numpy.[array]split.)
-                  * A 1-D container (list or tuple) of the indices where the
-                    data should be split into bins. The value for
-                    error_on_nonexact does not influence the result.
-                    (Uses numpy.[array]split.)
-                  * A 2-D container (lists or tuples) where each container in
-                    the first dimension specifies the min (inclusive) and the max
-                    (exlusive) values and (optionally) a label for each bin. The
-                    value for error_on_nonexact must be True. If labels are
-                    specified in bins, they are used and the value of bin_labels
-                    is ignored.
-        - `function`: The function to aggregate over within the bins. Needs to
-                      take the data as the first argument and an additional axis
-                      argument (numpy.mean is an example of a valid function).
-        - `bins_labels` (optional): {'function','sequential',array_like}
-                         'function' applies the function that is used for binning to the dimension,
-                         'sequential' numbers the bins sequentially. Alternatively, a 1-D container
-                         that contains the bin labels can be specified.
-        - `error_on_nonexact` (optional): Specifies whether roughly equal bin sizes are
-                               acceptable when the data cannot be evenly split in
-                               the specified number of bins (this parameter is
-                               only applicable when bins is an integer specifying
-                               the number of bins). When True, the function
-                               numpy.split is used, when False the function
-                               numpy.array_split is used.
-        - `kwargs` (optional): Optional key word arguments to be passed on to function.
+        
+        - `bins`: Specifies how the data should be binned. Acceptable
+                  values are:
+                  
+                  * the number of bins (equally spaced, if possible,
+                    roughly equally spaced if not and
+                    error_on_nonexact is False).  (Uses
+                    numpy.[array]split.)
+                    
+                  * A 1-D container (list or tuple) of the indices
+                    where the data should be split into bins. The
+                    value for error_on_nonexact does not influence the
+                    result.  (Uses numpy.[array]split.)
+                    
+                  * A 2-D container (lists or tuples) where each
+                    container in the first dimension specifies the min
+                    (inclusive) and the max (exlusive) values and
+                    (optionally) a label for each bin. The value for
+                    error_on_nonexact must be True. If labels are
+                    specified in bins, they are used and the value of
+                    bin_labels is ignored.
+                    
+        - `function`: The function to aggregate over within the
+                      bins. Needs to take the data as the first
+                      argument and an additional axis argument
+                      (numpy.mean is an example of a valid function).
+                      
+        - `bins_labels` (optional):
+                         {'function','sequential',array_like}
+                         'function' applies the function that is used
+                         for binning to the dimension, 'sequential'
+                         numbers the bins sequentially. Alternatively,
+                         a 1-D container that contains the bin labels
+                         can be specified.
+                         
+        - `error_on_nonexact` (optional): Specifies whether roughly
+                               equal bin sizes are acceptable when the
+                               data cannot be evenly split in the
+                               specified number of bins (this
+                               parameter is only applicable when bins
+                               is an integer specifying the number of
+                               bins). When True, the function
+                               numpy.split is used, when False the
+                               function numpy.array_split is used.
+                               
+        - `kwargs` (optional): Optional key word arguments to be
+                               passed on to function.
         
         :Returns:
-        A new DimArray instance in which one of the dimensions is binned as
-        specified.
+        
+        A new DimArray instance in which one of the dimensions is
+        binned as specified.
         """
         # Makes sure dim is index (convert dim name if necessary):
         dim = self.get_axis(axis)
         tmp_bins = np.atleast_2d(bins)
         if len(tmp_bins.shape)>2:
-            raise ValueError('Invalid bins! Acceptable values are: number of '+
-                             'bins, 1-D container of index values, 2-D '+
-                             'container of min and max values and (optionally) '+
-                             'a label for each bin. Provided bins: '+str(bins))
+            raise ValueError("Invalid bins! Acceptable values are: number of" +
+                             " bins, 1-D container of index values, 2-D " +
+                             "container of min and max values and (optionally)" +
+                             " a label for each bin. Provided bins: "+str(bins))
         if np.atleast_2d(bins).shape[1] == 1:
             return self._split_bins(dim,bins,function,bin_labels,
                                error_on_nonexact,**kwargs)
         elif np.atleast_2d(bins).shape[1] == 2:
             if not error_on_nonexact:
-                raise ValueError('When bins are explicitly specified, '+
-                                  'error_on_nonexact must be True. Provided '+
-                                  'value: '+str(error_on_nonexact))
+                raise ValueError("When bins are explicitly specified, " +
+                                 "error_on_nonexact must be True. Provided " +
+                                 "value: " + str(error_on_nonexact))
             return self._select_bins(dim,bins,function,bin_labels,
                                 error_on_nonexact,**kwargs)
         elif np.atleast_2d(bins).shape[1] == 3:
             if bin_labels != 'function':
-                raise ValueError('Simultaneously specification of bin labels '+
-                                 'in bins and bin_labels is not allowed. '+
-                                 'Provided bins: '+str(bins)+' Provided '+
-                                 'bin_labels: '+ str(bin_labels))
+                raise ValueError("Simultaneously specification of bin labels " +
+                                 "in bins and bin_labels is not allowed. " +
+                                 "Provided bins: " + str(bins)+" Provided " +
+                                 "bin_labels: " + str(bin_labels))
             if not error_on_nonexact:
-                raise ValueError('When bins are explicitly specified, '+
-                                  'error_on_nonexact must be True. Provided '+
-                                  'value: '+str(error_on_nonexact))
+                raise ValueError("When bins are explicitly specified, " +
+                                  "error_on_nonexact must be True. Provided " +
+                                  "value: " + str(error_on_nonexact))
             return self._select_bins(dim,bins,function,bin_labels,
                                      error_on_nonexact,**kwargs)
         else:
-            raise ValueError('Invalid bins! Acceptable values are: number of '+
-                             'bins, 1-D container of index values, 2-D '+
-                             'container of min and max values and (optionally) '+
-                             'a label for each bin. Provided bins: '+str(bins))
+            raise ValueError("Invalid bins! Acceptable values are: number of" +
+                             " bins, 1-D container of index values, 2-D " +
+                             "container of min and max values and (optionally)" +
+                             " a label for each bin. Provided bins: "+str(bins))
 
     
     def get_axis(self,axis):
@@ -676,7 +753,8 @@ class DimArray(AttrArray):
                                                  order=order)
         else:
             axis = self.get_axis(axis)
-            ret = self.view(AttrArray).argsort(axis=axis, kind=kind, order=order)
+            ret = self.view(AttrArray).argsort(axis=axis, kind=kind,
+                                               order=order)
             return ret.view(self.__class__)
 
     def compress(self, condition, axis=None, out=None):
@@ -761,7 +839,7 @@ class DimArray(AttrArray):
         this method will throw a NotImplementedError exception. If
         resizing is desired the array needs to be converted to a
         different data type (e.g., numpy.ndarray), first!"""
-        raise NotImplementedError("Resizing is not possible for dimensioned "+
+        raise NotImplementedError("Resizing is not possible for dimensioned " +
                                   "arrays. Convert to (e.g.) numpy.ndarray!")
 
     def sort(self, axis=-1, kind='quicksort', order=None):
@@ -805,11 +883,14 @@ class DimArray(AttrArray):
 
     def take(self, indices, axis=None, out=None, mode='raise'):
         if axis is None:
-            return self.view(AttrArray).take(indices, axis=axis, out=out, mode=mode)
+            return self.view(AttrArray).take(indices, axis=axis,
+                                             out=out, mode=mode)
         else:
             axis = self.get_axis(axis)
-            ret = self.view(AttrArray).take(indices, axis=axis, out=out, mode=mode)
-            ret.dims[axis] = ret.dims[axis].take(indices, axis=0, out=out, mode=mode)
+            ret = self.view(AttrArray).take(indices, axis=axis,
+                                            out=out, mode=mode)
+            ret.dims[axis] = ret.dims[axis].take(indices, axis=0,
+                                                 out=out, mode=mode)
             return ret.view(self.__class__)
         
     def trace(self, *args, **kwargs):
@@ -830,7 +911,8 @@ class DimArray(AttrArray):
 
     def var(self, axis=None, dtype=None, out=None, ddof=0):
         axis = self.get_axis(axis)
-        ret = self.view(AttrArray).var(axis=axis, dtype=dtype, out=out, ddof=ddof)
+        ret = self.view(AttrArray).var(axis=axis, dtype=dtype,
+                                       out=out, ddof=ddof)
         return self._ret_func(ret,axis)
 
 
@@ -849,8 +931,8 @@ DimArray.argsort.im_func.func_doc = np.ndarray.argsort.__doc__
 DimArray.compress.im_func.func_doc = np.ndarray.compress.__doc__            
 DimArray.cumprod.im_func.func_doc = np.ndarray.cumprod.__doc__            
 DimArray.cumsum.im_func.func_doc = np.ndarray.cumsum.__doc__            
-DimArray.diagonal.im_func.func_doc = castMsg+np.ndarray.diagonal.__doc__            
-DimArray.flatten.im_func.func_doc = castMsg+np.ndarray.flatten.__doc__            
+DimArray.diagonal.im_func.func_doc = castMsg+np.ndarray.diagonal.__doc__
+DimArray.flatten.im_func.func_doc = castMsg+np.ndarray.flatten.__doc__
 DimArray.max.im_func.func_doc = np.ndarray.max.__doc__            
 DimArray.mean.im_func.func_doc = np.ndarray.mean.__doc__            
 DimArray.min.im_func.func_doc = np.ndarray.min.__doc__            
@@ -859,7 +941,7 @@ DimArray.prod.im_func.func_doc = np.ndarray.prod.__doc__
 DimArray.ptp.im_func.func_doc = np.ndarray.ptp.__doc__            
 DimArray.ravel.im_func.func_doc = castMsg+np.ndarray.ravel.__doc__            
 DimArray.repeat.im_func.func_doc = np.ndarray.repeat.__doc__            
-DimArray.reshape.im_func.func_doc = castMsg+np.ndarray.reshape.__doc__            
+DimArray.reshape.im_func.func_doc = castMsg+np.ndarray.reshape.__doc__  
 #DimArray.resize.im_func.func_doc = castMsg+np.ndarray.resize.__doc__            
 DimArray.sort.im_func.func_doc = np.ndarray.sort.__doc__            
 DimArray.squeeze.im_func.func_doc = np.ndarray.squeeze.__doc__            

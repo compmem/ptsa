@@ -8,8 +8,8 @@
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ##
 
 import numpy as np
-from numpy.testing import NumpyTest, NumpyTestCase, assert_array_equal,\
-     assert_array_almost_equal
+from numpy.testing import NumpyTest, NumpyTestCase,\
+     assert_array_equal, assert_array_almost_equal
 from numpy.random import random_sample as rnd
 
 from dimarray import DimArray, Dim
@@ -23,10 +23,9 @@ class test_Dim(NumpyTestCase):
         pass
     
     def test_new(self):
-        # should throw TypeError if no name is specified:
-        #self.assertRaises(TypeError,Dim,range(3))
+        # should throw AttributeError if no name is specified:
         self.assertRaises(AttributeError,Dim,range(3))
-        # should throw ValueError if not 1-D
+        # should throw ValueError if not 1-D:
         self.assertRaises(ValueError,Dim,rnd((2,3)),name='test')
         # should work fine with any number of dimensions as long as it
         # is squeezable or expandable to 1-D:
@@ -101,7 +100,8 @@ class test_DimArray(NumpyTestCase):
         dat = DimArray(np.random.rand(2,4,5),
                        dims=[Dim(range(2),name='dim1',unit='Hz'),
                              Dim(range(4),name='dim2',bla='bla'),
-                             Dim(range(5),name='dim3',attr1='attr1',attr2='attr2')])
+                             Dim(range(5),name='dim3',attr1='attr1',
+                                 attr2='attr2')])
         # ensure dim_names attribute is set properly:
         self.assertEquals(dat.dim_names,['dim1','dim2','dim3'])
         # ensure proper shape
@@ -121,11 +121,34 @@ class test_DimArray(NumpyTestCase):
         self.assertEquals(dat.dims[2][-1],4)
 
     def test_getitem(self):
+        # make ndarray an Dimaray with identical data
+        arr = np.random.rand(3)
+        dat = DimArray(arr,dims=[Dim(range(3),name='dim1')])
+        self.assertEquals(dat[0],dat['dim1==0'])
+        self.assertEquals(dat[1],dat['dim1==1'])
+        self.assertEquals(dat[2],dat['dim1==2'])
+        self.assertEquals(arr[0],dat['dim1==0'])
+        self.assertEquals(arr[1],dat['dim1==1'])
+        self.assertEquals(arr[2],dat['dim1==2'])
+        
+        arr = np.random.rand(3,2)
+        dat = DimArray(arr,dims=[Dim(range(3),name='dim1'),
+                                 Dim(range(2),name='dim2')])
+        assert_array_equal(dat[:,0],dat['dim2==0'])
+        assert_array_equal(dat[1],dat['dim1==1'])
+        assert_array_equal(dat[2],dat['dim1==2'])
+        assert_array_equal(arr[0],dat['dim1==0'])
+        assert_array_equal(arr[1],dat['dim1==1'])
+        assert_array_equal(arr[2],dat['dim1==2'])
+
+        assert_array_equal(dat[0,0],dat['dim1==0','dim2==0'])
+
         dat_array = np.random.rand(2,4,5)
         dat = DimArray(dat_array,
                        dims=[Dim(range(2),name='dim1',unit='Hz'),
                              Dim(range(4),name='dim2',bla='bla'),
-                             Dim(range(5),name='dim3',attr1='attr1',attr2='attr2')])
+                             Dim(range(5),name='dim3',attr1='attr1',
+                                 attr2='attr2')])
 
         # check that the correct elements are returned:
         self.assertEquals(dat[0,0,0],dat_array[0,0,0])
@@ -134,52 +157,57 @@ class test_DimArray(NumpyTestCase):
         
         # check that the returned DimArray and its dims have proper shapes:
         self.assertEquals(dat[0].shape,dat_array[0].shape)
-        # self.assertEquals(len(dat[0].dims[0]),dat_array[0].shape[0])
-        self.assertEquals(len(dat[0].dims[1]),dat_array[0].shape[0])
-        #self.assertEquals(len(dat[0].dims[1]),dat_array[0].shape[1])
-        self.assertEquals(len(dat[0].dims[2]),dat_array[0].shape[1])
-        #self.assertEquals(dat[0].dim_names,['dim2','dim3'])
-        self.assertEquals(dat[0].dim_names,['dim1','dim2','dim3'])
+        self.assertEquals(len(dat[0].dims[0]),dat_array[0].shape[0])
+        self.assertEquals(len(dat[0].dims[1]),dat_array[0].shape[1])
+        self.assertEquals(dat[0].dim_names,['dim2','dim3'])
         
-#         self.assertEquals(dat[1].shape,dat_array[1].shape)
-#         self.assertEquals(len(dat[1].dims[0]),dat_array[1].shape[0])
-#         self.assertEquals(len(dat[1].dims[1]),dat_array[1].shape[1])
-#         self.assertEquals(dat[1].dim_names,['dim2','dim3'])
-
-#         self.assertEquals(dat[0,0].shape,dat_array[0,0].shape)
-#         self.assertEquals(len(dat[0,0].dims[0]),dat_array[0,0].shape[0])
-#         self.assertEquals(dat[0,0].dim_names,['dim3'])
-
-#         self.assertEquals(dat[:,:,0].shape,dat_array[:,:,0].shape)
-#         self.assertEquals(len(dat[:,:,0].dims[0]),dat_array[:,:,0].shape[0])
-#         self.assertEquals(len(dat[:,:,0].dims[1]),dat_array[:,:,0].shape[1])
-#         self.assertEquals(dat[:,:,0].dim_names,['dim1','dim2'])
-
-#         self.assertEquals(dat[0:1,2,0:3].shape,dat_array[0:1,2,0:3].shape)
-#         self.assertEquals(len(dat[0:1,2,0:3].dims[0]),dat_array[0:1,2,0:3].shape[0])
-#         self.assertEquals(len(dat[0:1,2,0:3].dims[1]),dat_array[0:1,2,0:3].shape[1])
-#         self.assertEquals(dat[0:1,2,0:3].dim_names,['dim1','dim3'])
-
         self.assertEquals(dat[1].shape,dat_array[1].shape)
-        self.assertEquals(len(dat[1].dims[1]),dat_array[1].shape[0])
-        self.assertEquals(len(dat[1].dims[2]),dat_array[1].shape[1])
-        self.assertEquals(dat[1].dim_names,['dim1','dim2','dim3'])
+        self.assertEquals(len(dat[1].dims[0]),dat_array[1].shape[0])
+        self.assertEquals(len(dat[1].dims[1]),dat_array[1].shape[1])
+        self.assertEquals(dat[1].dim_names,['dim2','dim3'])
 
         self.assertEquals(dat[0,0].shape,dat_array[0,0].shape)
-        self.assertEquals(len(dat[0,0].dims[2]),dat_array[0,0].shape[0])
-        self.assertEquals(dat[0,0].dim_names,['dim1','dim2','dim3'])
+        self.assertEquals(len(dat[0,0].dims[0]),dat_array[0,0].shape[0])
+        self.assertEquals(dat[0,0].dim_names,['dim3'])
 
         self.assertEquals(dat[:,:,0].shape,dat_array[:,:,0].shape)
         self.assertEquals(len(dat[:,:,0].dims[0]),dat_array[:,:,0].shape[0])
         self.assertEquals(len(dat[:,:,0].dims[1]),dat_array[:,:,0].shape[1])
-        self.assertEquals(dat[:,:,0].dim_names,['dim1','dim2','dim3'])
+        self.assertEquals(dat[:,:,0].dim_names,['dim1','dim2'])
 
         self.assertEquals(dat[0:1,2,0:3].shape,dat_array[0:1,2,0:3].shape)
-        self.assertEquals(len(dat[0:1,2,0:3].dims[0]),dat_array[0:1,2,0:3].shape[0])
-        self.assertEquals(len(dat[0:1,2,0:3].dims[2]),dat_array[0:1,2,0:3].shape[1])
-        self.assertEquals(dat[0:1,2,0:3].dim_names,['dim1','dim2','dim3'])
+        self.assertEquals(len(dat[0:1,2,0:3].dims[0]),
+                          dat_array[0:1,2,0:3].shape[0])
+        self.assertEquals(len(dat[0:1,2,0:3].dims[1]),
+                          dat_array[0:1,2,0:3].shape[1])
+        self.assertEquals(dat[0:1,2,0:3].dim_names,['dim1','dim3'])
 
-        # when the name of a Dim instance is given, that dim should be returned:
+        self.assertEquals(dat[1].shape,dat_array[1].shape)
+        self.assertEquals(len(dat[1].dims[0]),dat_array[1].shape[0])
+        self.assertEquals(len(dat[1].dims[1]),dat_array[1].shape[1])
+        self.assertEquals(dat[1].dim_names,['dim2','dim3'])
+
+        self.assertEquals(dat[0,0].shape,dat_array[0,0].shape)
+        self.assertEquals(len(dat[0,0].dims[0]),dat_array[0,0].shape[0])
+        self.assertEquals(dat[0,0].dim_names,['dim3'])
+
+        self.assertEquals(dat[:,:,0].shape,dat_array[:,:,0].shape)
+        self.assertEquals(len(dat[:,:,0].dims[0]),dat_array[:,:,0].shape[0])
+        self.assertEquals(len(dat[:,:,0].dims[1]),dat_array[:,:,0].shape[1])
+        self.assertEquals(dat[:,:,0].dim_names,['dim1','dim2'])
+
+        self.assertEquals(dat[0:1,2,0:3].shape,dat_array[0:1,2,0:3].shape)
+        self.assertEquals(len(dat[0:1,2,0:3].dims[0]),
+                          dat_array[0:1,2,0:3].shape[0])
+        self.assertEquals(len(dat[0:1,2,0:3].dims[1]),
+                          dat_array[0:1,2,0:3].shape[1])
+        self.assertEquals(dat[0:1,2,0:3].dim_names,['dim1','dim3'])
+
+        assert_array_equal(dat[1:,1:],dat['dim1>0','dim2>0'])
+
+        
+        # when the name of a Dim instance is given, that dim should be
+        # returned:
         self.assertTrue(isinstance(dat['dim1'],Dim))
         self.assertTrue(isinstance(dat['dim2'],Dim))
         self.assertTrue(isinstance(dat['dim3'],Dim))
@@ -199,17 +227,15 @@ class test_DimArray(NumpyTestCase):
         self.assertEquals(len(dat['dim3']),5)
 
         # when another string is given, it should be evaluated:
-        self.assertEquals(dat['dim1==0'].shape,(1,4,5))
-        self.assertEquals(len(dat['dim1==0'].dims[0]),1)
-        self.assertEquals(len(dat['dim1==0'].dims[1]),4)
-        self.assertEquals(len(dat['dim1==0'].dims[2]),5)
-        self.assertEquals(dat['dim1==0'].dim_names,['dim1','dim2','dim3'])
+        self.assertEquals(dat['dim1==0'].shape,(4,5))
+        self.assertEquals(len(dat['dim1==0'].dims[0]),4)
+        self.assertEquals(len(dat['dim1==0'].dims[1]),5)
+        self.assertEquals(dat['dim1==0'].dim_names,['dim2','dim3'])
 
-        self.assertEquals(dat['dim2==1'].shape,(2,1,5))
+        self.assertEquals(dat['dim2==1'].shape,(2,5))
         self.assertEquals(len(dat['dim2==1'].dims[0]),2)
-        self.assertEquals(len(dat['dim2==1'].dims[1]),1)
-        self.assertEquals(len(dat['dim2==1'].dims[2]),5)
-        self.assertEquals(dat['dim2==1'].dim_names,['dim1','dim2','dim3'])
+        self.assertEquals(len(dat['dim2==1'].dims[1]),5)
+        self.assertEquals(dat['dim2==1'].dim_names,['dim1','dim3'])
 
         self.assertEquals(dat['dim2<2'].shape,(2,2,5))
         self.assertEquals(len(dat['dim2<2'].dims[0]),2)
@@ -241,7 +267,8 @@ class test_DimArray(NumpyTestCase):
         dim2=Dim([1,2],'dim2')
         dim3=Dim([3,4,5],'dim3')
         dat=DimArray([[[6,7,8],[9,10,11]]],[dim1,dim2,dim3])
-        self.assertEquals(dat.select(dim2=dat['dim2']>1,dim3=dat['dim3']>3).shape,(1,1,2))
+        self.assertEquals(dat.select(dim2=dat['dim2']>1,
+                                     dim3=dat['dim3']>3).shape,(1,1,2))
 
     def test_find(self):
         # check indexing with a tuple of arrays and with 1-level dimensions:
@@ -276,7 +303,8 @@ class test_DimArray(NumpyTestCase):
                      180,(1,1,1,180,1,1,1)]
         for newshape in newshapes:
             assert_array_equal(arr.reshape(newshape),dat.reshape(newshape))
-            assert_array_equal(np.reshape(arr,newshape),np.reshape(dat,newshape))
+            assert_array_equal(np.reshape(arr,newshape),
+                               np.reshape(dat,newshape))
         
     def test_resize(self):
         # make ndarray an Dimaray with identical data
@@ -294,7 +322,8 @@ class test_DimArray(NumpyTestCase):
         dat = DimArray(arr,dims=[Dim(np.arange(100,500,100),name='one'),
                                  Dim(np.arange(30,70,10),name='two'),
                                  Dim(np.arange(4),name='three'),
-                                 Dim(np.arange(1000,1200,50),name='four')],test='tst')
+                                 Dim(np.arange(1000,1200,50),name='four')],
+                       test='tst')
         
         # test making bins on all dimensions:
         test1a = dat.make_bins('one',2,np.mean)
@@ -353,19 +382,32 @@ class test_DimArray(NumpyTestCase):
         # check that attributes are preserved:
         for a in dat._attrs:
             if a == 'dims': continue
-            self.assertEqual(dat.__getattribute__(a),test1a.__getattribute__(a))
-            self.assertEqual(dat.__getattribute__(a),test1b.__getattribute__(a))
-            self.assertEqual(dat.__getattribute__(a),test2a.__getattribute__(a))
-            self.assertEqual(dat.__getattribute__(a),test2b.__getattribute__(a))
-            self.assertEqual(dat.__getattribute__(a),test3a.__getattribute__(a))
-            self.assertEqual(dat.__getattribute__(a),test3b.__getattribute__(a))
-            self.assertEqual(dat.__getattribute__(a),test4a.__getattribute__(a))
-            self.assertEqual(dat.__getattribute__(a),test4b.__getattribute__(a))
-            self.assertEqual(dat.__getattribute__(a),test4d.__getattribute__(a))
-            self.assertEqual(dat.__getattribute__(a),test12a.__getattribute__(a))
-            self.assertEqual(dat.__getattribute__(a),test12b.__getattribute__(a))
-            self.assertEqual(dat.__getattribute__(a),test21a.__getattribute__(a))
-            self.assertEqual(dat.__getattribute__(a),test21b.__getattribute__(a))
+            self.assertEqual(dat.__getattribute__(a),
+                             test1a.__getattribute__(a))
+            self.assertEqual(dat.__getattribute__(a),
+                             test1b.__getattribute__(a))
+            self.assertEqual(dat.__getattribute__(a),
+                             test2a.__getattribute__(a))
+            self.assertEqual(dat.__getattribute__(a),
+                             test2b.__getattribute__(a))
+            self.assertEqual(dat.__getattribute__(a),
+                             test3a.__getattribute__(a))
+            self.assertEqual(dat.__getattribute__(a),
+                             test3b.__getattribute__(a))
+            self.assertEqual(dat.__getattribute__(a),
+                             test4a.__getattribute__(a))
+            self.assertEqual(dat.__getattribute__(a),
+                             test4b.__getattribute__(a))
+            self.assertEqual(dat.__getattribute__(a),
+                             test4d.__getattribute__(a))
+            self.assertEqual(dat.__getattribute__(a),
+                             test12a.__getattribute__(a))
+            self.assertEqual(dat.__getattribute__(a),
+                             test12b.__getattribute__(a))
+            self.assertEqual(dat.__getattribute__(a),
+                             test21a.__getattribute__(a))
+            self.assertEqual(dat.__getattribute__(a),
+                             test21b.__getattribute__(a))
         for d,dn in enumerate(dat.dim_names):
             self.assertEquals(test1a.dim_names[d],dn)
             self.assertEquals(test1b.dim_names[d],dn)
@@ -387,16 +429,20 @@ class test_DimArray(NumpyTestCase):
                                  Dim(np.arange(4),name='three')],test='tst')
         
         self.assertRaises(ValueError,dat.make_bins,'two',3,np.mean)
-        test5a = dat.make_bins('two',3,np.mean,bin_labels=['1st','2nd','3rd'],error_on_nonexact=False)
-        test5b = dat.make_bins(1,[[0,6,'1st'],[6,11,'2nd'],[11,16,'3rd']],np.mean)
+        test5a = dat.make_bins('two',3,np.mean,bin_labels=['1st','2nd','3rd'],
+                               error_on_nonexact=False)
+        test5b = dat.make_bins(1,[[0,6,'1st'],[6,11,'2nd'],[11,16,'3rd']],
+                               np.mean)
         assert_array_equal(test5a,test5b)
         assert_array_equal(test5a.dims[1],np.array(['1st','2nd','3rd']))
         assert_array_equal(test5a.dims[1],test5b.dims[1])
         # check that attributes are preserved:
         for a in dat._attrs:
             if a == 'dims': continue
-            self.assertEqual(dat.__getattribute__(a),test5a.__getattribute__(a))
-            self.assertEqual(dat.__getattribute__(a),test5b.__getattribute__(a))
+            self.assertEqual(dat.__getattribute__(a),
+                             test5a.__getattribute__(a))
+            self.assertEqual(dat.__getattribute__(a),
+                             test5b.__getattribute__(a))
         for d,dn in enumerate(dat.dim_names):
             self.assertEquals(test5a.dim_names[d],dn)
             self.assertEquals(test5b.dim_names[d],dn)
@@ -438,24 +484,39 @@ class test_DimArray(NumpyTestCase):
                     
         # same tests as above but this time calling the DimArray
         # methods directly (this test is necessary because it is in
-        # principle possoble for the numpy function to work and the
+        # principle possible for the numpy function to work and the
         # DimArray method not to work (or vice versa):
         for a in range(len(axes_arr)):
-            assert_array_equal(arr.all(axes_arr[a]),dat.all(axes_dat[a]))
-            assert_array_equal(arr.any(axes_arr[a]),dat.any(axes_dat[a]))
-            assert_array_equal(arr.argmax(axes_arr[a]),dat.argmax(axes_dat[a]))
-            assert_array_equal(arr.argmin(axes_arr[a]),dat.argmin(axes_dat[a]))
-            assert_array_equal(arr.argsort(axes_arr[a]),dat.argsort(axes_dat[a]))
-            assert_array_equal(arr.cumprod(axes_arr[a]),dat.cumprod(axes_dat[a]))
-            assert_array_equal(arr.cumsum(axes_arr[a]),dat.cumsum(axes_dat[a]))
-            assert_array_equal(arr.max(axes_arr[a]),dat.max(axes_dat[a]))
-            assert_array_equal(arr.mean(axes_arr[a]),dat.mean(axes_dat[a]))
-            assert_array_equal(arr.min(axes_arr[a]),dat.min(axes_dat[a]))
-            assert_array_equal(arr.prod(axes_arr[a]),dat.prod(axes_dat[a]))
-            assert_array_equal(arr.ptp(axes_arr[a]),dat.ptp(axes_dat[a]))
-            assert_array_equal(arr.std(axes_arr[a]),dat.std(axes_dat[a]))
-            assert_array_equal(arr.sum(axes_arr[a]),dat.sum(axes_dat[a]))
-            assert_array_equal(arr.var(axes_arr[a]),dat.var(axes_dat[a]))
+            assert_array_equal(arr.all(axes_arr[a]),
+                               dat.all(axes_dat[a]))
+            assert_array_equal(arr.any(axes_arr[a]),
+                               dat.any(axes_dat[a]))
+            assert_array_equal(arr.argmax(axes_arr[a]),
+                               dat.argmax(axes_dat[a]))
+            assert_array_equal(arr.argmin(axes_arr[a]),
+                               dat.argmin(axes_dat[a]))
+            assert_array_equal(arr.argsort(axes_arr[a]),
+                               dat.argsort(axes_dat[a]))
+            assert_array_equal(arr.cumprod(axes_arr[a]),
+                               dat.cumprod(axes_dat[a]))
+            assert_array_equal(arr.cumsum(axes_arr[a]),
+                               dat.cumsum(axes_dat[a]))
+            assert_array_equal(arr.max(axes_arr[a]),
+                               dat.max(axes_dat[a]))
+            assert_array_equal(arr.mean(axes_arr[a]),
+                               dat.mean(axes_dat[a]))
+            assert_array_equal(arr.min(axes_arr[a]),
+                               dat.min(axes_dat[a]))
+            assert_array_equal(arr.prod(axes_arr[a]),
+                               dat.prod(axes_dat[a]))
+            assert_array_equal(arr.ptp(axes_arr[a]),
+                               dat.ptp(axes_dat[a]))
+            assert_array_equal(arr.std(axes_arr[a]),
+                               dat.std(axes_dat[a]))
+            assert_array_equal(arr.sum(axes_arr[a]),
+                               dat.sum(axes_dat[a]))
+            assert_array_equal(arr.var(axes_arr[a]),
+                               dat.var(axes_dat[a]))
             if not(axes_dat[a] is None):
                 self.assertTrue(isinstance(dat.all(axes_arr[a]),DimArray))
                 self.assertTrue(isinstance(dat.any(axes_arr[a]),DimArray))
@@ -471,7 +532,7 @@ class test_DimArray(NumpyTestCase):
                 self.assertTrue(isinstance(dat.ptp(axes_arr[a]),DimArray))
                 self.assertTrue(isinstance(dat.std(axes_arr[a]),DimArray))
                 self.assertTrue(isinstance(dat.sum(axes_arr[a]),DimArray))
-                self.assertTrue(isinstance(dat.var(axes_arr[a]),DimArray))                
+                self.assertTrue(isinstance(dat.var(axes_arr[a]),DimArray))
                 
                 self.assertEquals(dat.all(axes_arr[a]).test,'tst')
                 self.assertEquals(dat.any(axes_arr[a]).test,'tst')
@@ -487,8 +548,8 @@ class test_DimArray(NumpyTestCase):
                 self.assertEquals(dat.ptp(axes_arr[a]).test,'tst')
                 self.assertEquals(dat.std(axes_arr[a]).test,'tst')
                 self.assertEquals(dat.sum(axes_arr[a]).test,'tst')
-                self.assertEquals(dat.var(axes_arr[a]).test,'tst')                
-
+                self.assertEquals(dat.var(axes_arr[a]).test,'tst')
+                
         # test functions that require function specific input:
         for a in range(len(axes_arr)):
             if axes_arr[a] is None:
@@ -531,14 +592,15 @@ class test_DimArray(NumpyTestCase):
                 self.assertTrue(isinstance(dat_func,DimArray))
                 self.assertEquals(dat_func.test,'tst')
 
-            # skippint the last dimension for this test for
+            # skip the last dimension for this test for
             # convenience (the last dimension only has 1 level):
             if a >= 3:
                 continue
             # the highest valid index is 2 because the lowest number
             # of levels of all dimensions (except for the last one
             # which we skipped) is 3:
-            indcs = np.random.random_integers(low=0, high=2, size=len(arr.shape))
+            indcs = np.random.random_integers(low=0, high=2,
+                                              size=len(arr.shape))
             # calling the take method directly (squeeze, to get rid of
             # the last dimension):
             arr_func = arr.squeeze().take(indcs,axis=axes_arr[a])
@@ -556,7 +618,8 @@ class test_DimArray(NumpyTestCase):
                 self.assertTrue(isinstance(dat_func,DimArray))
                 self.assertEquals(dat_func.test,'tst')
 
-        # This should work with numpy 1.2 (possibly 1.1.1) but doesn't with 1.1.0
+        # This should work with numpy 1.2 (possibly 1.1.1) but doesn't
+        # with 1.1.0:
         #arr_func = arr.clip(0.4,0.6)
         #dat_func = dat.clip(0.4,0.6)
         #assert_array_equal(arr_func,dat_func)
@@ -570,7 +633,8 @@ class test_DimArray(NumpyTestCase):
 
         # other functions that don't necessarily take return a
         # DimArray:
-        funcs = [np.diagonal,np.nonzero,np.ravel,np.squeeze,np.sort,np.trace,np.transpose]
+        funcs = [np.diagonal,np.nonzero,np.ravel,np.squeeze,
+                 np.sort,np.trace,np.transpose]
         for func in funcs:
             arr_func = func(arr)
             dat_func = func(dat)
@@ -600,7 +664,4 @@ class test_DimArray(NumpyTestCase):
         assert_array_equal(arr.swapaxes(1,3),dat.swapaxes('two','four'))
         self.assertTrue(isinstance(dat.swapaxes('two','four'),DimArray))
         self.assertEquals(dat.swapaxes('two','four').test,'tst')
-
-        
-
-        
+       

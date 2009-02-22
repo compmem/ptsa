@@ -8,8 +8,8 @@
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ##
 
 import numpy as np
-from numpy.testing import NumpyTest, NumpyTestCase, assert_array_equal,\
-     assert_array_almost_equal
+from numpy.testing import NumpyTest, NumpyTestCase,\
+     assert_array_equal, assert_array_almost_equal
 
 from dimarray import AttrArray
 
@@ -27,13 +27,14 @@ class test_AttrArray(NumpyTestCase):
         self.assertTrue(dat_array.name == 'randvals')
         self.assertEquals(shape,dat_array.shape)
         self.assertTrue((dat_array==arr).all())
-        # another instatioation with an ndarray, but this time with dtype set:
+        # another instatioation with an ndarray, but this time with
+        # dtype set:
         shape = (1,2,3,4)
         arr = np.random.random_sample(shape)
         dat_array = AttrArray(arr,name='randvals',dtype=np.float32)
         self.assertTrue(dat_array.name == 'randvals')
         self.assertEquals(shape,dat_array.shape)
-        # XXX not sure why only "almost" equal:
+        # "almost" equal because of the casting to np.float32:
         assert_array_almost_equal(dat_array,arr)
         self.assertTrue(dat_array.dtype==np.float32)
         
@@ -49,7 +50,8 @@ class test_AttrArray(NumpyTestCase):
         self.assertEquals(shape,dat_array.shape)
         assert_array_equal(dat_array,arr)
         dat_array[0] += 5
-        # XXX not sure why only "almost" equal:
+        # "almost" equal because of slight inaccuracies in the the
+        # representation of floats:
         assert_array_almost_equal((dat_array[0]-5), arr[0])
         dat_array = AttrArray(arr,name='randvals', test1=33,
                               test2='test', copy = False)
