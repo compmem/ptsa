@@ -210,37 +210,6 @@ class DimArray(AttrArray):
             raise AttributeError("Dimension names must be unique!\n"+
                                  "Supplied names: "+str(new_dim_names))
 
-    def _convert_index(self,index):
-        """
-        Helper function to make indexing by
-        string behave exactly as indexing by number.
-        """
-        # get the old index to compare:
-        old_index = self.find()
-        # comparison vector:
-        cmpvec = [np.any(index[i]!=old_index[i]) for i in
-                  range(len(old_index))]
-        # find the indices that have changed:
-        changed_idx, = np.nonzero(np.ravel(cmpvec))
-        
-        # make a temporary index list (because 'tuple'
-        # objects do not support item assignment):
-        tmp_indx = list(index)
-        # as dimensions are removed, the index needs to be adjusted:
-        idx_adjust = 0
-        for c_idx in changed_idx:
-            # if dimension is reduced to one level, remove that
-            # dimension:
-            if np.max(np.shape(index[c_idx])) == 1:
-                for i,ti in enumerate(tmp_indx):
-                    tmp_indx[i] = np.apply_along_axis(
-                        lambda a: a[0],c_idx-idx_adjust,tmp_indx[i])
-                idx_adjust += 1
-        # update the index
-        index = tuple(tmp_indx)
-        return index,changed_idx
-            
-
 
     def __setattr__(self, name, value):
         # ensure that dims is valid:
@@ -301,8 +270,6 @@ class DimArray(AttrArray):
         return m_ind,ind
 
     def __getitem__(self, index):
-        dim_ind = None
-        changed_idx = None
         # process whether we using fancy string-based indices
         if isinstance(index,str):
             # see if it's just a single dimension name
@@ -314,14 +281,10 @@ class DimArray(AttrArray):
             else:
                 # call find to get the new index from the string
                 index = self.find(index)
-                #index,dim_ind = self._select_ind(index)
-                index,changed_idx = self._convert_index(index)
 
         elif isinstance(index,tuple) and isinstance(index[0],str):
             # Use find to get the new index from the list of stings
             index = self.find(*index)
-            #index,dim_ind = self._select_ind(*index)
-            index,changed_idx = self._convert_index(index)
             
         try: # try block to ensure the _skip_dim_check flag gets reset
             # in the following finally block
@@ -343,14 +306,6 @@ class DimArray(AttrArray):
                         tokeep = tokeep[tokeep!=i]
                     else:
                         ret.dims[i] = ret.dims[i][ind]
-                    if changed_idx is not None:
-                        if i in changed_idx:
-                            if len(np.shape(np.squeeze(ind)))==0:
-                                # if a changed dimension was reduced to one
-                                # level, remove that dimension
-                                tokeep = tokeep[tokeep!=i]
-                        else:
-                            ret.dims[i] = ret.dims[i][ind]
 
                 # remove the empty dims
                 ret.dims = ret.dims[tokeep]
