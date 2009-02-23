@@ -205,6 +205,8 @@ class test_DimArray(NumpyTestCase):
         print dat.dims
         print dat['dim2>0'].dims
         assert_array_equal(dat['dim2>0'].dims[1],dat.dims[1][1:])
+
+        ###### CTW: THIS TEST CURRENTLY FAILS
         #assert_array_equal(dat[1:,1:],dat['dim1>0','dim2>0'])
 
         
