@@ -174,7 +174,7 @@ class DimArray(AttrArray):
         
         # Ensure that the lengths of the Dim instances match the array shape:
         if self.shape != tuple([len(d) for d in self.dims]):
-            raise AttributeError("The length of the dims must match the shape"+
+            raise AttributeError("The length of the dims must match the shape" +
                                  " of the DimArray!\nDimArray shape: "+
                                  str(self.shape)+"\nShape of the dims:\n"+
                                  str(tuple([len(d) for d in self.dims])))
@@ -198,7 +198,7 @@ class DimArray(AttrArray):
         
         # Ensure that the lengths of the Dim instances match the array shape:
         if self.shape != tuple([len(d) for d in new_dims]):
-            raise AttributeError("The length of the dims must match the shape"+
+            raise AttributeError("The length of the dims must match the shape" +
                                  " of the DimArray!\nDimArray shape: "+
                                  str(self.shape)+
                                  "\nShape of the supplied dims:\n"+
@@ -279,7 +279,7 @@ class DimArray(AttrArray):
                     ind[d] = ind[d] & newind
 
                     # break this loop to continue the next
-                    # break
+                    break
                     
             # if we get to here, the provided string did not specify
             # any dimensions
@@ -301,6 +301,7 @@ class DimArray(AttrArray):
         return m_ind,ind
 
     def __getitem__(self, index):
+        dim_ind = None
         changed_idx = None
         # process whether we using fancy string-based indices
         if isinstance(index,str):
@@ -313,18 +314,19 @@ class DimArray(AttrArray):
             else:
                 # call find to get the new index from the string
                 index = self.find(index)
+                #index,dim_ind = self._select_ind(index)
                 index,changed_idx = self._convert_index(index)
 
         elif isinstance(index,tuple) and isinstance(index[0],str):
             # Use find to get the new index from the list of stings
             index = self.find(*index)
+            #index,dim_ind = self._select_ind(*index)
             index,changed_idx = self._convert_index(index)
             
         try: # try block to ensure the _skip_dim_check flag gets reset
             # in the following finally block
             self._skip_dim_check = True
-            ret = AttrArray.__getitem__(self,index)
-            
+            ret = AttrArray.__getitem__(self,index)            
             # process the dims if necessary
             if isinstance(ret,DimArray):
                 # see which to keep and modify the rest
@@ -335,19 +337,21 @@ class DimArray(AttrArray):
                 else:
                     indlist = index
                 for i,ind in enumerate(indlist):
-                    print changed_idx,
                     if isinstance(ind,int):
                         # if a changed dimension was reduced to one
                         # level, remove that dimension
                         tokeep = tokeep[tokeep!=i]
-                    elif changed_idx is not None:
+                    else:
+                        ret.dims[i] = ret.dims[i][ind]
+                    if changed_idx is not None:
                         if i in changed_idx:
                             if len(np.shape(np.squeeze(ind)))==0:
                                 # if a changed dimension was reduced to one
                                 # level, remove that dimension
                                 tokeep = tokeep[tokeep!=i]
-                    else:
-                        ret.dims[i] = ret.dims[i][ind]
+                        else:
+                            ret.dims[i] = ret.dims[i][ind]
+
                 # remove the empty dims
                 ret.dims = ret.dims[tokeep]
 

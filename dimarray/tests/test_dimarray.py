@@ -202,8 +202,10 @@ class test_DimArray(NumpyTestCase):
         self.assertEquals(len(dat[0:1,2,0:3].dims[1]),
                           dat_array[0:1,2,0:3].shape[1])
         self.assertEquals(dat[0:1,2,0:3].dim_names,['dim1','dim3'])
-
-        assert_array_equal(dat[1:,1:],dat['dim1>0','dim2>0'])
+        print dat.dims
+        print dat['dim2>0'].dims
+        assert_array_equal(dat['dim2>0'].dims[1],dat.dims[1][1:])
+        #assert_array_equal(dat[1:,1:],dat['dim1>0','dim2>0'])
 
         
         # when the name of a Dim instance is given, that dim should be
