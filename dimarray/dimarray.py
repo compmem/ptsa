@@ -136,17 +136,26 @@ class DimArray(AttrArray):
     T = property(lambda self: self.transpose())
     _skip_dim_check = False
     
-    def __new__(cls, data, dims, dtype=None, copy=False, **kwargs):
+    def __new__(cls, data, dims=None, dtype=None, copy=False, **kwargs):
+        # see how to process dims
+        if dims is None:
+            # fill with default values
+            dims = []
+            for i,dlen in enumerate(data.shape):
+                dims.append(Dim(np.arange(dlen), 'dim%d'%(i+1)))
+
         # Ensure that any array_like container of dims is turned into a
         # numpy.ndarray of Dim dtype:
         dimarr = np.empty(len(dims),dtype=Dim)
         dimarr[:] = dims
+
         # set the kwargs to have dims as an ndarray
         kwargs['dims'] = dimarr #np.array(dims,dtype=np.object)
 
-        # make new AttrArray:
+        # make new AttrArray parent class
         dimarray = AttrArray(data,dtype=dtype,copy=copy,**kwargs)
-        # convert to DimArray and return:
+        
+        # View as DimArray and return:
         return dimarray.view(cls)
 
     def __array_finalize__(self,obj):
@@ -269,6 +278,28 @@ class DimArray(AttrArray):
 
         return m_ind,ind
 
+    def __setitem__(self, index, obj):
+        # process whether we using fancy string-based indices
+        if isinstance(index,str):
+            # see if it's just a single dimension name
+            res = self._dim_namesRE.search(index)
+            if res:
+                # we have a single name, so set the
+                # corresponding dimension
+                self.dims[self.dim_names.index(res.group())] = obj
+                return
+            else:
+                # call find to get the new index from the string
+                index = self.find(index)
+
+        elif isinstance(index,tuple) and \
+                 np.any([isinstance(ind,str) for ind in index]):
+            # Use find to get the new index from the list of stings
+            index = self.find(*index)
+
+        # perform the set
+        AttrArray.__setitem__(self, index, obj)            
+
     def __getitem__(self, index):
         # process whether we using fancy string-based indices
         if isinstance(index,str):
@@ -282,7 +313,8 @@ class DimArray(AttrArray):
                 # call find to get the new index from the string
                 index = self.find(index)
 
-        elif isinstance(index,tuple) and isinstance(index[0],str):
+        elif isinstance(index,tuple) and \
+                 np.any([isinstance(ind,str) for ind in index]):
             # Use find to get the new index from the list of stings
             index = self.find(*index)
             
@@ -314,83 +346,6 @@ class DimArray(AttrArray):
         finally:
             # reset the _skip_dim_check flag:
             self._skip_dim_check = False
-
-    def __getitem__old(self, index):
-        # embedd in try block to ensure that _getitem flag is reset (in finally)
-        print "in __getitem__(%s)" % (str(index))
-        try:
-            if isinstance(index,str):
-                # see if it's just a single dimension name
-                res = self._dim_namesRE.search(index)
-                if res:
-                    # we have a single name, so return the
-                    # corresponding dimension
-                    return self.dims[self.dim_names.index(res.group())]
-                else:
-                    # call select to do the work
-                    #return self.select(index)
-                    index = self.find(index)
-            elif isinstance(index,tuple) and isinstance(index[0],str):
-                index = self.find(index)
-                    
-            if isinstance(index,int):
-                # a single int as index eliminates the first dimension:
-                newdims = copylib.deepcopy(self.dims)
-                newdims.pop(0)
-            elif isinstance(index,slice) or isinstance(index,np.ndarray):
-                # a single slice is taken over the first dimension:
-                newdims = copylib.deepcopy(self.dims)
-                newdims[0]=newdims[0][index]
-            elif isinstance(index,tuple):
-                # for tuples, if strs, send to select
-                if isinstance(index[0],str):
-                    # PBS: CTW, this is new, we need to add in catches
-                    return self.select(*index)
-                else:
-                    # loop over the elements:
-                    newdims = copylib.deepcopy(self.dims)
-                    adj_i = 0 # adjusted index (if dimensions are eliminated)
-                    for i,ind in enumerate(index):
-                        if isinstance(ind,int):
-                            # eliminate respective dim and update
-                            # adj_i accordingly:
-                            newdims.pop(adj_i)
-                            adj_i -= 1
-                        elif (isinstance(ind,slice) or
-                              isinstance(ind,np.ndarray)):
-                            # apply the slice or array to the
-                            # respective dimension
-                            newdims[adj_i] = newdims[adj_i][ind]
-                        else: # not sure if there are other legitimate
-                              # indices here
-                            raise NotImplementedError(
-                                "This index is not (yet?) implemented!",
-                                type(ind), str(ind), str(i), str(adj_i),
-                                type(index),str(index))
-                        # increment adjusted index:
-                        adj_i += 1
-            else: # not sure if there are other legitimate indices here
-                raise NotImplementedError(
-                    "This index is not (yet?) implemented!",
-                    type(index),str(index))
-            
-            # Now that the dimensions are updated, we need to get the data:
-            # set skip_dim_chek flag for __array_finalize__:
-            self._skip_dim_check = True
-            # get the data:
-            ret = np.ndarray.__getitem__(self,index)
-            # if the resulting data is scalar, return it:
-            if ret.ndim == 0:
-                return ret
-            else: # othewise, adjust the dimensions:
-                # set new dimensions:
-                ret.dims = newdims
-                # finalize the new array and return:
-                ret.__array_finalize__(ret)
-                return ret            
-        finally:
-            # reset the _skip_dim_check flag:
-            self._skip_dim_check = False        
 
     def find(self,*args,**kwargs):
         """
