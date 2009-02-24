@@ -5,6 +5,7 @@ pyeeg/griddata-0.1
 \#*
 \.\#*
 build
+_build
 *.so
 build-arch*
 
