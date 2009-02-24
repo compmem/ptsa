@@ -193,50 +193,57 @@ class DimArray(AttrArray):
             raise AttributeError("Dimension names must be unique!\nnames: "+
                                  str(self.dim_names))
 
-    def _chkNewDims(self,new_dims):
-        """
-        Ensure that the dims attribute is a list of Dim instances that
-        match the array shape.
-        """
-        # Ensure that the new dims is made up of only Dim instances:
-        if not np.array([isinstance(x,Dim) for x in new_dims]).all():
-            print [x.__class__ for x in new_dims]
-            raise AttributeError("The dims attribute must contain "+
-                             "only Dim instances!\nSupplied dims:\n"+
-                                 str(new_dims))
+#     def _chkNewDims(self,new_dims):
+#         """
+#         Ensure that the dims attribute is a list of Dim instances that
+#         match the array shape.
+#         """
+#         # Ensure that the new dims is made up of only Dim instances:
+#         if not np.array([isinstance(x,Dim) for x in new_dims]).all():
+#             print [x.__class__ for x in new_dims]
+#             raise AttributeError("The dims attribute must contain "+
+#                              "only Dim instances!\nSupplied dims:\n"+
+#                                  str(new_dims))
         
-        # Ensure that the lengths of the Dim instances match the array shape:
-        if self.shape != tuple([len(d) for d in new_dims]):
-            raise AttributeError("The length of the dims must match the shape" +
-                                 " of the DimArray!\nDimArray shape: "+
-                                 str(self.shape)+
-                                 "\nShape of the supplied dims:\n"+
-                                 str(tuple([len(d) for d in new_dims])))
+#         # Ensure that the lengths of the Dim instances match the array shape:
+#         if self.shape != tuple([len(d) for d in new_dims]):
+#             raise AttributeError("The length of the dims must match the shape" +
+#                                  " of the DimArray!\nDimArray shape: "+
+#                                  str(self.shape)+
+#                                  "\nShape of the supplied dims:\n"+
+#                                  str(tuple([len(d) for d in new_dims])))
         
-        # Ensure unique dimension names:
-        new_dim_names = [d.name for d in new_dims]
-        if len(np.unique(new_dim_names)) != len(new_dim_names):
-            raise AttributeError("Dimension names must be unique!\n"+
-                                 "Supplied names: "+str(new_dim_names))
+#         # Ensure unique dimension names:
+#         new_dim_names = [d.name for d in new_dims]
+#         if len(np.unique(new_dim_names)) != len(new_dim_names):
+#             raise AttributeError("Dimension names must be unique!\n"+
+#                                  "Supplied names: "+str(new_dim_names))
 
+#     def __setattr__(self, name, value):
+#         # ensure that dims is valid:
+#         #if (name == 'dims') and not(self._skip_dim_check):
+#         #    self._chkNewDims(value)
+#         AttrArray.__setattr__(self,name,value)
 
-    def __setattr__(self, name, value):
-        # ensure that dims is valid:
-        #if (name == 'dims') and not(self._skip_dim_check):
-        #    self._chkNewDims(value)
-        AttrArray.__setattr__(self,name,value)
-
-    def _select_ind(self,*args,**kwargs):
+    def _select_ind(self, *args, **kwargs):
         """
         Returns a tuple of index arrays for the selected conditions
         and an array of Boolean index arrays.
         """
         # get starting indicies
-        ind = [np.ones(dim.shape,np.bool) for dim in self.dims]
+        ind = [np.ones(dim.shape, dtype=np.bool) for dim in self.dims]
+
+        # set to not remove any dimensions
+        remove_dim = np.zeros(len(self.dims), dtype=np.bool)
 
         # process the args
         for arg in args:
             # arg must be a string
+            if not isinstance(arg,str):
+                raise TypeError('All args must be strings, ' + 
+                                'but you passed: ' + str(type(arg)))
+
+            # process the arg string
             filterStr = arg
 
             # figure out which dimension we're dealing with
@@ -247,14 +254,20 @@ class DimArray(AttrArray):
                     # this is our dimension
                     foundDim = True
 
-                    # replace the string
+                    # replace the string to access the dimension like:
+                    # self['dim1']
                     filterStr = re.sub(r'\b'+k+r'\b','self["'+k+'"]',filterStr)
 
                     # get the new index
                     newind = eval(filterStr)
                     
-                    # apply it to the dimension index
+                    # apply it to the proper dimension index
                     ind[d] = ind[d] & newind
+
+                    # see if we should remove the dim
+                    if re.search('==',filterStr):
+                        # we are using equality, so remove dim
+                        remove_dim[d] = True
 
                     # break this loop to continue the next
                     break
@@ -266,17 +279,17 @@ class DimArray(AttrArray):
                 raise ValueError("The provided filter string did not specify "+
                                  "any valid dimensions: "+str(filterStr))
             
-        # loop over the kwargs
+        # loop over the kwargs (the other way to filter)
         for key,value in kwargs.iteritems():
             if key in self.dim_names:
                 # get the proper dimension to cull
                 d = self.dim_names.index(key)
                 ind[d] = ind[d] & value
 
-        # create the final master index
+        # create the final master index from the list of filtered indices
         m_ind = np.ix_(*ind)
 
-        return m_ind,ind
+        return m_ind,ind,remove_dim
 
     def __setitem__(self, index, obj):
         # process whether we using fancy string-based indices
@@ -291,7 +304,6 @@ class DimArray(AttrArray):
             else:
                 # call find to get the new index from the string
                 index = self.find(index)
-
         elif isinstance(index,tuple) and \
                  np.any([isinstance(ind,str) for ind in index]):
             # Use find to get the new index from the list of stings
@@ -302,6 +314,8 @@ class DimArray(AttrArray):
 
     def __getitem__(self, index):
         # process whether we using fancy string-based indices
+        remove_dim = np.zeros(len(self.dims), dtype=np.bool)
+
         if isinstance(index,str):
             # see if it's just a single dimension name
             res = self._dim_namesRE.search(index)
@@ -311,42 +325,62 @@ class DimArray(AttrArray):
                 return self.dims[self.dim_names.index(res.group())]
             else:
                 # call find to get the new index from the string
-                index = self.find(index)
-
+                index,o_ind,remove_dim = self._select_ind(index)
         elif isinstance(index,tuple) and \
                  np.any([isinstance(ind,str) for ind in index]):
             # Use find to get the new index from the list of stings
-            index = self.find(*index)
-            
-        try: # try block to ensure the _skip_dim_check flag gets reset
-            # in the following finally block
+            index,o_ind,remove_dim = self._select_ind(*index)
+
+        # try block to ensure the _skip_dim_check flag gets reset
+        # in the following finally block
+        try: 
+            # skip the dim check b/c we're going to fiddle with them
             self._skip_dim_check = True
             ret = AttrArray.__getitem__(self,index)            
-            # process the dims if necessary
-            if isinstance(ret,DimArray):
-                # see which to keep and modify the rest
-                tokeep = np.arange(len(self.dims))
-                # turn into a tuple for easier processing
-                if not isinstance(index,tuple):
-                    indlist = (index,)
-                else:
-                    indlist = index
-                for i,ind in enumerate(indlist):
-                    if isinstance(ind,int):
-                        # if a changed dimension was reduced to one
-                        # level, remove that dimension
-                        tokeep = tokeep[tokeep!=i]
-                    else:
-                        ret.dims[i] = ret.dims[i][ind]
-
-                # remove the empty dims
-                ret.dims = ret.dims[tokeep]
-
-            return ret
         finally:
             # reset the _skip_dim_check flag:
             self._skip_dim_check = False
 
+        # process the dims if necessary
+        if isinstance(ret,DimArray):
+            # see which to keep and modify the rest
+            tokeep = np.arange(len(self.dims))
+            # turn into a tuple for easier processing
+            if not isinstance(index,tuple):
+                indlist = (index,)
+            else:
+                indlist = index
+
+            # see if we're gonna ignore removing dimensions
+            if np.any([isinstance(ind,np.ndarray) and \
+                           len(ind)==0 for ind in indlist]):
+                # don't remove any b/c we selected nothing anyway
+                remove_dim[:] = False
+
+            # loop over the indlist, slicing the dimensions
+            for i,ind in enumerate(indlist):
+                if isinstance(ind,int):
+                    # if a changed dimension was reduced to one
+                    # level, remove that dimension
+                    tokeep = tokeep[tokeep!=i]
+                elif not isinstance(ind, slice) and len(ind)==0:
+                    ret.dims[i] = ret.dims[i][[]]
+                else:
+                    # slice the dims based on the index
+                    ret.dims[i] = ret.dims[i][ind]
+
+            # remove the empty dims
+            ret.dims = ret.dims[tokeep]
+
+            # remove the specified dims from the main array
+            if np.any(remove_dim):
+                ind = np.asarray([slice(None)]*len(ret.shape))
+                ind[remove_dim] = 0
+                ind = tuple(ind)
+                ret = ret[ind]
+
+        return ret
+    
     def find(self,*args,**kwargs):
         """
         Returns a tuple of index arrays for the selected conditions. 
@@ -362,7 +396,7 @@ class DimArray(AttrArray):
         and data.select(filterstring) return the same slices provided
         that the same filterstring is used.
         """
-        m_ind,ind = self._select_ind(*args,**kwargs)
+        m_ind,ind,remove_dim = self._select_ind(*args,**kwargs)
         return m_ind
 
     def select(self,*args,**kwargs):
@@ -379,7 +413,7 @@ class DimArray(AttrArray):
         To get a tuple of index arrays for the selected conditions use
         the find method.
         """
-        m_ind,ind = self._select_ind(*args,**kwargs)
+        m_ind,ind,remove_dim = self._select_ind(*args,**kwargs)
         return self[m_ind]
 
     def _split_bins(self, dim, bins, function, bin_labels,

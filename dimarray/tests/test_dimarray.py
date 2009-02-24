@@ -45,8 +45,10 @@ class test_DimArray(NumpyTestCase):
         pass
     
     def test_new(self):
-        # should throw Error if dims are not specified:
-        self.assertRaises(TypeError,DimArray,np.random.rand(5,10))
+        # should throw Error if dims are not specified: 
+        # (PBS: No longer the case)
+        #self.assertRaises(TypeError,DimArray,np.random.rand(5,10))
+
         # should throw ValueError if dims is not a list:
         self.assertRaises(AttributeError,DimArray,np.random.rand(5,10),
                           dims = np.arange(4))
@@ -119,6 +121,12 @@ class test_DimArray(NumpyTestCase):
         self.assertEquals(dat.dims[0][-1],1)
         self.assertEquals(dat.dims[1][-1],3)
         self.assertEquals(dat.dims[2][-1],4)
+
+        # check filling in of default dims if left out
+        dat = DimArray(np.random.rand(4,3))
+        self.assertEquals(dat.dim_names, ['dim1','dim2'])
+        assert_array_equal(dat['dim1'],np.arange(dat.shape[0]))
+        assert_array_equal(dat['dim2'],np.arange(dat.shape[1]))
 
     def test_getitem(self):
         # make ndarray an Dimaray with identical data
@@ -206,8 +214,7 @@ class test_DimArray(NumpyTestCase):
         print dat['dim2>0'].dims
         assert_array_equal(dat['dim2>0'].dims[1],dat.dims[1][1:])
 
-        ###### CTW: THIS TEST CURRENTLY FAILS
-        #assert_array_equal(dat[1:,1:],dat['dim1>0','dim2>0'])
+        assert_array_equal(dat[1:,1:],dat['dim1>0','dim2>0'])
 
         
         # when the name of a Dim instance is given, that dim should be
@@ -264,6 +271,9 @@ class test_DimArray(NumpyTestCase):
         dim3=Dim([3,4,5],'dim3')
         dat=DimArray([[[6,7,8],[9,10,11]]],[dim1,dim2,dim3])
         self.assertEquals(dat[np.ix_([0],[0,1],[0,1])].shape,(1,2,2))
+
+        # test string index returning nothing
+        
 
     def test_select(self):
         # check indexing with a tuple of arrays and with 1-level dimensions:
