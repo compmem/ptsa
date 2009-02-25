@@ -42,7 +42,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'PTSA'
-copyright = u'2009, Per B. Sederberg, Christoph T. Weidemann'
+copyright = u'2009, Per B. Sederberg & Christoph T. Weidemann'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the

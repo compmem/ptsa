@@ -33,7 +33,7 @@ the source distribution (including this website).
 .. :ref:`appendix of the manual <license>` for the copyright statement and the
 .. full text of the license.
 
-.. _GPLv3 License: http://www.gnu.org/licenses/
+.. _GPLv3 License: http://www.gnu.org/licenses/gpl-3.0.html
 .. .. _appendix of the manual: manual.html#license
 
 
@@ -49,55 +49,54 @@ Binary packages
 Source code
 -----------
 
-.. Source code tarballs of PyMVPA releases are available from the `download
+.. Source code tarballs of PTSA releases are available from the `download
 .. area`_. Alternatively, one can also download a tarball of the latest
 .. development snapshot_ (i.e. the current state of the *master* branch of the
-.. PyMVPA source code repository).
+.. PTSA source code repository).
 
-.. To get access to both the full PyMVPA history and the latest
-.. development code, the PyMVPA Git_ repository is publicly available. To view the
+.. To get access to both the full PTSA history and the latest
+.. development code, the PTSA Git_ repository is publicly available. To view the
 .. repository, please point your webbrowser to gitweb:
-.. http://git.debian.org/?p=pkg-exppsy/pymvpa.git
+.. http://tbd
 
-.. To clone (aka checkout) the PyMVPA repository simply do:
+.. To clone (aka checkout) the PTSA repository simply do:
 
 .. ::
 
-..   git clone git://git.debian.org/git/pkg-exppsy/pymvpa.git
+..   git clone git://tbd
 
-.. After a short while you will have a `pymvpa` directory below your current
-.. working directory, that contains the PyMVPA repository.
+.. After a short while you will have a `ptsa` directory below your current
+.. working directory, that contains the PTSA repository.
 
 .. More detailed instructions on :ref:`installation requirements <requirements>`
-.. and on how to :ref:`build PyMVPA from source <buildfromsource>` are provided
+.. and on how to :ref:`build PTSA from source <buildfromsource>` are provided
 .. in the manual.
 
 
-.. .. _download area: http://alioth.debian.org/frs/?group_id=30954
+.. .. _download area: http://tbd
 .. .. _Git: http://git.or.cz/
-.. .. _snapshot:  http://git.debian.org/?p=pkg-exppsy/pymvpa.git;a=snapshot;h=refs/heads/master;sf=tgz
+.. .. _snapshot:  http://tbd
 
 
 Support
 =======
 
 .. If you have problems installing the software or questions about usage,
-.. documentation or something else related to PyMVPA, you can post to the PyMVPA
-.. mailing list (preferred) or contact the authors on IRC:
+.. documentation or something else related to PTSA, you can post to the PTSA
+.. mailing list:
 
-.. :Mailing list: pkg-exppsy-pymvpa@lists.alioth.debian.org [subscription_,
+.. :Mailing list: tbd@tbd [subscription_,
 ..                archive_]
-.. :IRC: #exppsy on OTFC/Freenode
 
-.. All users should subscribe to the mailing list. PyMVPA is still a young project
+.. All users should subscribe to the mailing list. PTSA is still a young project
 .. that is under heavy development. Significant modifications (hopefully
 .. improvements) are very likely to happen frequently. The mailing list is the
 .. preferred way to announce such changes. The mailing list archive can also be
 .. searched using the *mailing list archive search* located in the sidebar of the
-.. PyMVPA home page.
+.. PTSA home page.
 
-.. .. _subscription: http://lists.alioth.debian.org/mailman/listinfo/pkg-exppsy-pymvpa
-.. .. _archive: http://lists.alioth.debian.org/pipermail/pkg-exppsy-pymvpa/
+.. .. _subscription: http://tbd
+.. .. _archive: http://tbd
 
 
 
