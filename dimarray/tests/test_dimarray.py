@@ -1,4 +1,4 @@
-#emacs: -*- mode: python-mode; py-indent-offset: 4; indent-tabs-mode: nil -*-
+#emacs: -*- mode: python; py-indent-offset: 4; indent-tabs-mode: nil -*-
 #ex: set sts=4 ts=4 sw=4 et:
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ##
 #
@@ -23,10 +23,12 @@ class test_Dim(NumpyTestCase):
         pass
     
     def test_new(self):
-        # should throw AttributeError if no name is specified:
+        # should raise AttributeError if no name is specified:
         self.assertRaises(AttributeError,Dim,range(3))
-        # should throw ValueError if not 1-D:
+        # should raise ValueError if not 1-D:
         self.assertRaises(ValueError,Dim,rnd((2,3)),name='test')
+        # should raise ValueError if data is not unique
+        self.assertRaises(ValueError,Dim,[1,2,2,3],name='test')
         # should work fine with any number of dimensions as long as it
         # is squeezable or expandable to 1-D:
         tst = Dim(rnd((3,1,1,1,1)),name='test')
@@ -45,15 +47,15 @@ class test_DimArray(NumpyTestCase):
         pass
     
     def test_new(self):
-        # should throw Error if dims are not specified: 
+        # should raise Error if dims are not specified: 
         # (PBS: No longer the case)
         #self.assertRaises(TypeError,DimArray,np.random.rand(5,10))
 
-        # should throw ValueError if dims is not a list:
+        # should raise ValueError if dims is not a list:
         self.assertRaises(AttributeError,DimArray,np.random.rand(5,10),
                           dims = np.arange(4))
 
-        # should throw Error if dims contains non-Dim instances:
+        # should raise Error if dims contains non-Dim instances:
         self.assertRaises(AttributeError,DimArray,np.random.rand(5,10),
                           dims=[Dim(range(5),name='freqs',unit='Hz'),
                                 AttrArray(range(10),name='time',unit='sec')])

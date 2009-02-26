@@ -22,17 +22,19 @@ class Dim(AttrArray):
     Dim(data, name, dtype=None, copy=False, **kwargs)
     
     Class that defines a dimension.  It has one required attribute
-    (name), but other custom attributes (e.g., units) can be specified.
+    (name), but other custom attributes (e.g., units) can be
+    specified.
 
     Parameters
     ----------
     data : {1-D array_like}
-        The values of the dimension (e.g., time points for a time dimension)
-    name : {object}
+        The values of the dimension (e.g., time points for a time
+        dimension)
+    name : object
         The name of the dimension (e.g., 'time')
-    dtype : {numpy.dtype},optional
+    dtype : numpy.dtype,optional
         The data type.
-    copy : {bool},optional
+    copy : bool,optional
         Flag specifying whether or not data should be copied.
     **kwargs : {**kwargs},optional
         Additional custom attributes (e.g., units='ms').
@@ -41,27 +43,31 @@ class Dim(AttrArray):
     
     def __new__(cls, data, name=None, dtype=None, copy=False, **kwargs):
         if name is None:
+            # if 'name' is not specified see if data already has a
+            # name attribute:
             name = getattr(data,'name',None)
         if name is None:
             raise AttributeError("A 'name' attribute must be specified!")
         # set the kwargs to have name
         kwargs['name'] = name
+        kwargs['_chk_data'] = True
         # make new AttrArray:
         dim = AttrArray(data,dtype=dtype,copy=copy,**kwargs)
+
         # convert to Dim and return:
         return dim.view(cls)
 
+    def _check_unique(self,data):
+        dat1 = np.atleast_1d(data)
+        dat2 = np.unique(dat1)
+        if np.shape(dat1) != np.shape(dat2):
+            raise ValueError("Data for Dim objects must be unique!")
+        
     def __array_finalize__(self, obj):
         AttrArray.__array_finalize__(self,obj)
-        # XXX perhaps save the copy state and only copy if requested
-        #self._attrs = copylib.copy(getattr(obj, '_attrs', {}))
-        # Set all attributes:
-        #self._setAllAttr()
-        # Ensure that the required attributes are present:
-        #self._chkReqAttr()
         
-        #self._getitem = False
-        #if (isinstance(obj, Dim) and obj._getitem): return
+        # Make sure no values repeat in data:
+        self._check_unique(obj)
 
         # make sure the data is 1-D:
         if self.ndim == 1: # if 1-D, return
@@ -324,11 +330,11 @@ class DimArray(AttrArray):
                 # corresponding dimension
                 return self.dims[self.dim_names.index(res.group())]
             else:
-                # call find to get the new index from the string
+                # call _select_ind to get the new index from the string
                 index,o_ind,remove_dim = self._select_ind(index)
         elif isinstance(index,tuple) and \
                  np.any([isinstance(ind,str) for ind in index]):
-            # Use find to get the new index from the list of stings
+            # Use _select_ind to get the new index from the list of stings
             index,o_ind,remove_dim = self._select_ind(*index)
 
         # try block to ensure the _skip_dim_check flag gets reset
@@ -534,68 +540,57 @@ class DimArray(AttrArray):
         """
         Return a copy of the data with dimension (specified by axis)
         binned as specified.
-        
-        :Example usage:
-        
-        data.make_bins('time',10,numpy.mean,number_bins=False)
-        data.make_bins('time',[[-100,0,'baseline'],[0,100,'timebin 1'],
-                      [100,200,'timebin 2']],numpy.mean,number_bins=False)
                         
-        :Parameters:
+        Parameters
+        ----------
+        axis : int
+            The dimension to be binned. Can be name or number.
+        bins : {int,list,tuple}
+            Specifies how the data should be binned. Acceptable values
+            are:
+            * the number of bins (equally spaced, if possible, roughly
+              equally spaced if not and error_on_nonexact is False).
+              (Uses numpy.[array]split.)
+            * A 1-D container (list or tuple) of the indices where the
+              data should be split into bins. The value for
+              error_on_nonexact does not influence the result.  (Uses
+              numpy.[array]split.)
+            * A 2-D container (lists or tuples) where each container
+              in the first dimension specifies the min (inclusive) and
+              the max (exlusive) values and (optionally) a label for
+              each bin. The value for error_on_nonexact must be
+              True. If labels are specified in bins, they are used and
+              the value of bin_labels is ignored.
+        function : function
+            The function to aggregate over within the bins. Needs to
+            take the data as the first argument and an additional axis
+            argument (numpy.mean is an example of a valid function).
+        bins_labels : {'function','sequential',array_like}, optional
+            'function' applies the function that is used for binning
+            to the dimension, 'sequential' numbers the bins
+            sequentially. Alternatively, a 1-D container that contains
+            the bin labels can be specified.
+        error_on_nonexact : {True, False}, optional
+            Specifies whether roughly equal bin sizes are acceptable
+            when the data cannot be evenly split in the specified
+            number of bins (this parameter is only applicable when
+            bins is an integer specifying the number of bins). When
+            True, the function numpy.split is used, when False the
+            function numpy.array_split is used.                       
+        kwargs : keyword arguments, optional
+            Optional key word arguments to be passed on to function.
         
-        - `axis`: The dimension to be binned. Can be name or number.
+        Returns
+        -------
+        binned : DimArray
+            A new DimArray instance in which one of the dimensions is
+            binned as specified.
         
-        - `bins`: Specifies how the data should be binned. Acceptable
-                  values are:
-                  
-                  * the number of bins (equally spaced, if possible,
-                    roughly equally spaced if not and
-                    error_on_nonexact is False).  (Uses
-                    numpy.[array]split.)
-                    
-                  * A 1-D container (list or tuple) of the indices
-                    where the data should be split into bins. The
-                    value for error_on_nonexact does not influence the
-                    result.  (Uses numpy.[array]split.)
-                    
-                  * A 2-D container (lists or tuples) where each
-                    container in the first dimension specifies the min
-                    (inclusive) and the max (exlusive) values and
-                    (optionally) a label for each bin. The value for
-                    error_on_nonexact must be True. If labels are
-                    specified in bins, they are used and the value of
-                    bin_labels is ignored.
-                    
-        - `function`: The function to aggregate over within the
-                      bins. Needs to take the data as the first
-                      argument and an additional axis argument
-                      (numpy.mean is an example of a valid function).
-                      
-        - `bins_labels` (optional):
-                         {'function','sequential',array_like}
-                         'function' applies the function that is used
-                         for binning to the dimension, 'sequential'
-                         numbers the bins sequentially. Alternatively,
-                         a 1-D container that contains the bin labels
-                         can be specified.
-                         
-        - `error_on_nonexact` (optional): Specifies whether roughly
-                               equal bin sizes are acceptable when the
-                               data cannot be evenly split in the
-                               specified number of bins (this
-                               parameter is only applicable when bins
-                               is an integer specifying the number of
-                               bins). When True, the function
-                               numpy.split is used, when False the
-                               function numpy.array_split is used.
-                               
-        - `kwargs` (optional): Optional key word arguments to be
-                               passed on to function.
-        
-        :Returns:
-        
-        A new DimArray instance in which one of the dimensions is
-        binned as specified.
+        Examples
+        -------------
+        >>> data.make_bins('time',10,numpy.mean,number_bins=False)
+        >>> data.make_bins('time',[[-100,0,'baseline'],[0,100,'timebin 1'],
+                      [100,200,'timebin 2']],numpy.mean,number_bins=False)
         """
         # Makes sure dim is index (convert dim name if necessary):
         dim = self.get_axis(axis)
@@ -646,12 +641,12 @@ class DimArray(AttrArray):
         corresponding dimension name.
 
         Parameters
-        __________
-        axis : {str}
+        ----------
+        axis : str
             The name of a dimension.
             
         Returns
-        _______
+        -------
         The axis number corresponding to the dimension name.
         If axis is not a string, it is returned unchanged.        
         """
