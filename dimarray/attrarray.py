@@ -75,12 +75,18 @@ class AttrArray(np.ndarray):
         result = result.view(cls)
 
         # get the new attrs, kwargs has priority
-        # always do deep copy of attrs
+        # see if do deep copy of attrs
         newattrs = {}
         if hasattr(data,'_attrs'):
             # add those to the list of attributes
-            newattrs = copylib.deepcopy(data._attrs)
-        newattrs.update(copylib.deepcopy(kwargs))
+            if copy:
+                newattrs = copylib.deepcopy(data._attrs)
+            else:
+                newattrs = data._attrs
+        if copy:
+            newattrs.update(copylib.deepcopy(kwargs))
+        else:
+            newattrs.update(kwargs)
 
         # Set and check all attributes:
         result._attrs = newattrs
@@ -94,6 +100,11 @@ class AttrArray(np.ndarray):
         # XXX perhaps save the copy state and only copy if requested
         if not hasattr(self, '_attrs'):
             self._attrs = copylib.deepcopy(getattr(obj, '_attrs', {}))
+            #if hasattr(obj, '_do_copy') and obj._do_copy:
+            #    self._attrs = copylib.deepcopy(getattr(obj, '_attrs', {}))
+            #else:
+            #    self._attrs = getattr(obj, '_attrs', {})
+            #self._attrs = getattr(obj, '_attrs', {})
 
         # Set all attributes:
         self._setAllAttr()
@@ -161,5 +172,4 @@ class AttrArray(np.ndarray):
                 raise AttributeError("Attribute '"+name+"' is required, and "+
                                      "must be "+str(self._required_attrs[name]))
             
-
 
