@@ -360,7 +360,9 @@ class DimArray(AttrArray):
                     # slice the dims based on the index
                     if not isinstance(ind, slice):
                         # squeeze it to maintain dimensionality
-                        ind = np.squeeze(ind)
+                        tosqueeze = [0]*len(ind.shape)
+                        tosqueeze[i] = slice(None)
+                        ind = ind[tuple(tosqueeze)]
                     ret.dims[i] = ret.dims[i][ind]
 
             # remove the empty dims
