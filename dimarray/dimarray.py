@@ -196,11 +196,21 @@ class DimArray(AttrArray):
         Ensure that the dims attribute is a list of Dim instances that
         match the array shape.
         """
-        # Ensure that dims is made up of only Dim instances:
-        if not np.array([isinstance(x,Dim) for x in self.dims]).all():
-            print [x.__class__ for x in self.dims]
-            raise AttributeError("The dims attribute must contain "+
-                                 "only Dim instances!\ndims:\n"+str(self.dims))
+        # loop over the dims and make sure they are valid
+        for i,d in enumerate(self.dims):
+            # make sure it's a dim
+            if not isinstance(d,Dim):
+                raise AttributeError("The dims attribute must contain "+
+                                     "only Dim instances!\ndim %d: %s\n" % \
+                                     (i,str(type(d))))
+            # make sure it is unique
+            if d.shape[0] != np.unique(np.asarray(d)).shape[0]:
+                raise ValueError("Data for Dim objects must be unique!")
+
+#         # Ensure that dims is made up of only Dim instances:
+#         if not np.array([isinstance(x,Dim) for x in self.dims]).all():
+#             raise AttributeError("The dims attribute must contain "+
+#                                  "only Dim instances!\ndims:\n"+str(self.dims))
         
         # Ensure that the lengths of the Dim instances match the array shape:
         if self.shape != tuple([len(d) for d in self.dims]):
@@ -209,7 +219,7 @@ class DimArray(AttrArray):
                                  str(self.shape)+"\nShape of the dims:\n"+
                                  str(tuple([len(d) for d in self.dims])))
         
-        # Ensure unique dimension names:
+        # Ensure unique dimension names (this will fail if not all Dims)
         if len(np.unique(self.dim_names)) != len(self.dim_names):
             raise AttributeError("Dimension names must be unique!\nnames: "+
                                  str(self.dim_names))
