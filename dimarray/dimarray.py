@@ -21,9 +21,10 @@ class Dim(AttrArray):
     """
     Dim(data, name, dtype=None, copy=False, **kwargs)
     
-    Class that defines a dimension.  It has one required attribute
-    (name), but other custom attributes (e.g., units) can be
-    specified.
+    Class that defines a dimension.
+
+    It has one required attribute (name), but other custom attributes
+    (e.g., units) can be specified.
 
     Parameters
     ----------
@@ -40,7 +41,7 @@ class Dim(AttrArray):
         Additional custom attributes (e.g., units='ms').
     """
     _required_attrs = {'name':str}
-    _skip_checks = False
+    
     def __new__(cls, data, name=None, dtype=None, copy=False, **kwargs):
         if name is None:
             # if 'name' is not specified see if data already has a
@@ -50,73 +51,43 @@ class Dim(AttrArray):
             raise AttributeError("A 'name' attribute must be specified!")
         # set the kwargs to have name
         kwargs['name'] = name
-        kwargs['_checked'] = False
+
         # make new AttrArray:
         dim = AttrArray(data,dtype=dtype,copy=copy,**kwargs)
 
-        # convert to Dim and return:
-        return dim.view(cls)
-
-    def _chk(self,data):
-        self._checked = True
-        if len(np.shape(data)) < 1:
-            return
-        # check that dimensions are unique:
-        if (np.shape(data) != np.shape(np.unique(data))):
-            raise ValueError("Data for Dim objects must be unique!")
-
-    def _chk_dim(self,data):
-        if data.ndim > 1:
-            # massage the array into 1-D if possible; using
-            # data.squeeze() can lead to nasty recursions and 0-D
-            # arrays so we do it by hand:
-            newshape = tuple([x for x in data.shape if x > 1])
+        # check the dim
+        if dim.ndim > 1:
+            # using self.squeeze() can lead to nasty recursions and
+            # 0-D arrays so we do it by hand:
+            newshape = tuple([x for x in dim.shape if x > 1])
             ndim = len(newshape)
             if ndim == 1:
-                data.reshape(newshape)
+                dim.shape = newshape
             elif ndim == 0:
-                data.reshape(1,)
+                dim.shape = (1,)
             else:
                 raise ValueError("Dim instances must be 1-dimensional!\ndim:\n"+
-                                 str(data)+"\nnewshape:",newshape)
-            # if the array is 0-D, make it 1-D:
-        elif data.ndim == 0:
-            data.reshape(1)
-        elif data.ndim != 1:
-            # This would require negative data.ndim which would
-            # indicate a serious bug in ndarray.
-            raise ValueError("Invalid number of dimensions!")
-        return data
+                                 str(dim)+"\nnewshape:",newshape)
+        # if the array is 0-D, make it 1-D:
+        elif dim.ndim == 0:
+            dim.shape = (1,)
         
-    def __array_finalize__(self,obj):
-        # call the AttrArray finalize
-        AttrArray.__array_finalize__(self,obj)
-        # ensure _skip_checks flag is off
-        self._skip_checks = False
-        # if this method is called with _skip_checks == True, don't
-        # check dims. This is most likely happens when it is called
-        # after a call __get_item__ call. The python interpreter does
-        # some slicing that may break the requirements when it prints
-        # out the contents of a Dim instance. This is harmless, but
-        # unfortunately we need to over-ride the usual error checking
-        # to avoid error messages:
-        if (isinstance(obj,Dim) and obj._skip_checks): return
-        # check that Dim instance is valid:
-        if not self._checked:
-            self._chk(obj)
-        #if obj.ndim != 1:
-            obj = self._chk_dim(obj)
+        if dim.shape[0] != np.unique(np.asarray(dim)).shape[0]:
+            raise ValueError("Data for Dim objects must be unique!")
 
-
+        # convert to Dim and return:
+        return dim.view(cls)
+        
 #     def __array_finalize__(self, obj):
 #         AttrArray.__array_finalize__(self,obj)
-        
-#         # Make sure no values repeat in data:
-#         #self._check_unique(obj)
 
 #         # make sure the data is 1-D:
 #         if self.ndim == 1: # if 1-D, return
-#             return
+#             pass #return
+#         else:
+#             pass
+#             raise ValueError("Dim instances must be 1-dimensional!\ndim:\n"+
+#                              str(self)+"\nshape:",self.shape)
 #         # massage the array into 1-D if possible:
 #         elif self.ndim > 1:
 #             # using self.squeeze() can lead to nasty recursions and
@@ -125,7 +96,7 @@ class Dim(AttrArray):
 #             ndim = len(newshape)
 #             if ndim == 1:
 #                 self.shape = newshape
-#                 return
+#                 #return
 #             elif ndim == 0:
 #                 self.shape = (1,)
 #             else:
@@ -133,40 +104,32 @@ class Dim(AttrArray):
 #                                  str(self)+"\nnewshape:",newshape)
 #         # if the array is 0-D, make it 1-D:
 #         elif self.ndim == 0:
-#             self.shape = (1)
-#             return
+#             self.shape = (1,)
+#             #return
 #         else:
 #             # This would require negative self.ndim which would
 #             # indicate a serious bug in ndarray.
 #             raise ValueError("Invalid number of dimensions!")
 
-    def __getitem__(self, index):
-        # try block to ensure the _skip_dim_check flag gets reset
-        # in the following finally block
-        try: 
-            # skip the checks:
-            self._skip_checks = True
-            ret = AttrArray.__getitem__(self,index)            
-        finally:
-            # reset the _skip_dim_check flag:
-            self._skip_checks = False
-        ret = self._chk_dim(ret)
-        # ret = AttrArray.__getitem__(self,index)            
-        if isinstance(ret,Dim):
-            return ret
-        else:
-            ret = Dim(ret,self.name)
-            for a in self._attrs:
-                setattr(ret,a,self._attrs[a])
-            return ret
+#         if self.shape[0] != np.unique(np.asarray(self)).shape[0]:
+#             raise ValueError("Data for Dim objects must be unique!")
+        
+#     def __getitem__(self, index):
+#         ret = AttrArray.__getitem__(self,index)            
+#         if not isinstance(ret,Dim):
+#             ret = Dim(ret,self.name,**self._attrs)
+#             for a in self._attrs:
+#                 setattr(ret,a,self._attrs[a])
+#         return ret
 
 class DimArray(AttrArray):
     """
     DimArray(data, dims, dtype=None, copy=False, **kwargs)
 
-    Class that keeps track of the dimensions of a NumPy ndarray.  The
-    dimensions are specified in the dims attribute as a list of Dim
-    instances that match the shape of the data array.
+    Class that keeps track of the dimensions of a NumPy ndarray.
+
+    The dimensions are specified in the dims attribute as a list of
+    Dim instances that match the shape of the data array.
 
     The DimArray class provides a number of conveniences above and
     beyond normal ndarrays.  These include the ability to refer to
@@ -236,11 +199,21 @@ class DimArray(AttrArray):
         Ensure that the dims attribute is a list of Dim instances that
         match the array shape.
         """
-        # Ensure that dims is made up of only Dim instances:
-        if not np.array([isinstance(x,Dim) for x in self.dims]).all():
-            print [x.__class__ for x in self.dims]
-            raise AttributeError("The dims attribute must contain "+
-                                 "only Dim instances!\ndims:\n"+str(self.dims))
+        # loop over the dims and make sure they are valid
+        for i,d in enumerate(self.dims):
+            # make sure it's a dim
+            if not isinstance(d,Dim):
+                raise AttributeError("The dims attribute must contain "+
+                                     "only Dim instances!\ndim %d: %s\n" % \
+                                     (i,str(type(d))))
+            # make sure it is unique
+            if d.shape[0] != np.unique(np.asarray(d)).shape[0]:
+                raise ValueError("Data for Dim objects must be unique!")
+
+#         # Ensure that dims is made up of only Dim instances:
+#         if not np.array([isinstance(x,Dim) for x in self.dims]).all():
+#             raise AttributeError("The dims attribute must contain "+
+#                                  "only Dim instances!\ndims:\n"+str(self.dims))
         
         # Ensure that the lengths of the Dim instances match the array shape:
         if self.shape != tuple([len(d) for d in self.dims]):
@@ -249,42 +222,10 @@ class DimArray(AttrArray):
                                  str(self.shape)+"\nShape of the dims:\n"+
                                  str(tuple([len(d) for d in self.dims])))
         
-        # Ensure unique dimension names:
+        # Ensure unique dimension names (this will fail if not all Dims)
         if len(np.unique(self.dim_names)) != len(self.dim_names):
             raise AttributeError("Dimension names must be unique!\nnames: "+
                                  str(self.dim_names))
-
-#     def _chkNewDims(self,new_dims):
-#         """
-#         Ensure that the dims attribute is a list of Dim instances that
-#         match the array shape.
-#         """
-#         # Ensure that the new dims is made up of only Dim instances:
-#         if not np.array([isinstance(x,Dim) for x in new_dims]).all():
-#             print [x.__class__ for x in new_dims]
-#             raise AttributeError("The dims attribute must contain "+
-#                              "only Dim instances!\nSupplied dims:\n"+
-#                                  str(new_dims))
-        
-#         # Ensure that the lengths of the Dim instances match the array shape:
-#         if self.shape != tuple([len(d) for d in new_dims]):
-#             raise AttributeError("The length of the dims must match the shape" +
-#                                  " of the DimArray!\nDimArray shape: "+
-#                                  str(self.shape)+
-#                                  "\nShape of the supplied dims:\n"+
-#                                  str(tuple([len(d) for d in new_dims])))
-        
-#         # Ensure unique dimension names:
-#         new_dim_names = [d.name for d in new_dims]
-#         if len(np.unique(new_dim_names)) != len(new_dim_names):
-#             raise AttributeError("Dimension names must be unique!\n"+
-#                                  "Supplied names: "+str(new_dim_names))
-
-#     def __setattr__(self, name, value):
-#         # ensure that dims is valid:
-#         #if (name == 'dims') and not(self._skip_dim_check):
-#         #    self._chkNewDims(value)
-#         AttrArray.__setattr__(self,name,value)
 
     def _select_ind(self, *args, **kwargs):
         """
@@ -425,9 +366,15 @@ class DimArray(AttrArray):
                     # level, remove that dimension
                     tokeep = tokeep[tokeep!=i]
                 elif not isinstance(ind, slice) and len(ind)==0:
+                    # handle where we selected nothing
                     ret.dims[i] = ret.dims[i][[]]
                 else:
                     # slice the dims based on the index
+                    if not isinstance(ind, slice):
+                        # squeeze it to maintain dimensionality
+                        tosqueeze = [0]*len(ind.shape)
+                        tosqueeze[i] = slice(None)
+                        ind = ind[tuple(tosqueeze)]
                     ret.dims[i] = ret.dims[i][ind]
 
             # remove the empty dims
