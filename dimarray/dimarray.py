@@ -77,50 +77,7 @@ class Dim(AttrArray):
 
         # convert to Dim and return:
         return dim.view(cls)
-        
-#     def __array_finalize__(self, obj):
-#         AttrArray.__array_finalize__(self,obj)
 
-#         # make sure the data is 1-D:
-#         if self.ndim == 1: # if 1-D, return
-#             pass #return
-#         else:
-#             pass
-#             raise ValueError("Dim instances must be 1-dimensional!\ndim:\n"+
-#                              str(self)+"\nshape:",self.shape)
-#         # massage the array into 1-D if possible:
-#         elif self.ndim > 1:
-#             # using self.squeeze() can lead to nasty recursions and
-#             # 0-D arrays so we do it by hand:
-#             newshape = tuple([x for x in self.shape if x > 1])
-#             ndim = len(newshape)
-#             if ndim == 1:
-#                 self.shape = newshape
-#                 #return
-#             elif ndim == 0:
-#                 self.shape = (1,)
-#             else:
-#                 raise ValueError("Dim instances must be 1-dimensional!\ndim:\n"+
-#                                  str(self)+"\nnewshape:",newshape)
-#         # if the array is 0-D, make it 1-D:
-#         elif self.ndim == 0:
-#             self.shape = (1,)
-#             #return
-#         else:
-#             # This would require negative self.ndim which would
-#             # indicate a serious bug in ndarray.
-#             raise ValueError("Invalid number of dimensions!")
-
-#         if self.shape[0] != np.unique(np.asarray(self)).shape[0]:
-#             raise ValueError("Data for Dim objects must be unique!")
-        
-#     def __getitem__(self, index):
-#         ret = AttrArray.__getitem__(self,index)            
-#         if not isinstance(ret,Dim):
-#             ret = Dim(ret,self.name,**self._attrs)
-#             for a in self._attrs:
-#                 setattr(ret,a,self._attrs[a])
-#         return ret
 
 class DimArray(AttrArray):
     """
@@ -138,13 +95,13 @@ class DimArray(AttrArray):
 
     Parameters
     ----------
-    data : {array_like}
+    data : array_like
         The dimensioned data.
-    dims : {numpy.ndarray or list of dimarray.Dim instances}
+    dims : {array or list of Dim instances}
         The dimensions of the data.
-    dtype : {numpy.dtype},optional
+    dtype : dtype,optional
         The data type.
-    copy : {bool},optional
+    copy : bool,optional
         Flag specifying whether or not data should be copied.
     **kwargs : {**kwargs},optional
         Additional custom attributes.    
@@ -174,7 +131,7 @@ class DimArray(AttrArray):
         dimarr[:] = dims
 
         # set the kwargs to have dims as an ndarray
-        kwargs['dims'] = dimarr #np.array(dims,dtype=np.object)
+        kwargs['dims'] = dimarr
 
         # make new AttrArray parent class
         dimarray = AttrArray(data,dtype=dtype,copy=copy,**kwargs)
@@ -209,11 +166,6 @@ class DimArray(AttrArray):
             # make sure it is unique
             if d.shape[0] != np.unique(np.asarray(d)).shape[0]:
                 raise ValueError("Data for Dim objects must be unique!")
-
-#         # Ensure that dims is made up of only Dim instances:
-#         if not np.array([isinstance(x,Dim) for x in self.dims]).all():
-#             raise AttributeError("The dims attribute must contain "+
-#                                  "only Dim instances!\ndims:\n"+str(self.dims))
         
         # Ensure that the lengths of the Dim instances match the array shape:
         if self.shape != tuple([len(d) for d in self.dims]):
@@ -249,12 +201,12 @@ class DimArray(AttrArray):
             filterStr = arg
 
             # figure out which dimension we're dealing with
-            foundDim = False
+            found_dim = False
             for d,k in enumerate(self.dim_names):
                 # RE makes sure to not replace substrings
                 if re.search(r'\b'+k+r'\b',filterStr) is not None:
                     # this is our dimension
-                    foundDim = True
+                    found_dim = True
 
                     # replace the string to access the dimension like:
                     # self['dim1']
@@ -276,7 +228,7 @@ class DimArray(AttrArray):
                     
             # if we get to here, the provided string did not specify
             # any dimensions
-            if not foundDim:
+            if not found_dim:
                 # XXX eventually this should be a custom exception
                 raise ValueError("The provided filter string did not specify "+
                                  "any valid dimensions: "+str(filterStr))
@@ -429,7 +381,7 @@ class DimArray(AttrArray):
         """
         Internal method for making bins when the number of bins or the
         indices at which to split the data into bins is
-        specified. Cf. make_bins method.
+        specified. See make_bins method.
         """
         # Determine which function to use for splitting:
         if error_on_nonexact:
@@ -480,7 +432,7 @@ class DimArray(AttrArray):
                      error_on_nonexact, **kwargs):
         """
         Internal method for making bins when the bins are specified as
-        a list of intervals. Cf. make_bins method.
+        a list of intervals. See make_bins method.
         """
         # Create the new dimension:
         dimbin_indx = np.array([((self.dims[dim]>=x[0]) &
@@ -589,7 +541,7 @@ class DimArray(AttrArray):
             binned as specified.
         
         Examples
-        -------------
+        --------
         >>> data.make_bins('time',10,numpy.mean,number_bins=False)
         >>> data.make_bins('time',[[-100,0,'baseline'],[0,100,'timebin 1'],
                       [100,200,'timebin 2']],numpy.mean,number_bins=False)
@@ -857,11 +809,8 @@ class DimArray(AttrArray):
 
 
 # set the doc strings
-castMsg =\
-"""
-*********************************************************************************
- ***  CAUTION: the output of this method is cast to an AttrArray instance. 
-  *   Some attributes may no longer be valid after this Method is applied!\n\n"""
+
+# Methods that return DimArrays:
 DimArray.all.im_func.func_doc = np.ndarray.all.__doc__            
 DimArray.any.im_func.func_doc = np.ndarray.any.__doc__            
 DimArray.argmax.im_func.func_doc = np.ndarray.argmax.__doc__            
@@ -871,26 +820,31 @@ DimArray.argsort.im_func.func_doc = np.ndarray.argsort.__doc__
 DimArray.compress.im_func.func_doc = np.ndarray.compress.__doc__            
 DimArray.cumprod.im_func.func_doc = np.ndarray.cumprod.__doc__            
 DimArray.cumsum.im_func.func_doc = np.ndarray.cumsum.__doc__            
-DimArray.diagonal.im_func.func_doc = castMsg+np.ndarray.diagonal.__doc__
-DimArray.flatten.im_func.func_doc = castMsg+np.ndarray.flatten.__doc__
 DimArray.max.im_func.func_doc = np.ndarray.max.__doc__            
 DimArray.mean.im_func.func_doc = np.ndarray.mean.__doc__            
 DimArray.min.im_func.func_doc = np.ndarray.min.__doc__            
 DimArray.nonzero.im_func.func_doc = np.ndarray.nonzero.__doc__            
 DimArray.prod.im_func.func_doc = np.ndarray.prod.__doc__            
 DimArray.ptp.im_func.func_doc = np.ndarray.ptp.__doc__            
-DimArray.ravel.im_func.func_doc = castMsg+np.ndarray.ravel.__doc__            
-DimArray.repeat.im_func.func_doc = np.ndarray.repeat.__doc__            
-DimArray.reshape.im_func.func_doc = castMsg+np.ndarray.reshape.__doc__  
-#DimArray.resize.im_func.func_doc = castMsg+np.ndarray.resize.__doc__            
 DimArray.sort.im_func.func_doc = np.ndarray.sort.__doc__            
 DimArray.squeeze.im_func.func_doc = np.ndarray.squeeze.__doc__            
 DimArray.std.im_func.func_doc = np.ndarray.std.__doc__            
 DimArray.sum.im_func.func_doc = np.ndarray.sum.__doc__            
 DimArray.swapaxes.im_func.func_doc = np.ndarray.swapaxes.__doc__            
 DimArray.take.im_func.func_doc = np.ndarray.take.__doc__            
-DimArray.trace.im_func.func_doc = castMsg+np.ndarray.trace.__doc__            
 DimArray.transpose.im_func.func_doc = np.ndarray.transpose.__doc__            
 DimArray.var.im_func.func_doc = np.ndarray.var.__doc__            
 
-    
+# Methods that return AttrArrays: Prefic docstring with warning!
+cast_msg =\
+"""
+*********************************************************************************
+ ***  CAUTION: the output of this method is cast to an AttrArray instance. 
+  *   Some attributes may no longer be valid after this Method is applied!\n\n"""
+DimArray.diagonal.im_func.func_doc = cast_msg+np.ndarray.diagonal.__doc__
+DimArray.flatten.im_func.func_doc = cast_msg+np.ndarray.flatten.__doc__
+DimArray.ravel.im_func.func_doc = cast_msg+np.ndarray.ravel.__doc__            
+DimArray.repeat.im_func.func_doc = cast_msg+np.ndarray.repeat.__doc__            
+DimArray.reshape.im_func.func_doc = cast_msg+np.ndarray.reshape.__doc__  
+#DimArray.resize.im_func.func_doc = cast_msg+np.ndarray.resize.__doc__            
+DimArray.trace.im_func.func_doc = cast_msg+np.ndarray.trace.__doc__            

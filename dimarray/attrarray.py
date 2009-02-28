@@ -14,50 +14,21 @@ import copy as copylib
 # New array class with attributes
 #################################
 
-class TestArray(np.ndarray):
-    def __new__(cls, data):
-        # ensure ndarray
-        result = np.array(data)
-        
-        # transform the data to the new class
-        result = result.view(cls)
-        
-        # set the custom attribute        
-        result.len = len(result)
-        
-        # return new custom array
-        return result
-    
-    def __array_finalize__(self, obj):
-        # set the custom attribute
-        self.len = getattr(obj,'len','')
-        setattr(self, 'len', self._attrs[tag])
-        print self.len
-        #print "self.len:",self.len
-        #print "len(self):",len(self)
-        #print "self.len!=len(self):", self.len!=len(self)
-        #if self.len != len(self):
-        #    raise AttributeError("self.len: "+str(self.len)+" len(self): "+str(len(self)))
-    
-    def ravel(self, *args, **kwargs):
-        return self.view(np.ndarray).ravel(*args, **kwargs)
-
-
 class AttrArray(np.ndarray):
     """
-    Subclass of NumPy's ndarray class that allows you to set custom
-    array attributes both as kwargs during instantiation and on the
-    fly.
+    Attribute Array
     
-    Try this on for size:
-
+    Subclass of NumPy's ndarray that allows specification of custom
+    attributes both as kwargs during instantiation and on the fly.
+    
+    Examples
+    --------
     x = AttrArray(np.random.rand(5), name='jubba')
     print x.name
     x.othername = 'wubba'
     print x.othername
     xs = np.sqrt(x)
     print x.othername
-    
     """
 
     # required attributes (can be specified by subclasses): a
@@ -90,34 +61,24 @@ class AttrArray(np.ndarray):
 
         # Set and check all attributes:
         result._attrs = newattrs
-        result._setAllAttr()
-        result._chkReqAttr()
+        result._set_all_attr()
+        result._chk_req_attr()
 
         return result
             
     
     def __array_finalize__(self,obj):
-        # XXX perhaps save the copy state and only copy if requested
         if not hasattr(self, '_attrs'):
             self._attrs = copylib.deepcopy(getattr(obj, '_attrs', {}))
-            #if hasattr(obj, '_do_copy') and obj._do_copy:
-            #    self._attrs = copylib.deepcopy(getattr(obj, '_attrs', {}))
-            #else:
-            #    self._attrs = getattr(obj, '_attrs', {})
-            #self._attrs = getattr(obj, '_attrs', {})
-
         # Set all attributes:
-        self._setAllAttr()
-
+        self._set_all_attr()
         # Ensure that the required attributes are present:
-        self._chkReqAttr()
+        self._chk_req_attr()
 
     
     def __setattr__(self, name, value):
         # set the value in the attribute list
-        #ret = super(self.__class__,self).__setattr__(name, value)
-        #if (value is None) and (name in self._required_attrs.keys()):
-        if not (self._required_attrs is None):
+        if self._required_attrs:
             if (self._required_attrs.has_key(name) and
                 (not isinstance(value,self._required_attrs[name]))):
                 raise AttributeError("Attribute '"+name +"' must be "+
@@ -136,6 +97,7 @@ class AttrArray(np.ndarray):
         ret = np.ndarray.__setattr__(self, name, value)
 
         # update the attrs if necessary
+        # CTW: shouln't _attr be always updated?
         if self._attrs.has_key(name) or \
                 (name != '_attrs' and not attr_existed):
             self._attrs[name] = value
@@ -151,15 +113,15 @@ class AttrArray(np.ndarray):
             del self._attrs[name]
         return ret
 
-    def _setAllAttr(self):
+    def _set_all_attr(self):
         """
         Set all attributes in self._attr
         """
-        if (not self._attrs is None):
+        if self._attrs:
             for tag in self._attrs:
                 setattr(self, tag, self._attrs[tag])
 
-    def _chkReqAttr(self):
+    def _chk_req_attr(self):
         """
         Make sure the required attributes are set
         """

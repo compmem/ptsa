@@ -48,9 +48,6 @@ class test_DimArray(NumpyTestCase):
     
     def test_new(self):
         # should raise Error if dims are not specified: 
-        # (PBS: No longer the case)
-        #self.assertRaises(TypeError,DimArray,np.random.rand(5,10))
-
         # should raise ValueError if dims is not a list:
         self.assertRaises(AttributeError,DimArray,np.random.rand(5,10),
                           dims = np.arange(4))
@@ -630,11 +627,11 @@ class test_DimArray(NumpyTestCase):
                 self.assertTrue(isinstance(dat_func,AttrArray))
                 self.assertEquals(dat_func.test,'tst')
 
-        # This should work with numpy 1.2 (possibly 1.1.1) but doesn't
-        # with 1.1.0:
-        #arr_func = arr.clip(0.4,0.6)
-        #dat_func = dat.clip(0.4,0.6)
-        #assert_array_equal(arr_func,dat_func)
+        # This should work with numpy 1.2 but doesn't
+        # with 1.1.1 or below (therfore commented out for now):
+        # arr_func = arr.clip(0.4,0.6)
+        # dat_func = dat.clip(0.4,0.6)
+        # assert_array_equal(arr_func,dat_func)
         #self.assertTrue(isinstance(dat_func,DimArray))
         #self.assertEquals(dat_func.test,'tst')
         #arr_func = np.clip(arr,0.4,0.6)
