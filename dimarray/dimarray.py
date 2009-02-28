@@ -192,9 +192,9 @@ class DimArray(AttrArray):
         # called __array_finalize__ with this flag set):
         if (isinstance(obj,DimArray) and obj._skip_dim_check): return
         # ensure that the dims attribute is valid:
-        self._chkDims()
+        self._chk_dims()
 
-    def _chkDims(self):
+    def _chk_dims(self):
         """
         Ensure that the dims attribute is a list of Dim instances that
         match the array shape.
@@ -768,13 +768,8 @@ class DimArray(AttrArray):
         return self.view(AttrArray).ravel(*args, **kwargs)
 
     def repeat(self, repeats, axis=None):
-        if axis is None:
-            return self.view(AttrArray).repeat(repeats=repeats, axis=axis)
-        else:
-            axis = self.get_axis(axis)
-            ret = self.view(AttrArray).repeat(repeats, axis=axis)
-            ret.dims[axis] = ret.dims[axis].repeat(repeats)
-            return ret.view(self.__class__)
+        axis = self.get_axis(axis)
+        return self.view(AttrArray).repeat(repeats, axis=axis)
 
     def reshape(self, shape, order='C'):
         return np.reshape(self.view(AttrArray),shape,order)

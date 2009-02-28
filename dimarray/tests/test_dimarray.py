@@ -598,40 +598,36 @@ class test_DimArray(NumpyTestCase):
             dat_func = dat.repeat(reps,axis=axes_dat[a])
             assert_array_equal(arr_func,dat_func)
             if axes_dat[a] is not None:
-                self.assertTrue(isinstance(dat_func,DimArray))
+                self.assertTrue(isinstance(dat_func,AttrArray))
                 self.assertEquals(dat_func.test,'tst')
             # calling the numpy repeat function:
             arr_func = np.repeat(arr,reps,axis=axes_arr[a])
             dat_func = np.repeat(dat,reps,axis=axes_dat[a])
             assert_array_equal(arr_func,dat_func)
             if axes_dat[a] is not None:
-                self.assertTrue(isinstance(dat_func,DimArray))
+                self.assertTrue(isinstance(dat_func,AttrArray))
                 self.assertEquals(dat_func.test,'tst')
 
             # skip the last dimension for this test for
             # convenience (the last dimension only has 1 level):
             if a >= 3:
                 continue
-            # the highest valid index is 2 because the lowest number
-            # of levels of all dimensions (except for the last one
-            # which we skipped) is 3:
-            indcs = np.random.random_integers(low=0, high=2,
-                                              size=len(arr.shape))
+            indcs = np.arange(len(arr.shape))
             # calling the take method directly (squeeze, to get rid of
             # the last dimension):
             arr_func = arr.squeeze().take(indcs,axis=axes_arr[a])
             dat_func = dat.squeeze().take(indcs,axis=axes_dat[a])
             assert_array_equal(arr_func,dat_func)
-            if axes_dat[a] is not None:
-                self.assertTrue(isinstance(dat_func,DimArray))
+            if axes_dat[a]:
+                self.assertTrue(isinstance(dat_func,AttrArray))
                 self.assertEquals(dat_func.test,'tst')
             # calling the numpy take function directly (squeeze, to get rid of
             # the last dimension):
             arr_func = np.take(arr.squeeze(),indcs,axis=axes_arr[a])
             dat_func = np.take(dat.squeeze(),indcs,axis=axes_dat[a])
             assert_array_equal(arr_func,dat_func)
-            if axes_dat[a] is not None:
-                self.assertTrue(isinstance(dat_func,DimArray))
+            if axes_dat[a]:
+                self.assertTrue(isinstance(dat_func,AttrArray))
                 self.assertEquals(dat_func.test,'tst')
 
         # This should work with numpy 1.2 (possibly 1.1.1) but doesn't
