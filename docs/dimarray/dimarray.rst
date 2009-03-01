@@ -41,8 +41,8 @@ or set and changed on the fly as shown in the example below.
 :class:`AttrArray` instances are initialized just like :class:`ndarray`
 instances but accept arbitrary keyword arguments that can be used to specify
 custom attributes during initalization. Every :class:`AttrArray` has a
-protected (read-only) :attr:`_req_attrs` attribute which is :obj:`None` when
-no attributes are required (as is the case for instances of
+protected (read-only) :attr:`_required_attrs` attribute which is :obj:`None`
+when no attributes are required (as is the case for instances of
 :class:`AttrArray`) or a :class:`dictionary` that specifies required
 attributes (for child classes of :class:`AttrArray`, such as :class:`Dim` and
 :class:`DimArray`).

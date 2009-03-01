@@ -89,6 +89,8 @@ class test_AttrArray(NumpyTestCase):
         # add a custom attribute:
         dat.custom = 'attribute'
         self.assertEquals(dat.custom,'attribute')
+        # _required_attrs is read only:
+        self.assertRaises(AttributeError,dat.__setattr__,'_required_attrs','test')
 
     def test_getattr(self):
         dat = AttrArray(np.random.rand(10),name='randvals')
