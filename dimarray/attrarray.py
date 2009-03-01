@@ -159,14 +159,12 @@ class AttrArray(np.ndarray):
         return retrepr
 
     def __reduce__(self):
-        print "__reduce__"
         object_state = list(np.ndarray.__reduce__(self))
         subclass_state = (self._required_attrs, self._attrs)
         object_state[2] = (object_state[2],subclass_state)
         return tuple(object_state)
     
     def __setstate__(self,state):
-        print "__setstate__"
         nd_state, own_state = state
         np.ndarray.__setstate__(self,nd_state)
         
