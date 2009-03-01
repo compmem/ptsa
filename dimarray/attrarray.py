@@ -15,12 +15,6 @@ import copy as copylib
 # New array class with attributes
 #################################
 
-def __newobj__ ( cls, *args ):
-    """ Unpickles new-style objects.
-    """
-    return cls.__new__( cls, *args )
-
-
 class AttrArray(np.ndarray):
     """
     Attribute Array
@@ -85,9 +79,9 @@ class AttrArray(np.ndarray):
     
     def __setattr__(self, name, value):
         # Do not allow changes to _required_attrs
-        if name == '_required_attrs':
-            raise AttributeError(
-                "The attribute '_required_attrs' is read-only!")
+        #if name == '_required_attrs':
+        #    raise AttributeError(
+        #        "The attribute '_required_attrs' is read-only!")
         # set the value in the attribute list
         if self._required_attrs:
             if (self._required_attrs.has_key(name) and
@@ -163,27 +157,23 @@ class AttrArray(np.ndarray):
                       (np.ndarray.__repr__(self))
             
         return retrepr
-    
-    def __reduce_ex__(self, protocol):
-        """
-        pickling function for classes which inherit from tuple.
-        
-        __reduce_ex__ must be overloaded for pickling to work. Refer to the docs
-        in the pickle source code for details as to why.
-        
-        """
-        # must save the _required_attrs and the _attrs
-        state = (self._required_attrs, self._attrs,
-                 super(AttrArray, self).__reduce_ex__(protocol))
-        return ( __newobj__, ( self.__class__, ()), state )
 
-    def __setstate__(self, state):
-        """
-        unpickling function
-        """
+    def __reduce__(self):
+        print "__reduce__"
+        object_state = list(np.ndarray.__reduce__(self))
+        subclass_state = (self._required_attrs, self._attrs)
+        object_state[2] = (object_state[2],subclass_state)
+        return tuple(object_state)
+    
+    def __setstate__(self,state):
+        print "__setstate__"
+        nd_state, own_state = state
+        np.ndarray.__setstate__(self,nd_state)
         
-        super(AttrArray, self).__setstate__(state[2][2])
-        self._required_attrs = state[0]
-        self._attrs = state[1]
+        req_attrs,attrs = own_state
+        self._required_attrs = req_attrs
+        self._attrs = attrs
         self._set_all_attr()
+
+
 
