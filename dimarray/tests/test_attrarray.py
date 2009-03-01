@@ -13,6 +13,8 @@ from numpy.testing import NumpyTest, NumpyTestCase,\
 
 from dimarray import AttrArray
 
+import os
+
 class test_AttrArray(NumpyTestCase):
     def setUp(self):
         pass
@@ -100,3 +102,27 @@ class test_AttrArray(NumpyTestCase):
         dat = AttrArray(np.random.rand(10),name='randvals')
         sdat = np.sqrt(dat)
         self.assertEquals(sdat.name,'randvals')
+
+    def test_pickle(self):
+        # make sure we can pickle this thing
+        dat = AttrArray(np.random.rand(10),name='randvals')
+        # dump to file
+        filename = '__testpickle__.pickle'
+        dat.dump(filename)
+
+        # load to new variable
+        dat2 = np.load(filename)
+
+        # make sure data same
+        assert_array_equal(dat,dat2)
+
+        # make sure has attr and it's correct
+        self.assertTrue(hasattr(dat2,'_attrs'))
+        self.assertTrue(hasattr(dat2,'name'))
+        self.assertEquals(dat2.name, 'randvals')
+
+        # make sure has required attr
+        self.assertTrue(hasattr(dat2,'_required_attrs'))
+
+        # remove the pickle file
+        os.remove(filename)

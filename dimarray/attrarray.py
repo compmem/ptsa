@@ -10,9 +10,16 @@
 import numpy as np
 import copy as copylib
 
+
 #################################
 # New array class with attributes
 #################################
+
+def __newobj__ ( cls, *args ):
+    """ Unpickles new-style objects.
+    """
+    return cls.__new__( cls, *args )
+
 
 class AttrArray(np.ndarray):
     """
@@ -134,4 +141,41 @@ class AttrArray(np.ndarray):
                 raise AttributeError("Attribute '"+name+"' is required, and "+
                                      "must be "+str(self._required_attrs[name]))
             
+
+    def __repr__(self):
+        # make the attribute kwargs list
+        if len(self._attrs) > 0:
+            attrstr = ', '.join([k+'='+repr(self._attrs[k]) \
+                                 for k in self._attrs])
+            retrepr = "AttrArray(%s, %s)" % \
+                      (np.ndarray.__repr__(self),
+                       attrstr)
+        else:
+            retrepr = "AttrArray(%s)" % \
+                      (np.ndarray.__repr__(self))
+            
+        return retrepr
+    
+    def __reduce_ex__(self, protocol):
+        """
+        pickling function for classes which inherit from tuple.
+        
+        __reduce_ex__ must be overloaded for pickling to work. Refer to the docs
+        in the pickle source code for details as to why.
+        
+        """
+        # must save the _required_attrs and the _attrs
+        state = (self._required_attrs, self._attrs,
+                 super(AttrArray, self).__reduce_ex__(protocol))
+        return ( __newobj__, ( self.__class__, ()), state )
+
+    def __setstate__(self, state):
+        """
+        unpickling function
+        """
+        
+        super(AttrArray, self).__setstate__(state[2][2])
+        self._required_attrs = state[0]
+        self._attrs = state[1]
+        self._set_all_attr()
 
