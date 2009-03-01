@@ -39,6 +39,8 @@ class test_Dim(NumpyTestCase):
         tst = Dim(range(2),name='test3',custom='attribute')
         self.assertEquals(tst.name,'test3')
         self.assertEquals(tst.custom,'attribute')
+        # should raise Attribute Error if name is removed:
+        self.assertRaises(AttributeError,tst.__setattr__,'name',None)
 
 
 # DimArray class
@@ -79,11 +81,13 @@ class test_DimArray(NumpyTestCase):
                           dims=[Dim(range(10),name='dim1',unit='Hz'),
                                 Dim(range(3),name='dim1',unit='Hz'),
                                 Dim(range(5),name='dim1',unit='sec')])
-
+        
         # this is a proper initialization:
         dat = DimArray(np.random.rand(5,10),
                        dims=[Dim(range(5),name='freqs',unit='Hz'),
                              Dim(range(10),name='time',unit='sec')])
+        # should raise Attribute Error if dims is removed:
+        self.assertRaises(AttributeError,dat.__setattr__,'dims',None)
         # ensure dim_names attribute is set properly:
         self.assertEquals(dat.dim_names,['freqs','time'])
         # ensure proper shape
