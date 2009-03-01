@@ -77,6 +77,10 @@ class AttrArray(np.ndarray):
 
     
     def __setattr__(self, name, value):
+        # Do not allow changes to _required_attrs
+        if name == '_required_attrs':
+            raise AttributeError(
+                "The attribute '_required_attrs' is read-only!")
         # set the value in the attribute list
         if self._required_attrs:
             if (self._required_attrs.has_key(name) and
@@ -105,6 +109,10 @@ class AttrArray(np.ndarray):
         return ret
 
     def __delattr__(self, name):
+        # Do not allow deletion of _required_attrs
+        if name == '_required_attrs':
+            raise AttributeError(
+                "The attribute '_required_attrs' is read-only!")
         if name in self._required_attrs.keys():
             raise AttributeError("Attribute '"+name +"' is required, and cannot "+
                                  "be deleted!")

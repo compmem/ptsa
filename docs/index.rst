@@ -1,9 +1,14 @@
 .. -*- mode: rst -*-
 .. ex: set sts=4 ts=4 sw=4 et tw=79:
-
+  ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
+  #
+  #   See COPYING file distributed along with the PTSA package for the
+  #   copyright and license terms.
+  #
+  ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
 PTSA (pronounced pizza) is a Python_ module for performing time series
 analysis. Although it is specifically designed with neural data in
-mind (EEG, MEG, fMRI, etc...), the code should be applicable to almost
+mind (EEG, MEG, fMRI, etc. ...), the code should be applicable to almost
 any type of time series.
 
 .. _Python: http://www.python.org
@@ -19,7 +24,26 @@ None yet...
 Documentation
 =============
 
-To come...
+* :ref:`Main data structures in PTSA <dimarray>`: The documentation for AttrArray, Dim, and DimArray -- powerful data structures based on NumPy ndarrays.
+
+* `Time Series Anaysis`: to come...
+* `Installation Instructions`: to come...
+* :ref:`Developer Guidelines <devguide>` (information for people contributing
+  code)
+* `API Reference`_ (comprehensive and up-to-date information about the details
+  of the implementation)
+* :ref:`genindex` (access by keywords)
+* :ref:`search` (online and offline full-text search)
+
+.. _API Reference: api/index.html
+
+* `PTSA Manual (PDF)`_ (all documentation except for developer guidelines
+  and API reference)
+* `Developer Guidelines (PDF)`_
+
+.. _Main data structures in PTSA: PTSA-Manual.pdf
+.. _PTSA Manual (PDF): PTSA-Manual.pdf
+.. _Developer Guidelines (PDF): PTSA-DevGuide.pdf
 
 
 License
