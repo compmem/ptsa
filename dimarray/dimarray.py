@@ -150,7 +150,10 @@ class DimArray(AttrArray):
         # if this method is called with _skip_dim_check == True, don't
         # check dims (they need to be adjusted by whatever method
         # called __array_finalize__ with this flag set):
-        if (isinstance(obj,DimArray) and obj._skip_dim_check): return
+        # PBS: also don't check if obj is None (implies it's unpickling)
+        # We must find out if there are other instances of it being None
+        if (isinstance(obj,DimArray) and obj._skip_dim_check) or \
+           obj is None: return
         # ensure that the dims attribute is valid:
         self._chk_dims()
 

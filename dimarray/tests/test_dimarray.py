@@ -15,7 +15,7 @@ from numpy.random import random_sample as rnd
 from dimarray import DimArray, Dim
 from dimarray import AttrArray
 
-
+import cPickle as pickle
 
 # Dim class
 class test_Dim(NumpyTestCase):
@@ -41,6 +41,28 @@ class test_Dim(NumpyTestCase):
         self.assertEquals(tst.custom,'attribute')
         # should raise Attribute Error if name is removed:
         self.assertRaises(AttributeError,tst.__setattr__,'name',None)
+
+    def test_pickle(self):
+        # make sure we can pickle this thing
+        dat = Dim(np.random.rand(10),name='randvals')
+
+        # dump to string
+        pstr = pickle.dumps(dat)
+
+        # load to new variable
+        dat2 = pickle.loads(pstr)
+
+        # make sure data same
+        assert_array_equal(dat,dat2)
+
+        # make sure has attr and it's correct
+        self.assertTrue(hasattr(dat2,'_attrs'))
+        self.assertTrue(hasattr(dat2,'name'))
+        self.assertEquals(dat2.name, 'randvals')
+
+        # make sure has required attr
+        self.assertTrue(hasattr(dat2,'_required_attrs'))
+        self.assertEquals(dat._required_attrs,dat2._required_attrs)
 
 
 # DimArray class
@@ -130,6 +152,29 @@ class test_DimArray(NumpyTestCase):
         self.assertEquals(dat.dim_names, ['dim1','dim2'])
         assert_array_equal(dat['dim1'],np.arange(dat.shape[0]))
         assert_array_equal(dat['dim2'],np.arange(dat.shape[1]))
+
+    def test_pickle(self):
+        # make sure we can pickle this thing
+        dat = DimArray(np.random.rand(4,3))
+
+        # dump to string
+        pstr = pickle.dumps(dat)
+
+        # load to new variable
+        dat2 = pickle.loads(pstr)
+
+        # make sure data same
+        assert_array_equal(dat,dat2)
+
+        # make sure has attr and it's correct
+        self.assertTrue(hasattr(dat2,'_attrs'))
+        self.assertTrue(hasattr(dat2,'dims'))
+        assert_array_equal(dat.dims[0],dat2.dims[0])
+        assert_array_equal(dat.dims[1],dat2.dims[1])
+
+        # make sure has required attr
+        self.assertTrue(hasattr(dat2,'_required_attrs'))
+        self.assertEquals(dat._required_attrs,dat2._required_attrs)
 
     def test_getitem(self):
         # make ndarray an Dimaray with identical data
