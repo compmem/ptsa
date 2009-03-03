@@ -38,7 +38,7 @@ class AttrArray(np.ndarray):
     # type is required, "object" should be specified. E.g.,
     # {'name':str} or {'misc':object}
     _required_attrs = None
-
+    
     def __new__(cls, data, dtype=None, copy=False, **kwargs):
         # get the data in the proper format, copied if desired
         result = np.array(data, dtype=dtype, copy=copy)
@@ -74,14 +74,15 @@ class AttrArray(np.ndarray):
         # Set all attributes:
         self._set_all_attr()
         # Ensure that the required attributes are present:
-        self._chk_req_attr()
+        # PBS: I don't think we need to call this here
+        #self._chk_req_attr()
 
     
     def __setattr__(self, name, value):
         # Do not allow changes to _required_attrs
-        #if name == '_required_attrs':
-        #    raise AttributeError(
-        #        "The attribute '_required_attrs' is read-only!")
+        if name == '_required_attrs':
+            raise AttributeError(
+                "The attribute '_required_attrs' is read-only!")
         # set the value in the attribute list
         if self._required_attrs:
             if (self._required_attrs.has_key(name) and
@@ -144,32 +145,43 @@ class AttrArray(np.ndarray):
                                      "must be "+str(self._required_attrs[name]))
             
 
-    def __repr__(self):
-        # make the attribute kwargs list
-        if len(self._attrs) > 0:
-            attrstr = ', '.join([k+'='+repr(self._attrs[k]) \
-                                 for k in self._attrs])
-            retrepr = "AttrArray(%s, %s)" % \
-                      (np.ndarray.__repr__(self),
-                       attrstr)
-        else:
-            retrepr = "AttrArray(%s)" % \
-                      (np.ndarray.__repr__(self))
+#     def __repr__(self):
+#         # make the attribute kwargs list
+#         if len(self._attrs) > 0:
+#             attrstr = ', '.join([k+'='+repr(self._attrs[k]) \
+#                                  for k in self._attrs])
+#             retrepr = "AttrArray(%s, %s)" % \
+#                       (np.ndarray.__repr__(self),
+#                        attrstr)
+#         else:
+#             retrepr = "AttrArray(%s)" % \
+#                       (np.ndarray.__repr__(self))
             
-        return retrepr
+#         return retrepr
 
     def __reduce__(self):
+        # reduced state as ndarray
         object_state = list(np.ndarray.__reduce__(self))
-        subclass_state = (self._required_attrs, self._attrs)
+
+        # append the custom object attributes
+        subclass_state = (self._attrs,)
         object_state[2] = (object_state[2],subclass_state)
+
+        # convert back to tuple and return
         return tuple(object_state)
     
     def __setstate__(self,state):
+        # get the ndarray state and the subclass state
         nd_state, own_state = state
+
+        # refresh the ndarray state
         np.ndarray.__setstate__(self,nd_state)
-        
-        req_attrs,attrs = own_state
-        self._required_attrs = req_attrs
+
+        # get the subclass attributes
+        attrs, = own_state
+
+        # set the attributes
+        #self._required_attrs = req_attrs
         self._attrs = attrs
         self._set_all_attr()
 
