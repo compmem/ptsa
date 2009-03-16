@@ -27,8 +27,8 @@ of custom attributes. These attributes can be specified as keyword arguments
 or set and changed on the fly as shown in the example below.
 
   >>> import numpy as np
-  >>> import dimarray
-  >>> data = dimarray.AttrArray(np.random.rand(5), hello='world')
+  >>> import dimarray as da
+  >>> data = da.AttrArray(np.random.rand(5), hello='world')
   >>> print data.hello
   world
   >>> data.hello = 'good bye'
@@ -60,7 +60,26 @@ described below.
 Dimension (Dim)
 ===============
 
-A dimension.
+:class:`Dim` is a child class of :class:`AttrArray` with the
+constraints that each instance be 1-dimensional and have a
+:attr:`name` attribute. If multi dimensional input is specified during
+initialization, an attempt is made to convert it to one dimension by
+collapsing over dimensions that only have one level (if that fails an
+error is raised):
+
+  >>> import numpy as np
+  >>> import dimarray as da
+  >>> test = da.Dim([[1,2,3]], name='dimension 1')
+  >>> print test
+  [1 2 3]
+
+:class:`Dim` instances are part of :class:`DimArray` instances and
+within :class:`DimArray` instances the following additional
+constraints are enforced:
+ * Values within a :class:`Dim` instance must be unique.
+ * No two :class:`Dim` instances within the same `DimArray` instance
+   may have the same :attr:`name` attribute.
+
 
 Dimensioned Array (DimArray)
 ============================
