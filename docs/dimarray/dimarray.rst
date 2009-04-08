@@ -38,14 +38,22 @@ or set and changed on the fly as shown in the example below.
   >>> print data.version
   1.0
 
-:class:`AttrArray` instances are initialized just like :class:`ndarray`
-instances but accept arbitrary keyword arguments that can be used to specify
-custom attributes during initalization. Every :class:`AttrArray` has a
-protected (read-only) :attr:`_required_attrs` attribute which is :obj:`None`
-when no attributes are required (as is the case for instances of
+These custom attributes stick around when you copy or manipulate the
+data in a :class:`AttrArray`:
+
+  >>> data2 = data.mean()
+  >>> data2.hello
+  good bye
+
+:class:`AttrArray` instances are initialized just like
+:class:`ndarray` instances but they accept arbitrary keyword arguments
+that can be used to specify custom attributes during
+initialization. Every :class:`AttrArray` has a protected (read-only)
+:attr:`_required_attrs` attribute, which is :obj:`None` when no
+attributes are required (as is the case for instances of
 :class:`AttrArray`) or a :class:`dictionary` that specifies required
-attributes (for child classes of :class:`AttrArray`, such as :class:`Dim` and
-:class:`DimArray`).
+attributes (for child classes of :class:`AttrArray`, such as
+:class:`Dim` and :class:`DimArray`).
 
 :class:`AttrArray` instances can be used to store information about the data
 they contain. The main purpose of :class:`AttrArray` in :mod:`PTSA` is to
