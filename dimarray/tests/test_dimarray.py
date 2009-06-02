@@ -178,26 +178,26 @@ class test_DimArray(NumpyTestCase):
 
     def test_getitem(self):
         # make ndarray an Dimaray with identical data
-        # arr = np.random.rand(3)
-        # dat = DimArray(arr,dims=[Dim(range(3),name='dim1')])
-        # self.assertEquals(dat[0],dat['dim1==0'])
-        # self.assertEquals(dat[1],dat['dim1==1'])
-        # self.assertEquals(dat[2],dat['dim1==2'])
-        # self.assertEquals(arr[0],dat['dim1==0'])
-        # self.assertEquals(arr[1],dat['dim1==1'])
-        # self.assertEquals(arr[2],dat['dim1==2'])
+        arr = np.random.rand(3)
+        dat = DimArray(arr,dims=[Dim(range(3),name='dim1')])
+        self.assertEquals(dat[0],dat['dim1==0'])
+        self.assertEquals(dat[1],dat['dim1==1'])
+        self.assertEquals(dat[2],dat['dim1==2'])
+        self.assertEquals(arr[0],dat['dim1==0'])
+        self.assertEquals(arr[1],dat['dim1==1'])
+        self.assertEquals(arr[2],dat['dim1==2'])
         
-        # arr = np.random.rand(3,2)
-        # dat = DimArray(arr,dims=[Dim(range(3),name='dim1'),
-        #                          Dim(range(2),name='dim2')])
-        # assert_array_equal(dat[:,0],dat['dim2==0'])
-        # assert_array_equal(dat[1],dat['dim1==1'])
-        # assert_array_equal(dat[2],dat['dim1==2'])
-        # assert_array_equal(arr[0],dat['dim1==0'])
-        # assert_array_equal(arr[1],dat['dim1==1'])
-        # assert_array_equal(arr[2],dat['dim1==2'])
+        arr = np.random.rand(3,2)
+        dat = DimArray(arr,dims=[Dim(range(3),name='dim1'),
+                                 Dim(range(2),name='dim2')])
+        assert_array_equal(dat[:,0],dat['dim2==0'])
+        assert_array_equal(dat[1],dat['dim1==1'])
+        assert_array_equal(dat[2],dat['dim1==2'])
+        assert_array_equal(arr[0],dat['dim1==0'])
+        assert_array_equal(arr[1],dat['dim1==1'])
+        assert_array_equal(arr[2],dat['dim1==2'])
 
-        # assert_array_equal(dat[0,0],dat['dim1==0','dim2==0'])
+        assert_array_equal(dat[0,0],dat['dim1==0','dim2==0'])
 
         dat_array = np.random.rand(2,4,5)
         dat = DimArray(dat_array,
