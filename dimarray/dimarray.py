@@ -138,6 +138,9 @@ class DimArray(AttrArray):
 
         # make new AttrArray parent class
         dimarray = AttrArray(data,dtype=dtype,copy=copy,**kwargs)
+
+        # check dimensions upon creation
+        dimarray._skip_dim_check = False
         
         # View as DimArray and return:
         return dimarray.view(cls)
@@ -145,8 +148,15 @@ class DimArray(AttrArray):
     def __array_finalize__(self,obj):
         # call the AttrArray finalize
         AttrArray.__array_finalize__(self,obj)
-        # ensure _skip_dim_check flag is off
-        self._skip_dim_check = False
+        
+        # unfortunately we need to have _skip_dim_check be True by
+        # default to avoid error messages in interactive displays of
+        # array contents in the python shell. When the display is
+        # abreviated because of a large number of entries (e.g., [0.,
+        # 0., 0, ..., 0., 0., 0.]) the slicing done by the shell
+        # causes __array_finalize__ to get called on degenerate
+        # DimArrays.
+        self._skip_dim_check = True
         # if this method is called with _skip_dim_check == True, don't
         # check dims (they need to be adjusted by whatever method
         # called __array_finalize__ with this flag set):
@@ -269,6 +279,9 @@ class DimArray(AttrArray):
             # Use find to get the new index from the list of stings
             index = self.find(*index)
 
+        # check dimensions upon finalization:
+        self._skip_dim_check = False
+        
         # perform the set
         AttrArray.__setitem__(self, index, obj)            
 
@@ -291,15 +304,13 @@ class DimArray(AttrArray):
             # Use _select_ind to get the new index from the list of stings
             index,o_ind,remove_dim = self._select_ind(*index)
 
-        # try block to ensure the _skip_dim_check flag gets reset
-        # in the following finally block
-        try: 
-            # skip the dim check b/c we're going to fiddle with them
-            self._skip_dim_check = True
-            ret = AttrArray.__getitem__(self,index)            
-        finally:
-            # reset the _skip_dim_check flag:
-            self._skip_dim_check = False
+        # make sure that _skip_dim_check is True to avoid spurious
+        # error messages during slicing:
+        self._skip_dim_check = True
+        ret = AttrArray.__getitem__(self,index)
+        # set _skip_dim_check is False to make sure the new dimensions
+        # are checked at the end:
+        self._skip_dim_check = False
 
         # process the dims if necessary
         if isinstance(ret,DimArray):
@@ -344,7 +355,7 @@ class DimArray(AttrArray):
                 ind[remove_dim] = 0
                 ind = tuple(ind)
                 ret = ret[ind]
-
+                
         return ret
     
     def find(self,*args,**kwargs):
@@ -432,7 +443,9 @@ class DimArray(AttrArray):
         new_dims[dim] = new_dim
         new_attrs = self._attrs.copy()
         new_attrs['dims'] = new_dims
-        return self.__class__(new_dat,**new_attrs)
+        ret = self.__class__(new_dat,**new_attrs)
+        ret._skip_dim_check = False
+        return ret
 
     def _select_bins(self, dim, bins, function, bin_labels,
                      error_on_nonexact, **kwargs):
@@ -492,7 +505,9 @@ class DimArray(AttrArray):
         new_dims[dim] = new_dim
         new_attrs = self._attrs.copy()
         new_attrs['dims'] = new_dims
-        return self.__class__(new_dat,**new_attrs)
+        ret = self.__class__(new_dat,**new_attrs)
+        ret._skip_dim_check = False
+        return ret
 
 
     def make_bins(self,axis,bins,function,bin_labels='function',
@@ -627,6 +642,7 @@ class DimArray(AttrArray):
             # pop the dim
             #ret.dims.pop(axis)
             ret.dims = ret.dims[np.arange(len(ret.dims))!=axis]
+            ret._skip_dim_check = False
             return ret.view(self.__class__)
     
     
@@ -658,6 +674,7 @@ class DimArray(AttrArray):
             axis = self.get_axis(axis)
             ret = self.view(AttrArray).argsort(axis=axis, kind=kind,
                                                order=order)
+            ret._skip_dim_check = False
             return ret.view(self.__class__)
 
     def compress(self, condition, axis=None, out=None):
@@ -668,6 +685,7 @@ class DimArray(AttrArray):
             ret = self.view(AttrArray).compress(condition, axis=axis, out=out)
             cnd = np.array(condition)
             ret.dims[axis] = ret.dims[axis][cnd]
+            ret._skip_dim_check = False
             return ret.view(self.__class__)
 
     def cumprod(self, axis=None, dtype=None, out=None):
@@ -677,6 +695,7 @@ class DimArray(AttrArray):
         else:
             axis = self.get_axis(axis)
             ret = self.view(AttrArray).cumprod(axis=axis, dtype=dtype, out=out)
+            ret._skip_dim_check = False
             return ret.view(self.__class__)
 
     def cumsum(self, axis=None, dtype=None, out=None):
@@ -686,6 +705,7 @@ class DimArray(AttrArray):
         else:
             axis = self.get_axis(axis)
             ret = self.view(AttrArray).cumsum(axis=axis, dtype=dtype, out=out)
+            ret._skip_dim_check = False
             return ret.view(self.__class__)
 
     def diagonal(self, *args, **kwargs):
@@ -748,6 +768,7 @@ class DimArray(AttrArray):
         self.view(AttrArray).sort(axis=axis, kind=kind, order=order)
         self.view(self.__class__)
         self.dims[axis].sort(axis=axis, kind=kind, order=order)
+        self._skip_dim_check = False
 
     def squeeze(self):
         ret = self.view(AttrArray).squeeze()
@@ -758,6 +779,7 @@ class DimArray(AttrArray):
                 ret.dims = ret.dims[np.arange(len(ret.dims))!=d]
             else:
                 d += 1
+        ret._skip_dim_check = False
         return ret.view(self.__class__)
 
     def std(self, axis=None, dtype=None, out=None, ddof=0):
@@ -777,6 +799,7 @@ class DimArray(AttrArray):
         tmp = ret.dims[axis1]
         ret.dims[axis1] = ret.dims[axis2]
         ret.dims[axis2] = tmp
+        ret._skip_dim_check = False
         return ret.view(self.__class__)
 
     def take(self, indices, axis=None, out=None, mode='raise'):
@@ -789,6 +812,7 @@ class DimArray(AttrArray):
                                             out=out, mode=mode)
             ret.dims[axis] = ret.dims[axis].take(indices, axis=0,
                                                  out=out, mode=mode)
+            ret._skip_dim_check = False
             return ret.view(self.__class__)
         
     def trace(self, *args, **kwargs):
@@ -805,6 +829,7 @@ class DimArray(AttrArray):
             ret = self.view(AttrArray).transpose()
             #ret.dims.reverse()
             ret.dims = ret.dims[-1::-1]
+        ret._skip_dim_check = False
         return ret.view(self.__class__)
 
     def var(self, axis=None, dtype=None, out=None, ddof=0):

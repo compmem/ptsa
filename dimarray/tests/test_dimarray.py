@@ -444,6 +444,7 @@ class test_DimArray(NumpyTestCase):
         # check that attributes are preserved:
         for a in dat._attrs:
             if a == 'dims': continue
+            if a == '_skip_dim_check': continue
             self.assertEqual(dat.__getattribute__(a),
                              test1a.__getattribute__(a))
             self.assertEqual(dat.__getattribute__(a),
@@ -501,6 +502,7 @@ class test_DimArray(NumpyTestCase):
         # check that attributes are preserved:
         for a in dat._attrs:
             if a == 'dims': continue
+            if a == '_skip_dim_check': continue
             self.assertEqual(dat.__getattribute__(a),
                              test5a.__getattribute__(a))
             self.assertEqual(dat.__getattribute__(a),
