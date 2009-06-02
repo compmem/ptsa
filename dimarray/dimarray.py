@@ -275,6 +275,7 @@ class DimArray(AttrArray):
     def __getitem__(self, index):
         # process whether we using fancy string-based indices
         remove_dim = np.zeros(len(self.dims), dtype=np.bool)
+        
         if isinstance(index,str):
             # see if it's just a single dimension name
             res = self._dim_namesRE.search(index)
