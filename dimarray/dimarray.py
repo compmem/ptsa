@@ -316,7 +316,7 @@ class DimArray(AttrArray):
                            len(ind)==0 for ind in indlist]):
                 # don't remove any b/c we selected nothing anyway
                 remove_dim[:] = False
-
+                
             # loop over the indlist, slicing the dimensions
             for i,ind in enumerate(indlist):
                 if isinstance(ind,int):
@@ -328,11 +328,20 @@ class DimArray(AttrArray):
                     ret.dims[i] = ret.dims[i][[]]
                 else:
                     # slice the dims based on the index
+                    #if isinstance(ind,np.ndarray) and ind.dtype==bool:
+                    #    if len(ind.shape)>1:
+                    #        ret = ret.view(AttrArray)
                     if not isinstance(ind, slice):
                         # squeeze it to maintain dimensionality
                         tosqueeze = [0]*len(ind.shape)
                         tosqueeze[i] = slice(None)
                         ind = ind[tuple(tosqueeze)]
+                        # if a boolean array is given as an index the
+                        # dimensions get lost, so we need to cast to
+                        # an AttrArray if there's more than 1 dim:
+                        if isinstance(ind,np.ndarray) and ind.dtype==bool:
+                            if len(self.shape)>1:
+                                ret = ret.view(AttrArray)
                     ret.dims[i] = ret.dims[i][ind]
 
             # remove the empty dims

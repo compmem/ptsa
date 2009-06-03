@@ -177,7 +177,7 @@ class test_DimArray(NumpyTestCase):
         self.assertEquals(dat._required_attrs,dat2._required_attrs)
 
     def test_getitem(self):
-        # # make ndarray an Dimaray with identical data
+        # make ndarray an Dimaray with identical data
         arr = np.random.rand(3)
         dat = DimArray(arr,dims=[Dim(range(3),name='dim1')])
         self.assertEquals(dat[0],dat['dim1==0'])
@@ -204,6 +204,26 @@ class test_DimArray(NumpyTestCase):
         assert_array_equal(dat[2,0],dat['dim1==2','dim2==0'])
         assert_array_equal(dat[2,1],dat['dim1==2','dim2==1'])
 
+        bool_indx = np.zeros(arr.shape,np.bool)
+        bool_indx[2,1] = True
+        assert_array_equal(dat[2,1],dat[bool_indx])
+        bool_indx[1,1] = True
+        assert_array_equal(dat[1:3,1],dat[bool_indx])
+        # The below test makes sure that one can work with the results
+        # of a Boolean slice into a DimArray object. Because the
+        # dimensions get lost with Boolean indices we need to test
+        # that there are no complaints from dimension checking (the
+        # result should be upcast as an AttrArray):
+        test1 = dat[bool_indx] + 1
+        test2 = dat[1:3,1] + 1
+        assert_array_equal(test1,test2)
+
+        arr = np.random.rand(3)
+        dat = DimArray(arr)
+        bool_indx = np.array([True,False,True])
+        assert_array_equal(dat[bool_indx],arr[bool_indx])
+        assert_array_equal(dat[bool_indx].dims[0],dat.dims[0][bool_indx])   
+
         dat_array = np.random.rand(2,4,5)
         dat = DimArray(dat_array,
                        dims=[Dim(range(2),name='dim1',unit='Hz'),
@@ -211,12 +231,12 @@ class test_DimArray(NumpyTestCase):
                              Dim(range(5),name='dim3',attr1='attr1',
                                  attr2='attr2')])
 
-        # # check that the correct elements are returned:
+        # check that the correct elements are returned:
         self.assertEquals(dat[0,0,0],dat_array[0,0,0])
         self.assertEquals(dat[0,1,2],dat_array[0,1,2])
         self.assertEquals(dat[1,0,3],dat_array[1,0,3])
         
-        # # check that the correct elements are returned:
+        # check that the correct elements are returned:
         self.assertEquals(dat['dim1==0','dim2==0','dim3==0'],dat_array[0,0,0])
         self.assertEquals(dat['dim1==0','dim2==1','dim3==2'],dat_array[0,1,2])
         self.assertEquals(dat['dim1==1','dim2==0','dim3==3'],dat_array[1,0,3])
