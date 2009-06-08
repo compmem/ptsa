@@ -8,14 +8,14 @@
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ##
 
 import numpy as np
-from numpy.testing import NumpyTest, NumpyTestCase,\
+from numpy.testing import TestCase,\
      assert_array_equal, assert_array_almost_equal
 
 from dimarray import AttrArray
 
 import cPickle as pickle
 
-class test_AttrArray(NumpyTestCase):
+class test_AttrArray(TestCase):
     def setUp(self):
         pass
 

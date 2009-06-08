@@ -8,7 +8,7 @@
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ##
 
 import numpy as np
-from numpy.testing import NumpyTest, NumpyTestCase,\
+from numpy.testing import TestCase,\
      assert_array_equal, assert_array_almost_equal
 from numpy.random import random_sample as rnd
 
@@ -18,7 +18,7 @@ from dimarray import AttrArray
 import cPickle as pickle
 
 # Dim class
-class test_Dim(NumpyTestCase):
+class test_Dim(TestCase):
     def setUp(self):
         pass
     
@@ -66,7 +66,7 @@ class test_Dim(NumpyTestCase):
 
 
 # DimArray class
-class test_DimArray(NumpyTestCase):
+class test_DimArray(TestCase):
     def setUp(self):
         pass
     
