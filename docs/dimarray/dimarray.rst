@@ -84,9 +84,9 @@ error is raised):
 :class:`Dim` instances are part of :class:`DimArray` instances and
 within :class:`DimArray` instances the following additional
 constraints are enforced:
- * Values within a :class:`Dim` instance must be unique.
- * No two :class:`Dim` instances within the same `DimArray` instance
-   may have the same :attr:`name` attribute.
+* Values within a :class:`Dim` instance must be unique.
+* No two :class:`Dim` instances within the same `DimArray` instance
+may have the same :attr:`name` attribute.
 
 
 Dimensioned Array (DimArray)
