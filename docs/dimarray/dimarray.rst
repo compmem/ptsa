@@ -65,6 +65,10 @@ described below.
 
 .. _Dim:
 
+.. autoclass:: dimarray.AttrArray
+   :members:
+
+
 Dimension (Dim)
 ===============
 
@@ -88,8 +92,12 @@ constraints are enforced:
 * No two :class:`Dim` instances within the same `DimArray` instance
 may have the same :attr:`name` attribute.
 
+.. autoclass:: dimarray.Dim
+   :members:
+
 
 Dimensioned Array (DimArray)
 ============================
 
-A dimensioned array.
+.. autoclass:: dimarray.DimArray
+   :members:

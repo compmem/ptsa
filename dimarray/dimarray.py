@@ -82,9 +82,9 @@ class Dim(AttrArray):
 class DimArray(AttrArray):
     """
     DimArray(data, dims, dtype=None, copy=False, **kwargs)
-
+    
     Class that keeps track of the dimensions of a NumPy ndarray.
-
+    
     The dimensions are specified in the dims attribute as a list of
     Dim instances that match the shape of the data array.
 
@@ -92,7 +92,7 @@ class DimArray(AttrArray):
     beyond normal ndarrays.  These include the ability to refer to
     dimensions by name and to select subsets of the data based on
     complex queries using the dimension names.
-
+    
     Parameters
     ----------
     data : array_like
@@ -864,9 +864,11 @@ DimArray.var.im_func.func_doc = np.ndarray.var.__doc__
 # Methods that return AttrArrays: Prefic docstring with warning!
 cast_msg =\
 """
-*********************************************************************************
- ***  CAUTION: the output of this method is cast to an AttrArray instance. 
-  *   Some attributes may no longer be valid after this Method is applied!\n\n"""
+
+ **CAUTION: the output of this method is cast to an AttrArray instance.**
+ **Some attributes may no longer be valid after this Method is applied!**
+
+"""
 DimArray.diagonal.im_func.func_doc = cast_msg+np.ndarray.diagonal.__doc__
 DimArray.flatten.im_func.func_doc = cast_msg+np.ndarray.flatten.__doc__
 DimArray.ravel.im_func.func_doc = cast_msg+np.ndarray.ravel.__doc__            
