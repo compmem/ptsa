@@ -22,28 +22,28 @@ import scipy.stats as stats
 import pdb
 
 def tsZtransPow(freqs,tseries,zTrans=True,log=True,width=5,resample=None,
-                keepBuffer=False,verbose=False,toReturn='both',freqDimName='freq'):
+                keepBuffer=False,verbose=False,to_return='both',freqDimName='freq'):
     """
     Calculate z-transformed power (and optionally phase) on a
     TimeSeries, returning new TimeSeries instances.
     """
-    if (toReturn != 'both') and (toReturn != 'pow'):
-        raise ValueError("toReturn must be \'pow\'or \'both\' to specify\
+    if (to_return != 'both') and (to_return != 'pow'):
+        raise ValueError("to_return must be \'pow\'or \'both\' to specify\
         whether power only, or power and phase are returned. Only power is\
         z-tranformed; if only phase and/or untransformed power is of interest,\
         the function tsPhasePow() should be called directly. Invalid value for\
-        toReturn: %s" % toReturn)
+        to_return: %s" % to_return)
 
     # Get the power (and optionally phase) for tseries:
-    if toReturn == 'both':
+    if to_return == 'both':
         phaseAll,powerAll = wavelet.tsPhasePow(freqs=freqs,tseries=tseries,width=width,
                                        resample=resample,keepBuffer=keepBuffer,
-                                       verbose=verbose,toReturn=toReturn,
+                                       verbose=verbose,to_return=to_return,
                                        freqDimName=freqDimName)
     else:
         powerAll = wavelet.tsPhasePow(freqs=freqs,tseries=tseries,width=width,
                               resample=resample,keepBuffer=keepBuffer,
-                              verbose=verbose,toReturn=toReturn,
+                              verbose=verbose,to_return=to_return,
                               freqDimName=freqDimName)
 
     if log: # Ensure power is positive and log10 transform:
@@ -74,7 +74,7 @@ def tsZtransPow(freqs,tseries,zTrans=True,log=True,width=5,resample=None,
             # Get the power for the provided baseline time series:
             zpow = wavelet.tsPhasePow(freqs=freqs,tseries=zTrans,width=width,
                               resample=resample,keepBuffer=False,verbose=verbose,
-                              toReturn='pow',freqDimName=freqDimName)
+                              to_return='pow',freqDimName=freqDimName)
             if log:
                 zpow.data[zpow.data<=0] = N.finfo(zpow.data.dtype).eps
                 zpow.data = N.log10(zpow.data)
@@ -101,7 +101,7 @@ def tsZtransPow(freqs,tseries,zTrans=True,log=True,width=5,resample=None,
     powerAll.data = powerAll.data - zmean.data.reshape(reshapedims)
     powerAll.data = powerAll.data / zstd.data.reshape(reshapedims)
     
-    if toReturn == 'both':
+    if to_return == 'both':
         return phaseAll,powerAll,(zmean,zstd)
     else:
         return powerAll,(zmean,zstd)

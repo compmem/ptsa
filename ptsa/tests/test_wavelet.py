@@ -114,7 +114,7 @@ class test_morlet_multi(NumpyTestCase):
         self.assertRaises(TypeError,phase_pow_multi)
         self.assertRaises(ValueError,phase_pow_multi,[],dat,100)
         self.assertRaises(ValueError,phase_pow_multi,[1],dat,100,
-                          toReturn='results')
+                          to_return='results')
         self.assertRaises(ValueError,phase_pow_multi,[1],dat,100,
                           conv_dtype=N.float)
         dat_short = N.reshape(N.arange(0,20),(2,10))
@@ -133,7 +133,7 @@ class test_morlet_multi(NumpyTestCase):
         self.assertTrue(phaseTest.all())
         self.assertTrue(powerTest.all())
         
-        y = phase_pow_multi([1],dat,100,toReturn='phase')
+        y = phase_pow_multi([1],dat,100,to_return='phase')
         # ensure correct output shape:
         self.assertEqual(N.shape(y),(1,2,1000))
         # dat has two identical rows, ensure output has corresponding
@@ -143,7 +143,7 @@ class test_morlet_multi(NumpyTestCase):
         phaseTest = N.abs(y[0]) <= N.pi
         self.assertTrue(phaseTest.all())
 
-        z = phase_pow_multi(1,dat,[100],toReturn='power')
+        z = phase_pow_multi(1,dat,[100],to_return='power')
         # ensure correct output shape:
         self.assertEqual(N.shape(z),(1,2,1000))
         # dat has two identical rows, ensure output has corresponding
@@ -170,7 +170,7 @@ class test_morlet_multi(NumpyTestCase):
         self.assertTrue(phaseTest.all())
         self.assertTrue(powerTest.all())
         
-        y = phase_pow_multi([1,2,3],dat,[100],widths=6,toReturn='phase')
+        y = phase_pow_multi([1,2,3],dat,[100],widths=6,to_return='phase')
         # ensure correct output shape:
         self.assertEqual(N.shape(y),(3,2,1000))
         # dat has two identical rows, ensure output has corresponding
@@ -182,7 +182,7 @@ class test_morlet_multi(NumpyTestCase):
         phaseTest = N.abs(y) <= N.pi
         self.assertTrue(phaseTest.all())
 
-        z = phase_pow_multi([1,2,3],dat,100,widths=[6],toReturn='power')
+        z = phase_pow_multi([1,2,3],dat,100,widths=[6],to_return='power')
         # ensure correct output shape:
         self.assertEqual(N.shape(z),(3,2,1000))
         # dat has two identical rows, ensure output has corresponding
@@ -212,7 +212,7 @@ class test_morlet_multi(NumpyTestCase):
         self.assertTrue(powerTest.all())
         
         y = phase_pow_multi([4,9,8],dat,[100,200,300],
-                            widths=[6,5,4],toReturn='phase')
+                            widths=[6,5,4],to_return='phase')
         # ensure correct output shape:
         self.assertEqual(N.shape(y),(3,2,1000))
         # dat has two identical rows, ensure output has corresponding
@@ -225,7 +225,7 @@ class test_morlet_multi(NumpyTestCase):
         self.assertTrue(phaseTest.all())
 
         z = phase_pow_multi([4,9,8],dat,[100,200,300],
-                             widths=[6,5,4],toReturn='power')
+                             widths=[6,5,4],to_return='power')
         # ensure correct output shape:
         self.assertEqual(N.shape(z),(3,2,1000))
         # dat has two identical rows, ensure output has corresponding

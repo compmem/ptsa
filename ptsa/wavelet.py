@@ -140,7 +140,7 @@ def morlet_multi(freqs, widths, samplerates,
     return norm_wavelets
 
 
-def phase_pow_multi(freqs, dat, samplerates, widths=5, toReturn='both',
+def phase_pow_multi(freqs, dat, samplerates, widths=5, to_return='both',
                     time_axis=-1, freq_axis=0, conv_dtype=N.complex64, **kwargs):
     """
     Calculate phase and power with wavelets across multiple events.
@@ -163,7 +163,7 @@ def phase_pow_multi(freqs, dat, samplerates, widths=5, toReturn='both',
     widths : {float, array_like of floats}
         The width(s) of the wavelets in cycles. See docstring of
         morlet_multi() for details.
-    toReturn : {'both','power','phase'}, optional
+    to_return : {'both','power','phase'}, optional
         Specify whether to return power, phase, or both.
     time_axis : {int},optional
         Index of the time/samples dimension in dat.
@@ -182,7 +182,7 @@ def phase_pow_multi(freqs, dat, samplerates, widths=5, toReturn='both',
     
     Returns
     -------
-    Array(s) of phase and/or power values as specified in toReturn. The
+    Array(s) of phase and/or power values as specified in to_return. The
     returned array(s) has/have one more dimension than dat. The added
     dimension is for the frequencies and is inserted at freq_axis.
     """
@@ -191,10 +191,10 @@ def phase_pow_multi(freqs, dat, samplerates, widths=5, toReturn='both',
     freqs = N.atleast_1d(freqs)
     
     # check input values:
-    if toReturn != 'both' and toReturn != 'power' and toReturn != 'phase':
-        raise ValueError("toReturn must be \'power\', \'phase\', or \'both\' to "+
+    if to_return != 'both' and to_return != 'power' and to_return != 'phase':
+        raise ValueError("to_return must be \'power\', \'phase\', or \'both\' to "+
                          "specify whether power, phase, or both are to be "+
-                         "returned. Invalid value: %s " % toReturn)
+                         "returned. Invalid value: %s " % to_return)
 
     if not N.issubdtype(conv_dtype,N.complex):
         raise ValueError("conv_dtype must be a complex data type!\n"+
@@ -232,13 +232,13 @@ def phase_pow_multi(freqs, dat, samplerates, widths=5, toReturn='both',
     newshape.insert(freq_axis,len(freqs))
     newshape = tuple(newshape)
     
-    if toReturn == 'power' or toReturn == 'both':
+    if to_return == 'power' or to_return == 'both':
         # calculate power:
         power = N.power(N.abs(wavCoef),2)
         # reshape to new shape:
         power = reshapeFrom2D(power,time_axis,newshape)
     
-    if toReturn == 'phase' or toReturn == 'both':
+    if to_return == 'phase' or to_return == 'both':
         # normalize the phase estimates to length one taking care of
         # instances where they are zero:
         norm_factor = N.abs(wavCoef)
@@ -251,11 +251,11 @@ def phase_pow_multi(freqs, dat, samplerates, widths=5, toReturn='both',
         # reshape to new shape
         phase = reshapeFrom2D(phase,time_axis,newshape)
     
-    if toReturn == 'power':
+    if to_return == 'power':
         return power
-    elif toReturn == 'phase':
+    elif to_return == 'phase':
         return phase
-    elif toReturn == 'both':
+    elif to_return == 'both':
         return phase,power
 
 
@@ -366,19 +366,19 @@ def phasePow2d(freq,dat,samplerate,width):
     return phase,power
 
 def tsPhasePow(freqs,tseries,width=5,resample=None,keepBuffer=False,
-               verbose=False,toReturn='both',freqDimName='freq'):
+               verbose=False,to_return='both',freqDimName='freq'):
     """
     Calculate phase and/or power on an TimeSeries, returning new
     TimeSeries instances.
     """
-    if (toReturn != 'both') and (toReturn != 'pow') and (toReturn != 'phase'):
-        raise ValueError("toReturn must be \'pow\', \'phase\', or \'both\' to\
+    if (to_return != 'both') and (to_return != 'pow') and (to_return != 'phase'):
+        raise ValueError("to_return must be \'pow\', \'phase\', or \'both\' to\
         specify whether power, phase, or both should be  returned. Invalid\
-        value for toReturn: %s " % toReturn)
+        value for to_return: %s " % to_return)
     
     # first get the phase and power as desired
     res = calcPhasePow(freqs,tseries.data,tseries.samplerate,axis=tseries.tdim,
-                       width=width,verbose=verbose,toReturn=toReturn)
+                       width=width,verbose=verbose,to_return=to_return)
 
     # handle the dims
     tsdims = tseries.dims.copy()
@@ -388,7 +388,7 @@ def tsPhasePow(freqs,tseries,width=5,resample=None,keepBuffer=False,
     tsdims.insert(0,freqDim)
     
     # turn them into timeseries
-    if toReturn == 'pow' or toReturn == 'both':
+    if to_return == 'pow' or to_return == 'both':
         # turn into a timeseries
         powerAll = TimeSeries(res,tsdims,
                               tseries.samplerate,unit='XXX get pow unit',
@@ -404,7 +404,7 @@ def tsPhasePow(freqs,tseries,width=5,resample=None,keepBuffer=False,
         if not keepBuffer:
             powerAll.removeBuf()
     
-    if toReturn == 'phase' or toReturn == 'both':
+    if to_return == 'phase' or to_return == 'both':
         # get the phase matrix
         phaseAll = TimeSeries(res,tsdims,
                               tseries.samplerate,unit='radians',
@@ -419,16 +419,16 @@ def tsPhasePow(freqs,tseries,width=5,resample=None,keepBuffer=False,
             phaseAll.removeBuf()
     
     # see what to return
-    if toReturn == 'pow':
+    if to_return == 'pow':
         return powerAll
-    elif toReturn == 'phase':
+    elif to_return == 'phase':
         return phaseAll
-    elif toReturn == 'both':
+    elif to_return == 'both':
         return phaseAll,powerAll
         
     
 
-def calcPhasePow(freqs,dat,samplerate,axis=-1,width=5,verbose=False,toReturn='both'):
+def calcPhasePow(freqs,dat,samplerate,axis=-1,width=5,verbose=False,to_return='both'):
     """Calculate phase and power over time with a Morlet wavelet.
 
     You can optionally pass in downsample, which is the samplerate to
@@ -438,8 +438,8 @@ def calcPhasePow(freqs,dat,samplerate,axis=-1,width=5,verbose=False,toReturn='bo
     side of the signal of interest because power calculations and
     decimation have edge effects."""
 
-    if toReturn != 'both' and toReturn != 'pow' and toReturn != 'phase':
-        raise ValueError("toReturn must be \'pow\', \'phase\', or \'both\' to specify whether power, phase, or both are returned. Invalid value: %s " % toReturn)
+    if to_return != 'both' and to_return != 'pow' and to_return != 'phase':
+        raise ValueError("to_return must be \'pow\', \'phase\', or \'both\' to specify whether power, phase, or both are returned. Invalid value: %s " % to_return)
     
     # reshape the data to 2D with time on the 2nd dimension
     origshape = dat.shape
@@ -464,33 +464,33 @@ def calcPhasePow(freqs,dat,samplerate,axis=-1,width=5,verbose=False,toReturn='bo
 	phase,power = phasePow2d(freq,eegdat,samplerate,width)
         
         # reshape back do original data shape
-	if toReturn == 'phase' or toReturn == 'both':
+	if to_return == 'phase' or to_return == 'both':
 	    phase = reshapeFrom2D(phase,axis,origshape)
-	if toReturn == 'pow' or toReturn == 'both':
+	if to_return == 'pow' or to_return == 'both':
 	    power = reshapeFrom2D(power,axis,origshape)
 
 	# see if allocate
 	if len(phaseAll) == 0 and len(powerAll) == 0:
-	    if toReturn == 'phase' or toReturn == 'both':
+	    if to_return == 'phase' or to_return == 'both':
 		phaseAll = N.empty(N.concatenate(([len(freqs)],phase.shape)),
 				   dtype=phase.dtype)
-	    if toReturn == 'pow' or toReturn == 'both':
+	    if to_return == 'pow' or to_return == 'both':
 		powerAll = N.empty(N.concatenate(([len(freqs)],power.shape)),
 				   dtype=power.dtype)
         # insert into all
-	if toReturn == 'phase' or toReturn == 'both':
+	if to_return == 'phase' or to_return == 'both':
 	    phaseAll[f] = phase
-	if toReturn == 'pow' or toReturn == 'both':
+	if to_return == 'pow' or to_return == 'both':
 	    powerAll[f] = power
 
     if verbose:
 	sys.stdout.write('\n')
 
-    if toReturn == 'pow':
+    if to_return == 'pow':
         return powerAll
-    elif toReturn == 'phase':
+    elif to_return == 'phase':
         return phaseAll
-    elif toReturn == 'both':
+    elif to_return == 'both':
         return phaseAll,powerAll
 
 
