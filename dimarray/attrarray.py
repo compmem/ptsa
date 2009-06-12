@@ -17,19 +17,41 @@ import copy as copylib
 
 class AttrArray(np.ndarray):
     """
-    Attribute Array
-    
-    Subclass of NumPy's ndarray that allows specification of custom
-    attributes both as kwargs during instantiation and on the fly.
+    AttrArray(data, dtype=None, copy=False, **kwargs)
+
+    An AttrArray (short for Attribute Array) is simply a NumPy ndarray
+    which allows the specification of custom attributes. These
+    attributes can be specified as keyword arguments or set and
+    changed on the fly as shown in the examples below.
+
+    AttrArray instances are initialized just like ndarray instances
+    but they accept arbitrary keyword arguments that can be used to
+    specify custom attributes during initialization. Every AttrArray
+    has a protected (read-only) _required_attrs attribute, which is
+    None when no attributes are required (as is the case for instances
+    of AttrArray) or a dictionary that specifies required attributes
+    (for child classes of AttrArray, such as Dim and DimArray).
     
     Examples
     --------
-    x = AttrArray(np.random.rand(5), name='jubba')
-    print x.name
-    x.othername = 'wubba'
-    print x.othername
-    xs = np.sqrt(x)
-    print x.othername
+    >>> import numpy as np
+    >>> import dimarray as da
+    >>> data = da.AttrArray(np.random.rand(5), hello='world')
+    >>> print data.hello
+    world
+    >>> data.hello = 'good bye'
+    >>> print data.hello
+    good bye
+    >>> data.version = 1.0
+    >>> print data.version
+    1.0
+
+    These custom attributes are maintained when copying or
+    manipulating the data in an AttrArray:
+    
+    >>> data2 = data.mean()
+    >>> data2.hello
+    good bye    
     """
 
     # required attributes (can be specified by subclasses): a

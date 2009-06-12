@@ -20,11 +20,13 @@ from attrarray import AttrArray
 class Dim(AttrArray):
     """
     Dim(data, name, dtype=None, copy=False, **kwargs)
-    
-    Class that defines a dimension.
 
-    It has one required attribute (name), but other custom attributes
-    (e.g., units) can be specified.
+    Dim is a child class of AttrArray with the constraints that each
+    instance be 1-dimensional and have a name attribute. If multi
+    dimensional input is specified during initialization, an attempt
+    is made to convert it to one dimension by collapsing over
+    dimensions that only have one level (if that fails an error is
+    raised).
 
     Parameters
     ----------
@@ -33,12 +35,20 @@ class Dim(AttrArray):
         dimension)
     name : object
         The name of the dimension (e.g., 'time')
-    dtype : numpy.dtype,optional
+    dtype : numpy.dtype, optional
         The data type.
-    copy : bool,optional
+    copy : bool, optional
         Flag specifying whether or not data should be copied.
-    **kwargs : {**kwargs},optional
+    **kwargs : {key word arguments}, optional
         Additional custom attributes (e.g., units='ms').
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> import dimarray as da
+    >>> test = da.Dim([[1,2,3]], name='dimension 1')
+    >>> print test
+    [1 2 3]
     """
     _required_attrs = {'name':str}
     
@@ -83,10 +93,13 @@ class DimArray(AttrArray):
     """
     DimArray(data, dims, dtype=None, copy=False, **kwargs)
     
-    Class that keeps track of the dimensions of a NumPy ndarray.
-    
-    The dimensions are specified in the dims attribute as a list of
-    Dim instances that match the shape of the data array.
+    A DimArray (short for Dimensioned Array) is a child class of
+    AttrArray with the constraints that each instance and have a dims
+    attribute which specifies the dimensions as an array of Dim
+    instances. The name of the Dim instances in dims must be unique
+    and they must correspond to the dimensions of the DimArray in the
+    correct order. If dims is not specified, generic dimensions will
+    be automatically generated from the data.
 
     The DimArray class provides a number of conveniences above and
     beyond normal ndarrays.  These include the ability to refer to
@@ -97,19 +110,74 @@ class DimArray(AttrArray):
     ----------
     data : array_like
         The dimensioned data.
-    dims : {array or list of Dim instances}
+    dims : {array or list of Dim instances}, optional
         The dimensions of the data.
     dtype : dtype,optional
         The data type.
     copy : bool,optional
         Flag specifying whether or not data should be copied.
-    **kwargs : {**kwargs},optional
-        Additional custom attributes.    
+    **kwargs : {key word arguments}, optional
+        Additional custom attributes.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> import dimarray as da
+    >>> dim1 = da.Dim(range(5),'First dimension')
+    >>> dim2 = da.Dim(['a','b','c'],'Second dimension')
+    >>> data = da.DimArray(np.random.rand(5,3),[dim1,dim2])
+    >>> data
+    DimArray([[ 0.82065457,  0.43273809,  0.54188643],
+           [ 0.44329345,  0.51763783,  0.01812327],
+           [ 0.90964632,  0.71995546,  0.4794876 ],
+           [ 0.20505167,  0.15546188,  0.65146716],
+           [ 0.08660183,  0.73384699,  0.1966969 ]])
+    >>> data.dims
+    array([[0 1 2 3 4], ['a' 'b' 'c']], dtype=object)
+    >>> data['First dimension']
+    Dim([0, 1, 2, 3, 4])
+    >>> data['Second dimension']
+    Dim(['a', 'b', 'c'],
+          dtype='|S1')
+    >>> data.dim_names
+    ['First dimension', 'Second dimension']
+    >>> data.mean('First dimension')
+    DimArray([ 0.49304957,  0.51192805,  0.37753227])
+    >>> np.mean(data,'First dimension')
+    DimArray([ 0.49304957,  0.51192805,  0.37753227])
+    >>> data['First dimension > 2']
+    DimArray([[ 0.20505167,  0.15546188,  0.65146716],
+           [ 0.08660183,  0.73384699,  0.1966969 ]])
+    >>> data["Second dimension == 'c'"]
+    DimArray([ 0.54188643,  0.01812327,  0.4794876 ,  0.65146716,  0.1966969 ])
+    >>> data['First dimension > 2',"Second dimension == 'a'"]
+    DimArray([ 0.20505167,  0.08660183])
+    >>> data = da.DimArray(np.random.rand(4,5))
+    >>> data.dim_names
+    ['dim1', 'dim2']
+    >>> data.dims
+    array([[0 1 2 3], [0 1 2 3 4]], dtype=object)
     """
     _required_attrs = {'dims':np.ndarray}
     dim_names = property(lambda self:
                   [dim.name for dim in self.dims],
-                  doc="Dimension names (read only)")
+                  doc="""
+                  List of dimension names
+
+                  This is a property that is created from the dims
+                  attribute and can only be changed through changes in
+                  dims.
+
+                  Examples
+                  --------
+                  >>> import numpy as np
+                  >>> import dimarray as da
+                  >>> dim1 = da.Dim(range(5),'First dimension')
+                  >>> dim2 = da.Dim(['a','b','c'],'Second dimension')
+                  >>> data = da.DimArray(np.random.rand(5,3),[dim1,dim2])
+                  >>> data.dim_names
+                  ['First dimension', 'Second dimension']
+                  """)
     _dim_namesRE = property(lambda self:
                      re.compile('(?<!.)\\b'+
                      '\\b(?!.)|(?<!.)\\b'.join(self.dim_names)
@@ -371,33 +439,102 @@ class DimArray(AttrArray):
         """
         Returns a tuple of index arrays for the selected conditions. 
 
-        data.find('time>0','events.recalled==True')
-        or
-        data.find(time=data['time']>0,events=data['events'].recalled==True)
-        or 
-        data.find("time>kwargs['t']","events.recalled==kwargs['val']",
-                  t=0,val=True)
+        There are three different ways to specify a filterstring
+        illustrated in the examples (not all of these are compatible
+        with dimension names that include spaces).
 
-        data[ind], where ind is the return value of the find method
-        and data.select(filterstring) return the same slices provided
-        that the same filterstring is used.
+        Notes
+        -----
+        data[data.find(filterstring)] returns the same slice as
+        data.select(filterstring).
+
+        See also
+        --------
+        DimArray.select
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> import dimarray as da
+        >>> dim1 = da.Dim(range(5),'Dim1')
+        >>> dim2 = da.Dim(['a','b','c'],'Dim2')
+        >>> data = da.DimArray(np.random.rand(5,3),[dim1,dim2])
+        >>> data.find('Dim1>2',"Dim2=='b'")
+        (array([[3],
+               [4]]), array([[1]]))
+        >>> data.find(Dim1=data2['Dim1']>2,Dim2=data2['Dim2']=='b')
+        (array([[3],
+               [4]]), array([[1]]))
+        >>> data.find("Dim1>kwargs['a']","Dim2==kwargs['b']",a=2,b='b')
+        (array([[3],
+               [4]]), array([[1]]))
+        >>> data[data.find('Dim1>2',"Dim2=='b'")] == \
+            data.select('Dim1>2',"Dim2=='b'")
+        DimArray([[ True],
+               [ True]], dtype=bool)
+        >>> data[data.find(Dim1=data2['Dim1']>2,Dim2=data2['Dim2']=='b')] == \
+            data.select(Dim1=data2['Dim1']>2,Dim2=data2['Dim2']=='b')
+        DimArray([[ True],
+               [ True]], dtype=bool)
+        >>> data[data.find("Dim1>kwargs['a']","Dim2==kwargs['b']",a=2,b='b')] \
+            == data.select("Dim1>kwargs['a']","Dim2==kwargs['b']",a=2,b='b')
+        DimArray([[ True],
+               [ True]], dtype=bool)
         """
         m_ind,ind,remove_dim = self._select_ind(*args,**kwargs)
         return m_ind
 
     def select(self,*args,**kwargs):
         """
-        Return a slice of the data filtered with the select conditions.
+        Returns a slice of the data filtered with the select conditions.
 
-        data.select('time>0','events.recalled==True')
-        or
-        data.select(time=data['time']>0,events=data['events'].recalled==True)
-        or 
-        data.select("time>kwargs['t']","events.recalled==kwargs['val']",
-                    t=0,val=True)
+        There are three different ways to specify a filterstring
+        illustrated in the examples (not all of these are compatible
+        with dimension names that include spaces).
 
-        To get a tuple of index arrays for the selected conditions use
-        the find method.
+        Notes
+        -----
+        data.select(filterstring) returns the same slice as
+        data[data.find(filterstring)].
+
+        See also
+        --------
+        DimArray.find
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> import dimarray as da
+        >>> dim1 = da.Dim(range(5),'Dim1')
+        >>> dim2 = da.Dim(['a','b','c'],'Dim2')
+        >>> data = da.DimArray(np.random.rand(5,3),[dim1,dim2])
+        >>> data
+        DimArray([[ 0.52303181,  0.27313638,  0.28760072],
+               [ 0.24885995,  0.40998977,  0.61080984],
+               [ 0.43630142,  0.06662251,  0.61589201],
+               [ 0.19332778,  0.27255998,  0.67924734],
+               [ 0.57262178,  0.60912633,  0.80938473]])
+        >>> data.select('Dim1>2',"Dim2=='b'")
+        DimArray([[ 0.27255998],
+               [ 0.60912633]])
+        >>> data.select(Dim1=data2['Dim1']>2,Dim2=data2['Dim2']=='b')
+        DimArray([[ 0.27255998],
+               [ 0.60912633]])
+        >>> data.select("Dim1>kwargs['a']","Dim2==kwargs['b']",a=2,b='b')
+        DimArray([[ 0.27255998],
+               [ 0.60912633]])
+        >>> data.select('Dim1>2',"Dim2=='b'") == \
+            data[data.find('Dim1>2',"Dim2=='b'")]
+        DimArray([[ True],
+               [ True]], dtype=bool)
+        >>> data.select(Dim1=data2['Dim1']>2,Dim2=data2['Dim2']=='b') == \
+            data[data.find(Dim1=data2['Dim1']>2,Dim2=data2['Dim2']=='b')]
+        DimArray([[ True],
+               [ True]], dtype=bool)
+        >>> data.select("Dim1>kwargs['a']","Dim2==kwargs['b']",a=2,b='b') == \
+            data[data.find("Dim1>kwargs['a']","Dim2==kwargs['b']",a=2,b='b')]
+        DimArray([[ True],
+               [ True]], dtype=bool)
         """
         m_ind,ind,remove_dim = self._select_ind(*args,**kwargs)
         return self[m_ind]
@@ -568,9 +705,24 @@ class DimArray(AttrArray):
         
         Examples
         --------
-        >>> data.make_bins('time',10,numpy.mean,number_bins=False)
-        >>> data.make_bins('time',[[-100,0,'baseline'],[0,100,'timebin 1'],
-                      [100,200,'timebin 2']],numpy.mean,number_bins=False)
+        >>> import numpy as np
+        >>> import dimarray as da
+        >>> data = da.DimArray(np.random.rand(4,5))
+        >>> data
+        DimArray([[ 0.74214411,  0.35124939,  0.52641061,  0.85086401,  0.38799751],
+               [ 0.692385  ,  0.14314031,  0.61169269,  0.14904847,  0.65182813],
+               [ 0.33258044,  0.07763733,  0.18474865,  0.67977018,  0.30520807],
+               [ 0.05501445,  0.09936871,  0.55943639,  0.70683311,  0.10069493]])
+        >>> data.make_bins('dim1',2,np.mean)
+        DimArray([[ 0.71726456,  0.24719485,  0.56905165,  0.49995624,  0.51991282],
+               [ 0.19379744,  0.08850302,  0.37209252,  0.69330165,  0.2029515 ]])
+        >>> data.make_bins('dim1',2,np.mean).dims
+        array([[ 0.5  2.5], [0 1 2 3 4]], dtype=object)
+        >>> data.make_bins('dim1',2,np.mean)
+        DimArray([[ 0.71726456,  0.24719485,  0.56905165,  0.49995624,  0.51991282],
+               [ 0.19379744,  0.08850302,  0.37209252,  0.69330165,  0.2029515 ]])
+        >>> data.make_bins('dim2',2,np.mean,error_on_nonexact=False).dims
+        array([[0 1 2 3], [ 1.   3.5]], dtype=object)
         """
         # Makes sure dim is index (convert dim name if necessary):
         dim = self.get_axis(axis)

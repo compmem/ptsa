@@ -22,6 +22,7 @@ import sys, os
 # absolute, like shown here.
 sys.path.append(os.path.abspath('.'))
 sys.path.append(os.path.abspath('../.'))
+sys.path.append(os.path.abspath('sphinxexts'))
 
 # General configuration
 # ---------------------
