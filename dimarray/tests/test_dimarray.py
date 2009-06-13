@@ -71,12 +71,9 @@ class test_DimArray(TestCase):
         pass
     
     def test_new(self):
-        # should raise Error if dims are not specified: 
-        # should raise ValueError if dims is not a list:
+        # should raise Error if dims contains non-Dim instances:
         self.assertRaises(AttributeError,DimArray,np.random.rand(5,10),
                           dims = np.arange(4))
-
-        # should raise Error if dims contains non-Dim instances:
         self.assertRaises(AttributeError,DimArray,np.random.rand(5,10),
                           dims=[Dim(range(5),name='freqs',unit='Hz'),
                                 AttrArray(range(10),name='time',unit='sec')])
@@ -103,6 +100,35 @@ class test_DimArray(TestCase):
                           dims=[Dim(range(10),name='dim1',unit='Hz'),
                                 Dim(range(3),name='dim1',unit='Hz'),
                                 Dim(range(5),name='dim1',unit='sec')])
+
+        # should throw Error if a dim name is not a valid identifier:
+        self.assertRaises(AttributeError,DimArray,np.random.rand(10,5),
+                          dims=[Dim(range(10),name='dim1',unit='Hz'),
+                                Dim(range(5),name='dim 2',unit='sec')])
+        self.assertRaises(AttributeError,DimArray,np.random.rand(10,5),
+                          dims=[Dim(range(10),name='dim 1',unit='Hz'),
+                                Dim(range(5),name='dim2',unit='sec')])
+        self.assertRaises(AttributeError,DimArray,np.random.rand(10,5),
+                          dims=[Dim(range(10),name='dim 1',unit='Hz'),
+                                Dim(range(5),name='dim 2',unit='sec')])
+        self.assertRaises(AttributeError,DimArray,np.random.rand(10,5),
+                          dims=[Dim(range(10),name='dim1',unit='Hz'),
+                                Dim(range(5),name='dim$2',unit='sec')])
+        self.assertRaises(AttributeError,DimArray,np.random.rand(10,5),
+                          dims=[Dim(range(10),name='$dim1',unit='Hz'),
+                                Dim(range(5),name='dim2',unit='sec')])
+        self.assertRaises(AttributeError,DimArray,np.random.rand(10,5),
+                          dims=[Dim(range(10),name='1dim1',unit='Hz'),
+                                Dim(range(5),name='dim:2',unit='sec')])
+        self.assertRaises(AttributeError,DimArray,np.random.rand(10,5),
+                          dims=[Dim(range(10),name='dim1',unit='Hz'),
+                                Dim(range(5),name='',unit='sec')])
+        self.assertRaises(AttributeError,DimArray,np.random.rand(10,5),
+                          dims=[Dim(range(10),name='',unit='Hz'),
+                                Dim(range(5),name='dim2',unit='sec')])
+        self.assertRaises(AttributeError,DimArray,np.random.rand(10,5),
+                          dims=[Dim(range(10),name='',unit='Hz'),
+                                Dim(range(5),name='',unit='sec')])
         
         # this is a proper initialization:
         dat = DimArray(np.random.rand(5,10),

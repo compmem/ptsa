@@ -33,8 +33,11 @@ class Dim(AttrArray):
     data : {1-D array_like}
         The values of the dimension (e.g., time points for a time
         dimension)
-    name : object
-        The name of the dimension (e.g., 'time')
+    name : str
+        The name of the dimension (e.g., 'time'). When used in a
+        DimArray this must be a valid identifier name (i.e., consist
+        only of letters, numbers and underscores and not start with a
+        number).
     dtype : numpy.dtype, optional
         The data type.
     copy : bool, optional
@@ -46,7 +49,7 @@ class Dim(AttrArray):
     --------
     >>> import numpy as np
     >>> import dimarray as da
-    >>> test = da.Dim([[1,2,3]], name='dimension 1')
+    >>> test = da.Dim([[1,2,3]], name='dimension_1')
     >>> print test
     [1 2 3]
     """
@@ -110,7 +113,7 @@ class DimArray(AttrArray):
     ----------
     data : array_like
         The dimensioned data.
-    dims : {array or list of Dim instances}, optional
+    dims : {container of Dim instances}, optional
         The dimensions of the data.
     dtype : dtype,optional
         The data type.
@@ -123,35 +126,52 @@ class DimArray(AttrArray):
     --------
     >>> import numpy as np
     >>> import dimarray as da
-    >>> dim1 = da.Dim(range(5),'First dimension')
-    >>> dim2 = da.Dim(['a','b','c'],'Second dimension')
+    >>> dim1 = da.Dim(range(5),'Dim1')
+    >>> dim2 = da.Dim(['a','b','c'],'Dim2')
     >>> data = da.DimArray(np.random.rand(5,3),[dim1,dim2])
     >>> data
-    DimArray([[ 0.82065457,  0.43273809,  0.54188643],
-           [ 0.44329345,  0.51763783,  0.01812327],
-           [ 0.90964632,  0.71995546,  0.4794876 ],
-           [ 0.20505167,  0.15546188,  0.65146716],
-           [ 0.08660183,  0.73384699,  0.1966969 ]])
+    DimArray([[ 0.59645979,  0.92462876,  0.76882167],
+           [ 0.3581822 ,  0.57873905,  0.76889117],   
+           [ 0.40272846,  0.69372032,  0.59006832],   
+           [ 0.69862889,  0.68334188,  0.10891802],   
+           [ 0.14111733,  0.97454223,  0.73193147]])  
     >>> data.dims
     array([[0 1 2 3 4], ['a' 'b' 'c']], dtype=object)
-    >>> data['First dimension']
+    >>> data['Dim1']
     Dim([0, 1, 2, 3, 4])
-    >>> data['Second dimension']
+    >>> data['Dim2']
     Dim(['a', 'b', 'c'],
           dtype='|S1')
     >>> data.dim_names
-    ['First dimension', 'Second dimension']
-    >>> data.mean('First dimension')
-    DimArray([ 0.49304957,  0.51192805,  0.37753227])
-    >>> np.mean(data,'First dimension')
-    DimArray([ 0.49304957,  0.51192805,  0.37753227])
-    >>> data['First dimension > 2']
-    DimArray([[ 0.20505167,  0.15546188,  0.65146716],
-           [ 0.08660183,  0.73384699,  0.1966969 ]])
-    >>> data["Second dimension == 'c'"]
-    DimArray([ 0.54188643,  0.01812327,  0.4794876 ,  0.65146716,  0.1966969 ])
-    >>> data['First dimension > 2',"Second dimension == 'a'"]
-    DimArray([ 0.20505167,  0.08660183])
+    ['Dim1', 'Dim2']
+    >>> data.mean('Dim1')
+    DimArray([ 0.43942333,  0.77099445,  0.59372613])
+    >>> np.mean(data,'Dim1')
+    DimArray([ 0.43942333,  0.77099445,  0.59372613])
+    >>> data['Dim1 > 2']
+    DimArray([[ 0.69862889,  0.68334188,  0.10891802],
+           [ 0.14111733,  0.97454223,  0.73193147]])
+    >>> data["Dim2 == 'c'"]
+    DimArray([ 0.76882167,  0.76889117,  0.59006832,  0.10891802,  0.73193147])
+    >>> data['Dim1 > 2',"Dim2 == 'a'"]
+    DimArray([ 0.69862889,  0.14111733])
+    >>> data['Dim1>2'] +=1
+    >>> data
+    DimArray([[ 0.59645979,  0.92462876,  0.76882167],
+           [ 0.3581822 ,  0.57873905,  0.76889117],
+           [ 0.40272846,  0.69372032,  0.59006832],
+           [ 1.69862889,  1.68334188,  1.10891802],
+           [ 1.14111733,  1.97454223,  1.73193147]])
+    >>> data['Dim1>2',"Dim2>'a'"]
+    DimArray([[ 1.68334188,  1.10891802],
+            [ 1.97454223,  1.73193147]])
+    >>> data['Dim1>2',"Dim2>'a'"]+=1
+    >>> data
+    DimArray([[ 0.59645979,  0.92462876,  0.76882167],
+           [ 0.3581822 ,  0.57873905,  0.76889117],
+           [ 0.40272846,  0.69372032,  0.59006832],
+           [ 1.69862889,  2.68334188,  2.10891802],
+           [ 1.14111733,  2.97454223,  2.73193147]])
     >>> data = da.DimArray(np.random.rand(4,5))
     >>> data.dim_names
     ['dim1', 'dim2']
@@ -252,6 +272,25 @@ class DimArray(AttrArray):
         if len(np.unique(self.dim_names)) != len(self.dim_names):
             raise AttributeError("Dimension names must be unique!\nnames: "+
                                  str(self.dim_names))
+
+        # Ensure unique dimension names (this will fail if not all Dims)
+        if len(np.unique(self.dim_names)) != len(self.dim_names):
+            raise AttributeError("Dimension names must be unique!\nnames: "+
+                                 str(self.dim_names))
+
+        # Ensure dimension names are at least 1 charater long
+        if np.any([len(s)<1 for s in self.dim_names]):
+            raise AttributeError("Dimension names must be at least 1 character"+
+                                 " in lenght!\nnames: "+str(self.dim_names))
+
+        # Ensure unique dimension names are valid identifiers
+        valid_dimname = re.compile('[a-zA-Z_]\w*')
+        if np.any([len(valid_dimname.findall(s)[0])!=len(s)
+                   for s in self.dim_names]):
+            raise AttributeError("Dimension names can only contain "+
+                                 "alphanumeric characters and underscores, "+
+                                 "and cannot begin with a number\nnames: "+
+                                 str(self.dim_names))        
 
     def _select_ind(self, *args, **kwargs):
         """
@@ -440,8 +479,7 @@ class DimArray(AttrArray):
         Returns a tuple of index arrays for the selected conditions. 
 
         There are three different ways to specify a filterstring
-        illustrated in the examples (not all of these are compatible
-        with dimension names that include spaces).
+        illustrated in the examples.
 
         Notes
         -----
@@ -489,8 +527,7 @@ class DimArray(AttrArray):
         Returns a slice of the data filtered with the select conditions.
 
         There are three different ways to specify a filterstring
-        illustrated in the examples (not all of these are compatible
-        with dimension names that include spaces).
+        illustrated in the examples.
 
         Notes
         -----
