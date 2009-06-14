@@ -1025,30 +1025,46 @@ class DimArray(AttrArray):
 
 # set the doc strings
 
-# Methods that return DimArrays:
-DimArray.all.im_func.func_doc = np.ndarray.all.__doc__            
-DimArray.any.im_func.func_doc = np.ndarray.any.__doc__            
-DimArray.argmax.im_func.func_doc = np.ndarray.argmax.__doc__            
-DimArray.argmin.im_func.func_doc = np.ndarray.argmin.__doc__            
-DimArray.mean.im_func.func_doc = np.ndarray.mean.__doc__            
-DimArray.argsort.im_func.func_doc = np.ndarray.argsort.__doc__            
-DimArray.compress.im_func.func_doc = np.ndarray.compress.__doc__            
-DimArray.cumprod.im_func.func_doc = np.ndarray.cumprod.__doc__            
-DimArray.cumsum.im_func.func_doc = np.ndarray.cumsum.__doc__            
-DimArray.max.im_func.func_doc = np.ndarray.max.__doc__            
-DimArray.mean.im_func.func_doc = np.ndarray.mean.__doc__            
-DimArray.min.im_func.func_doc = np.ndarray.min.__doc__            
+# Methods that return DimArrays and take an axis argument:
+axis_msg =\
+"""
+
+ **Below is the docstring from numpy.ndarray.**
+ **For DimArray instances, the axis may be specified as string (dimension name).**
+
+"""
+axes_msg =\
+"""
+
+ **Below is the docstring from numpy.ndarray.**
+ **The axes may be specified as strings (dimension names).**
+
+"""
+DimArray.all.im_func.func_doc = axis_msg+np.ndarray.all.__doc__            
+DimArray.any.im_func.func_doc = axis_msg+np.ndarray.any.__doc__            
+DimArray.argmax.im_func.func_doc = axis_msg+np.ndarray.argmax.__doc__            
+DimArray.argmin.im_func.func_doc = axis_msg+np.ndarray.argmin.__doc__            
+DimArray.argsort.im_func.func_doc = axis_msg+np.ndarray.argsort.__doc__            
+DimArray.compress.im_func.func_doc = axis_msg+np.ndarray.compress.__doc__            
+DimArray.cumprod.im_func.func_doc = axis_msg+np.ndarray.cumprod.__doc__            
+DimArray.cumsum.im_func.func_doc = axis_msg+np.ndarray.cumsum.__doc__            
+DimArray.max.im_func.func_doc = axis_msg+np.ndarray.max.__doc__            
+DimArray.mean.im_func.func_doc = axis_msg+np.ndarray.mean.__doc__            
+DimArray.min.im_func.func_doc = axis_msg+np.ndarray.min.__doc__            
+DimArray.prod.im_func.func_doc = axis_msg+np.ndarray.prod.__doc__            
+DimArray.ptp.im_func.func_doc = axis_msg+np.ndarray.ptp.__doc__            
+DimArray.sort.im_func.func_doc = axis_msg+np.ndarray.sort.__doc__            
+DimArray.std.im_func.func_doc = axis_msg+np.ndarray.std.__doc__            
+DimArray.sum.im_func.func_doc = axis_msg+np.ndarray.sum.__doc__            
+DimArray.swapaxes.im_func.func_doc = axes_msg+np.ndarray.swapaxes.__doc__            
+DimArray.take.im_func.func_doc = axis_msg+np.ndarray.take.__doc__            
+DimArray.transpose.im_func.func_doc = axes_msg+np.ndarray.transpose.__doc__            
+DimArray.var.im_func.func_doc = axis_msg+np.ndarray.var.__doc__            
+
+# Methods that return DimArrays and do not take an axis argument:
 DimArray.nonzero.im_func.func_doc = np.ndarray.nonzero.__doc__            
-DimArray.prod.im_func.func_doc = np.ndarray.prod.__doc__            
-DimArray.ptp.im_func.func_doc = np.ndarray.ptp.__doc__            
-DimArray.sort.im_func.func_doc = np.ndarray.sort.__doc__            
 DimArray.squeeze.im_func.func_doc = np.ndarray.squeeze.__doc__            
-DimArray.std.im_func.func_doc = np.ndarray.std.__doc__            
-DimArray.sum.im_func.func_doc = np.ndarray.sum.__doc__            
-DimArray.swapaxes.im_func.func_doc = np.ndarray.swapaxes.__doc__            
-DimArray.take.im_func.func_doc = np.ndarray.take.__doc__            
-DimArray.transpose.im_func.func_doc = np.ndarray.transpose.__doc__            
-DimArray.var.im_func.func_doc = np.ndarray.var.__doc__            
+
 
 # Methods that return AttrArrays: Prefic docstring with warning!
 cast_msg =\
