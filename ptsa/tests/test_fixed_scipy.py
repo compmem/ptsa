@@ -9,11 +9,11 @@
 
 import numpy as N
 from numpy.testing import *
-from numpy.testing import NumpyTest, NumpyTestCase
+#from numpy.testing import NumpyTest, NumpyTestCase
 import ptsa.fixed_scipy as wavelets
 
 
-class TestFixed_Scipy(NumpyTestCase):
+class TestFixed_Scipy(TestCase):
     def test_morlet(self):
 
         x = wavelets.morlet(50,4.1,complete=True)

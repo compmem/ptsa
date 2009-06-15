@@ -24,10 +24,11 @@ def reshapeTo2D(data,axis):
     newdims = np.r_[0:axis,axis+1:rnk,axis]
 
     # reshape and transpose the data
-    newdata = np.reshape(np.transpose(data,tuple(newdims)),(np.prod(dshape,axis=0)/n,n))
+    newdata = np.reshape(np.transpose(data,tuple(newdims)),
+                         (np.prod(dshape,axis=0)/n,n))
     
     # make sure we have a copy
-    newdata = newdata.copy()
+    #newdata = newdata.copy()
 
     return newdata
 
@@ -54,7 +55,7 @@ def reshapeFrom2D(data,axis,dshape):
     ret = np.transpose(ret,tuple(olddims))
     
     # make sure we have a copy
-    ret = ret.copy()
+    #ret = ret.copy()
     return ret
 
 def repeat_to_match_dims(x,y,axis=-1):

@@ -13,7 +13,7 @@ from numpy.testing import * #NumpyTest, NumpyTestCase
 
 from ptsa.wavelet import *
 
-class test_morlet_multi(NumpyTestCase):
+class test_morlet_multi(TestCase):
     def test_morlet_multi(self):
         # make sure errors are raised when not called with enough or
         # the right kind of arguments:
