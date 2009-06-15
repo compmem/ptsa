@@ -9,15 +9,14 @@
 
 import numpy as np
 import re
-from numpy.testing import NumpyTest, NumpyTestCase
-
+from numpy.testing import TestCase
 
 from ptsa.data import Dim,DimArray,TimeSeries
 from ptsa import filt
 
-# from numpy.testing import NumpyTest, NumpyTestCase
+# from numpy.testing import NumpyTest, TestCase
 
-# class test_Template(NumpyTestCase):
+# class test_Template(TestCase):
 
 #     def setUp(self): pass
 #         #print "TestCase initialization..."
@@ -75,7 +74,7 @@ class TestData:
 
 
 # test TimeSeries
-class test_TimeSeries(NumpyTestCase):
+class test_TimeSeries(TestCase):
     def setUp(self):
         td = TestData()
         self.dat200 = td.dat200
@@ -143,6 +142,3 @@ class test_TimeSeries(NumpyTestCase):
 
 # make sure we get the expected number of samples
 
-
-if __name__ == '__main__':
-    NumpyTest.main()

@@ -15,7 +15,7 @@ from scipy.fftpack import fft,ifft
 
 from ptsa.filt import decimate
 from ptsa.helper import reshapeTo2D,reshapeFrom2D,nextPow2,centered
-from ptsa.data import TimeSeries,Dim,Dims,DimData
+from ptsa.data import TimeSeries,Dim
 from ptsa.fixed_scipy import morlet as morlet_wavelet
 
 def morlet_multi(freqs, widths, samplerates,
