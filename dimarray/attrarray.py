@@ -207,5 +207,114 @@ class AttrArray(np.ndarray):
         self._attrs = attrs
         self._set_all_attr()
 
+    def nanstd(a, axis=None, dtype=None, ddof=0):
+        """
+        Compute the standard deviation along the specified axis
+        ignoring nans.
 
+        Returns the standard deviation, a measure of the spread of a
+        distribution, of the array elements, treating nans as missing
+        values. The standard deviation is computed for the flattened
+        array by default, otherwise over the specified axis.
+        
+        Parameters
+        ----------
+        a : array_like
+            Calculate the standard deviation of these values.
+        axis : int, optional
+            Axis along which the standard deviation is computed. The
+            default is to compute the standard deviation of the
+            flattened array.
+        ddof : int, optional
+            Means Delta Degrees of Freedom.  The divisor used in
+            calculations is ``N - ddof``, where ``N`` represents the
+            number of elements.  By default `ddof` is zero (biased
+            estimate).
+            
+        Returns
+        -------
+        standard_deviation : {ndarray, scalar}
+            If `out` is None, return a new array containing the
+            standard deviation, otherwise return a reference to the
+            output array. Dtype is always at least np.float64.
+
+        See Also
+        --------
+        numpy.std : Standard deviation
+        scipy.stats.nanstd : Standard deviation ignorning nans
+        numpy.var : Variance
+        numpy.mean : Average
+
+        Notes
+        -----
+        If no nan values are present, returns the same value as
+        numpy.std, otherwise, the standard deviation is calculated as
+        if the nan values were not present.
+        
+        The standard deviation is the square root of the average of
+        the squared deviations from the mean, i.e., ``var =
+        sqrt(mean(abs(x - x.mean())**2))``.
+
+        The mean is normally calculated as ``x.sum() / N``, where ``N
+        = len(x)``.  If, however, `ddof` is specified, the divisor ``N
+        - ddof`` is used instead.
+
+        Note that, for complex numbers, std takes the absolute value
+        before squaring, so that the result is always real and
+        nonnegative.
+
+        This docstring is based on that for numpy.std, the code is
+        based on scipy.stats.nanstd.
+
+        Examples
+        --------
+        >>> a = AttrArray([[1, 2], [3, 4], [5, 6]])
+        >>> a.nanstd()
+        1.707825127659933
+        >>> a = AttrArray([[np.nan, 2], [3, 4], [5, 6]])
+        >>> a.nanstd()
+        1.4142135623730951
+        >>> a.std(0)
+        AttrArray([ 1.,  1.6329931618554521])
+        >>> a.std(1)
+        AttrArray([ 0.0,  0.5,  0.5])
+        """
+        
+        if axis is None:
+            return a[~np.isnan(a)].std()
+
+        # make copy to not change the input array:
+        a = a.copy()
+
+        # number of all observations
+        n_orig = a.shape[axis]
+
+        # number of nans:
+        n_nan = np.float64(np.sum(np.isnan(a),axis))
+
+        # number of non-nan values:
+        n = n_orig - n_nan
+
+        # compute the mean for all non-nan values:
+        a[np.isnan(a)] = 0.
+        m1 = np.sum(a,axis)/n
+
+        # Kludge to subtract m1 from the correct axis
+        if axis!=0:
+            shape = np.arange(a.ndim).tolist()
+            shape.remove(axis)
+            shape.insert(0,axis)
+            a = a.transpose(tuple(shape))
+            d = (a-m1)**2.0
+            shape = tuple(np.array(shape).argsort())
+            d = d.transpose(shape)
+        else:
+            d = (a-m1)**2.0
+
+        # calculate numerator for variance:
+        m2 = np.float64(np.sum(d,axis)-(m1*m1)*n_nan)
+        
+        # devide by appropriate denominator:
+        m2c = m2 / (n - ddof)
+        return np.sqrt(m2c)
 

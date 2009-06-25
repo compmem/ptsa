@@ -918,6 +918,11 @@ class DimArray(AttrArray):
         ret = self.view(AttrArray).min(axis=axis, out=out)
         return self._ret_func(ret,axis)
 
+    def nanstd(self, axis=None, ddof=0):
+        axis = self.get_axis(axis)
+        ret = self.view(AttrArray).nanstd(axis=axis, ddof=0)
+        return self._ret_func(ret,axis)
+
     def nonzero(self, *args, **kwargs):
         return self.view(AttrArray).nonzero(*args, **kwargs)
 
@@ -1033,6 +1038,13 @@ axis_msg =\
  **For DimArray instances, the axis may be specified as string (dimension name).**
 
 """
+axis_msg_aa =\
+"""
+
+ **Below is the docstring from AttrArray.**
+ **For DimArray instances, the axis may be specified as string (dimension name).**
+
+"""
 axes_msg =\
 """
 
@@ -1051,6 +1063,7 @@ DimArray.cumsum.im_func.func_doc = axis_msg+np.ndarray.cumsum.__doc__
 DimArray.max.im_func.func_doc = axis_msg+np.ndarray.max.__doc__            
 DimArray.mean.im_func.func_doc = axis_msg+np.ndarray.mean.__doc__            
 DimArray.min.im_func.func_doc = axis_msg+np.ndarray.min.__doc__            
+DimArray.nanstd.im_func.func_doc = axis_msg_aa+AttrArray.nanstd.__doc__            
 DimArray.prod.im_func.func_doc = axis_msg+np.ndarray.prod.__doc__            
 DimArray.ptp.im_func.func_doc = axis_msg+np.ndarray.ptp.__doc__            
 DimArray.sort.im_func.func_doc = axis_msg+np.ndarray.sort.__doc__            
