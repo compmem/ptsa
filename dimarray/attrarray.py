@@ -207,7 +207,7 @@ class AttrArray(np.ndarray):
         self._attrs = attrs
         self._set_all_attr()
 
-    def nanstd(a, axis=None, dtype=None, ddof=0):
+    def nanstd(a, axis=None, ddof=0):
         """
         Compute the standard deviation along the specified axis
         ignoring nans.
@@ -281,7 +281,7 @@ class AttrArray(np.ndarray):
         """
         
         if axis is None:
-            return a[~np.isnan(a)].std()
+            return a[~np.isnan(a)].std(ddof=ddof)
 
         # make copy to not change the input array:
         a = a.copy()

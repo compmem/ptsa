@@ -137,7 +137,17 @@ class test_AttrArray(TestCase):
         self.assertEquals(dat.nanstd(1).name, 'randvals')
         assert_array_almost_equal(dat.std(2),dat.nanstd(2))
         self.assertEquals(dat.nanstd(2).name, 'randvals')
-        self.assertEquals(dat.name,'randvals')
+        self.assertEquals(dat.nanstd(2).name,'randvals')
+        for d in range(3):
+            self.assertEquals(dat.std(ddof=d),dat.nanstd(ddof=d))
+            assert_array_almost_equal(dat.std(0,ddof=d),dat.nanstd(0,ddof=d))
+            self.assertEquals(dat.nanstd(0,ddof=d).name, 'randvals')
+            assert_array_almost_equal(dat.std(1,ddof=d),dat.nanstd(1,ddof=d))
+            self.assertEquals(dat.nanstd(1,ddof=d).name, 'randvals')
+            assert_array_almost_equal(dat.std(2,ddof=d),dat.nanstd(2,ddof=d))
+            self.assertEquals(dat.nanstd(2,ddof=d).name, 'randvals')
+            self.assertEquals(dat.nanstd(2,ddof=d).name,'randvals')
+
         # Now, make sure results are as expected with NaN present:
         arr[0,0,0] = np.nan
         dat = AttrArray(arr,name='randvals')
@@ -176,3 +186,29 @@ class test_AttrArray(TestCase):
         tmp2[3,6] = 0
         assert_array_almost_equal(tmp1,tmp2)
         self.assertEquals(tmp2.name, 'randvals')
+        for d in range(3):
+            self.assertEquals(dat[np.isfinite(dat)].std(ddof=d),dat.nanstd(ddof=d))
+            tmp1 = dat.std(0,ddof=d)
+            tmp1[0,0] = 0
+            tmp1[6,2] = 0
+            tmp2 = dat.nanstd(0,ddof=d)
+            tmp2[0,0] = 0
+            tmp2[6,2] = 0
+            assert_array_almost_equal(tmp1,tmp2)
+            self.assertEquals(tmp2.name, 'randvals')
+            tmp1 = dat.std(1,ddof=d)
+            tmp1[0,0] = 0
+            tmp1[3,2] = 0
+            tmp2 = dat.nanstd(1,ddof=d)
+            tmp2[0,0] = 0
+            tmp2[3,2] = 0
+            assert_array_almost_equal(tmp1,tmp2)
+            self.assertEquals(tmp2.name, 'randvals')
+            tmp1 = dat.std(2,ddof=d)
+            tmp1[0,0] = 0
+            tmp1[3,6] = 0
+            tmp2 = dat.nanstd(2,ddof=d)
+            tmp2[0,0] = 0
+            tmp2[3,6] = 0
+            assert_array_almost_equal(tmp1,tmp2)
+            self.assertEquals(tmp2.name, 'randvals')
