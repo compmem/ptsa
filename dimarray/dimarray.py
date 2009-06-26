@@ -918,9 +918,19 @@ class DimArray(AttrArray):
         ret = self.view(AttrArray).min(axis=axis, out=out)
         return self._ret_func(ret,axis)
 
+    def nanmean(self, axis=None):
+        axis = self.get_axis(axis)
+        ret = self.view(AttrArray).nanmean(axis=axis)
+        return self._ret_func(ret,axis)
+
     def nanstd(self, axis=None, ddof=0):
         axis = self.get_axis(axis)
         ret = self.view(AttrArray).nanstd(axis=axis, ddof=0)
+        return self._ret_func(ret,axis)
+
+    def nanvar(self, axis=None, ddof=0):
+        axis = self.get_axis(axis)
+        ret = self.view(AttrArray).nanvar(axis=axis, ddof=0)
         return self._ret_func(ret,axis)
 
     def nonzero(self, *args, **kwargs):
@@ -1063,7 +1073,9 @@ DimArray.cumsum.im_func.func_doc = axis_msg+np.ndarray.cumsum.__doc__
 DimArray.max.im_func.func_doc = axis_msg+np.ndarray.max.__doc__            
 DimArray.mean.im_func.func_doc = axis_msg+np.ndarray.mean.__doc__            
 DimArray.min.im_func.func_doc = axis_msg+np.ndarray.min.__doc__            
+DimArray.nanmean.im_func.func_doc = axis_msg_aa+AttrArray.nanmean.__doc__            
 DimArray.nanstd.im_func.func_doc = axis_msg_aa+AttrArray.nanstd.__doc__            
+DimArray.nanvar.im_func.func_doc = axis_msg_aa+AttrArray.nanvar.__doc__            
 DimArray.prod.im_func.func_doc = axis_msg+np.ndarray.prod.__doc__            
 DimArray.ptp.im_func.func_doc = axis_msg+np.ndarray.ptp.__doc__            
 DimArray.sort.im_func.func_doc = axis_msg+np.ndarray.sort.__doc__            
