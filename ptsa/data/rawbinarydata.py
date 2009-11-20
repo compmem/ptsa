@@ -14,7 +14,7 @@ from dimdata import Dim,Dims
 from timeseries import TimeSeries
 
 # global imports
-import numpy as N
+import numpy as np
 import string
 import struct
 import os
@@ -108,21 +108,21 @@ class RawBinaryEEG(DataWrapper):
         # get the samplesize in ms
         samplesize = 1./self.samplerate
         # get the number of buffer samples
-        buf_samp = int(N.ceil(buf/samplesize))
+        buf_samp = int(np.ceil(buf/samplesize))
         # calculate the offset samples that contains the desired offsetMS
-        offset_samp = int(N.ceil((N.abs(offset)-samplesize*.5)/samplesize)*N.sign(offset))
+        offset_samp = int(np.ceil((np.abs(offset)-samplesize*.5)/samplesize)*np.sign(offset))
 
         # finally get the duration necessary to cover the desired span
-        dur_samp = int(N.ceil((dur+offset - samplesize*.5)/samplesize)) - offset_samp + 1
+        dur_samp = int(np.ceil((dur+offset - samplesize*.5)/samplesize)) - offset_samp + 1
         
         # add in the buffer
         dur_samp += 2*buf_samp
         offset_samp -= buf_samp
 
 #         # calculate the duration samples that contain the desired ending point
-#         buffer = int(N.ceil(BufferMS*self.samplerate/1000.))
-#         duration = int(N.ceil(DurationMS*self.samplerate/1000.)) + 2*buffer
-#         offset = int(N.ceil(OffsetMS*self.samplerate/1000.)) + buffer
+#         buffer = int(np.ceil(BufferMS*self.samplerate/1000.))
+#         duration = int(np.ceil(DurationMS*self.samplerate/1000.)) + 2*buffer
+#         offset = int(np.ceil(OffsetMS*self.samplerate/1000.)) + buffer
 
         # determine the file
 	eegfname = '%s.%03i' % (self.dataroot,channel)
@@ -144,7 +144,7 @@ class RawBinaryEEG(DataWrapper):
             eventOffsets = eventInfo['eegoffset']
         else:
             eventOffsets = eventInfo
-        eventOffsets = N.asarray(eventOffsets)
+        eventOffsets = np.asarray(eventOffsets)
 	if len(eventOffsets.shape)==0:
 	    eventOffsets = [eventOffsets]
 	for evOffset in eventOffsets:
@@ -162,7 +162,7 @@ class RawBinaryEEG(DataWrapper):
                 
 	    # convert from string to array based on the format
 	    # hard codes little endian
-	    data = N.array(struct.unpack('<'+str(len(data)/self.nBytes)+self.fmtStr,data))
+	    data = np.array(struct.unpack('<'+str(len(data)/self.nBytes)+self.fmtStr,data))
 
 	    # append it to the events
 	    eventdata.append(data)
@@ -170,7 +170,7 @@ class RawBinaryEEG(DataWrapper):
         # calc the time range in MS
         sampStart = offset_samp*samplesize
         sampEnd = sampStart + (dur_samp-1)*samplesize
-        timeRange = N.linspace(sampStart,sampEnd,dur_samp)
+        timeRange = np.linspace(sampStart,sampEnd,dur_samp)
 
 	# make it a timeseries
         if isinstance(eventInfo,EegEvents):
@@ -179,7 +179,7 @@ class RawBinaryEEG(DataWrapper):
         else:
             dims = [Dim('eventOffsets', eventOffsets, 'samples'),
                     Dim('time',timeRange,'ms')]
-        eventdata = TimeSeries(N.array(eventdata),
+        eventdata = TimeSeries(np.array(eventdata),
                                dims,
                                self.samplerate,
                                tdim=-1,
@@ -232,7 +232,7 @@ def createEventsFromMatFile(matfile):
 	    hasEEGInfo = True
 
 	    # get unique files
-	    eegfiles = N.unique(map(lambda x: str(x.eegfile),mat['events']))
+	    eegfiles = np.unique(map(lambda x: str(x.eegfile),mat['events']))
 	    
 	    # make dictionary of data wrapers for the eeg files
 	    efile_dict = {}
@@ -243,20 +243,20 @@ def createEventsFromMatFile(matfile):
 	    efile_dict[''] = None
 	
 	    # set the eegfile to the correct data wrapper
-	    newdat = N.array(map(lambda x: efile_dict[str(x.__getattribute__(field))],
+	    newdat = np.array(map(lambda x: efile_dict[str(x.__getattribute__(field))],
 				 mat['events']))
 			
 	    # change field name to eegsrc
 	    fields[f] = 'eegsrc'
 	else:
 	    # get the data in normal fashion
-	    newdat = N.array(map(lambda x: x.__getattribute__(field),mat['events']))
+	    newdat = np.array(map(lambda x: x.__getattribute__(field),mat['events']))
 
 	# append the data
 	data.append(newdat)
 
     # allocate for new array
-    newrec = N.rec.fromarrays(data,names=fields)
+    newrec = np.rec.fromarrays(data,names=fields)
 
     # see if process into DataArray or Events
     if hasEEGInfo:
