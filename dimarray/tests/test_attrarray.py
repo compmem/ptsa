@@ -40,8 +40,8 @@ class test_AttrArray(TestCase):
         assert_array_almost_equal(dat_array,arr)
         self.assertTrue(dat_array.dtype==np.float32)
 
-        # another ndarray, with copy = True vs. copy = False
-        shape = (10,9,8,7,6,1,8,8)
+        # # another ndarray, with copy = True vs. copy = False
+        shape = (10,9,8,7,6,1,8)
         arr = np.random.random_sample(shape)
         dat_array = AttrArray(arr,name='randvals', test1=33,
                               test2='test', copy = True)
@@ -51,8 +51,8 @@ class test_AttrArray(TestCase):
         self.assertEquals(shape,dat_array.shape)
         assert_array_equal(dat_array,arr)
         dat_array[0] += 5
-        # "almost" equal because of slight inaccuracies in the the
-        # representation of floats:
+        # # "almost" equal because of slight inaccuracies in the the
+        # # representation of floats:
         assert_array_almost_equal((dat_array[0]-5), arr[0])
         dat_array = AttrArray(arr,name='randvals', test1=33,
                               test2='test', copy = False)
