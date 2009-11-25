@@ -1,0 +1,5 @@
+include AUTHOR COPYING MANIFEST.in setup.*
+recursive-include docs *
+recursive-include examples *
+prune docs/_build
+prune *~

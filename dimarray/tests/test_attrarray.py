@@ -39,7 +39,6 @@ class test_AttrArray(TestCase):
         # "almost" equal because of the casting to np.float32:
         assert_array_almost_equal(dat_array,arr)
         self.assertTrue(dat_array.dtype==np.float32)
-        
 
         # another ndarray, with copy = True vs. copy = False
         shape = (10,9,8,7,6,1,8,8)

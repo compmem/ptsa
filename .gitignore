@@ -1,12 +1,13 @@
 *.orig
 *~
 *.py[co]
-pyeeg/griddata-0.1
+ptsa/griddata-0.1
 \#*
 \.\#*
 build
 _build
 *.so
 build-arch*
-
+dist
+MANIFEST
 
