@@ -16,7 +16,7 @@ axalpha = 0.05
 #figcolor = '#EFEFEF'
 figcolor = 'white'
 dpi = 80
-fig = plt.figure(figsize=(3, 1.1),dpi=dpi)
+fig = plt.figure(figsize=(4, 1.1),dpi=dpi)
 fig.figurePatch.set_edgecolor(figcolor)
 fig.figurePatch.set_facecolor(figcolor)
 
@@ -38,7 +38,7 @@ def add_timeseries():
     return ax
 
 def add_ptsa_text(ax):
-    ax.text(0.95, 0.5, 'ptsa', color='#11557c', fontsize=65,
+    ax.text(0.95, 0.5, 'PTSA', color='#11557c', fontsize=65,
                ha='right', va='center', alpha=1.0, transform=ax.transAxes)
 
 def add_pizza():
@@ -85,6 +85,6 @@ if __name__ == '__main__':
     main_axes = add_timeseries()
     add_pizza()
     add_ptsa_text(main_axes)
-    plt.show()
-
+    #plt.show()
+    plt.savefig('logo.png')
 
