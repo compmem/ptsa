@@ -16,7 +16,7 @@ axalpha = 0.05
 #figcolor = '#EFEFEF'
 figcolor = 'white'
 dpi = 80
-fig = plt.figure(figsize=(3, 1.1),dpi=dpi)
+fig = plt.figure(figsize=(4, 1.1),dpi=dpi)
 fig.figurePatch.set_edgecolor(figcolor)
 fig.figurePatch.set_facecolor(figcolor)
 
@@ -38,7 +38,7 @@ def add_timeseries():
     return ax
 
 def add_ptsa_text(ax):
-    ax.text(0.95, 0.5, 'ptsa', color='#11557c', fontsize=65,
+    ax.text(0.95, 0.5, 'PTSA', color='#11557c', fontsize=65,
                ha='right', va='center', alpha=1.0, transform=ax.transAxes)
 
 def add_pizza():
@@ -49,8 +49,11 @@ def add_pizza():
     N = 8
     arc = 2. * np.pi
     theta = np.arange(0.0, arc, arc/N)
-    radii = 10 * np.array([0.82, 0.76, 0.81, 0.77, 0.79, 0.83, 0.8, 0.78])
+    radii = 10 * np.array([0.79, 0.81, 0.78, 0.77, 0.79, 0.78, 0.83, 0.78])
     width = np.pi / 4 * np.array([1.0]*N)
+    theta = theta[1:]
+    radii = radii[1:]
+    width = width[1:]
     bars = ax.bar(theta, radii, width=width, bottom=0.0)
     for r, bar in zip(radii, bars):
         bar.set_facecolor(cm.hot(r/10.))
@@ -66,13 +69,22 @@ def add_pizza():
         line.set_ls('-')
         line.set_color('0.5')
 
+    # add some veggie peperoni
+    #theta = np.array([.08,.18,.32,.46,.54,.68,.77,.85,.96]) * np.pi * 2.0
+    #radii = 10*np.array([.6,.38,.58,.5,.62,.42,.58,.67,.45])
+    theta = np.array([.18,.32,.46,.54,.68,.77,.85,.96]) * np.pi * 2.0
+    radii = 10*np.array([.38,.58,.5,.62,.42,.58,.67,.45])
+    c = plt.scatter(theta,radii,c='r',s=7**2)
+    c.set_alpha(0.75)
+
     ax.set_yticks(np.arange(1, 9, 2))
     ax.set_rmax(9)
 
+    
 if __name__ == '__main__':
     main_axes = add_timeseries()
     add_pizza()
     add_ptsa_text(main_axes)
-    plt.show()
-
+    #plt.show()
+    plt.savefig('logo.png')
 
