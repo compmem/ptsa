@@ -6,39 +6,39 @@
   #   copyright and license terms.
   #
   ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
-PTSA (pronounced pizza) is a Python_ module for performing time series
+**ptsa** (pronounced pizza) is a Python_ module for performing time series
 analysis. Although it is specifically designed with neural data in
 mind (EEG, MEG, fMRI, etc. ...), the code should be applicable to almost
 any type of time series.
 
 .. _Python: http://www.python.org
 
-PTSA stands for **P**\ ython\ **T**\ ime **S**\ eries **A**\ nalysis.
+**ptsa** stands for **P**\ ython\ **T**\ ime **S**\ eries **A**\ nalysis.
 
 
-News
-====
+.. News
+.. ====
 
-None yet...
+.. None yet...
 
 Documentation
 =============
 
-* :ref:`Main data structures in PTSA <dimarray>`: The documentation for AttrArray, Dim, and DimArray -- powerful data structures based on NumPy ndarrays.
-* `Time Series Anaysis`: to come...
-* `Installation Instructions`: to come...
+* :ref:`Main data structures in ptsa <dimarray>`: The documentation for AttrArray, Dim, and DimArray -- powerful data structures based on NumPy ndarrays.
+.. * `Time Series Anaysis`: to come...
+.. * `Installation Instructions`: to come...
 * :ref:`Developer Guidelines <devguide>` (information for people contributing
   code)
-* `API Reference`_ (comprehensive and up-to-date information about the details
-  of the implementation)
+.. * `API Reference`_ (comprehensive and up-to-date information about the details
+..   of the implementation)
 * :ref:`genindex` (access by keywords)
 * :ref:`search` (online and offline full-text search)
 
 .. _API Reference: api/index.html
 
-* `PTSA Manual (PDF)`_ (all documentation except for developer guidelines
-  and API reference)
-* `Developer Guidelines (PDF)`_
+.. * `PTSA Manual (PDF)`_ (all documentation except for developer guidelines
+..   and API reference)
+.. * `Developer Guidelines (PDF)`_
 
 .. _Main data structures in PTSA: PTSA-Manual.pdf
 .. _PTSA Manual (PDF): PTSA-Manual.pdf
@@ -61,16 +61,16 @@ the source distribution (including this website).
 
 
 
-Download
-========
+.. Download
+.. ========
 
-Binary packages
----------------
+.. Binary packages
+.. ---------------
 
 
 
-Source code
------------
+.. Source code
+.. -----------
 
 .. Source code tarballs of PTSA releases are available from the `download
 .. area`_. Alternatively, one can also download a tarball of the latest
@@ -101,8 +101,8 @@ Source code
 .. .. _snapshot:  http://tbd
 
 
-Support
-=======
+.. Support
+.. =======
 
 .. If you have problems installing the software or questions about usage,
 .. documentation or something else related to PTSA, you can post to the PTSA
@@ -123,17 +123,17 @@ Support
 
 
 
-Publications
-============
+.. Publications
+.. ============
 
-.. .. include:: publications.txt
-
-
-Authors & Contributors
-======================
-
-.. .. include:: authors.txt
+.. .. .. include:: publications.txt
 
 
-Similar or Related Projects
-===========================
+.. Authors & Contributors
+.. ======================
+
+.. .. .. include:: authors.txt
+
+
+.. Similar or Related Projects
+.. ===========================

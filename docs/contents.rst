@@ -3,9 +3,9 @@
 
 .. _contents:
 
-*****************************
-PTSA Documentation Contents
-*****************************
+.. *****************************
+.. PTSA Documentation Contents
+.. *****************************
 
 .. .. toctree::
 
