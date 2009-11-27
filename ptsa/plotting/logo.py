@@ -84,7 +84,7 @@ def add_pizza():
 if __name__ == '__main__':
     main_axes = add_timeseries()
     add_pizza()
-    add_ptsa_text(main_axes)
+    #add_ptsa_text(main_axes)
     #plt.show()
     plt.savefig('logo.png')
 
