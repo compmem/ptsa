@@ -40,9 +40,11 @@ class TestData:
         numSecs = 4.
         numPoints = int(numSecs*200.)
         Hz = 10
-        d200_10 = np.sin(np.arange(numPoints,dtype=np.float)*2*np.pi*Hz*numSecs/numPoints)
+        d200_10 = np.sin(np.arange(numPoints,dtype=np.float)*2*np.pi*
+                         Hz*numSecs/numPoints)
         Hz = 5
-        d200_5 = np.sin(np.arange(numPoints,dtype=np.float)*2*np.pi*Hz*numSecs/numPoints)
+        d200_5 = np.sin(np.arange(numPoints,dtype=np.float)*2*np.pi*
+                        Hz*numSecs/numPoints)
         self.dat200 = np.array([d200_10,d200_5])
         # calc the time range
         offset = -200
@@ -57,9 +59,11 @@ class TestData:
         numSecs = 4.
         numPoints = int(numSecs*50.)
         Hz = 10
-        d50_10 = np.sin(np.arange(numPoints,dtype=np.float)*2*np.pi*Hz*numSecs/numPoints)
+        d50_10 = np.sin(np.arange(numPoints,dtype=np.float)*2*np.pi*
+                        Hz*numSecs/numPoints)
         Hz = 5
-        d50_5 = np.sin(np.arange(numPoints,dtype=np.float)*2*np.pi*Hz*numSecs/numPoints)
+        d50_5 = np.sin(np.arange(numPoints,dtype=np.float)*2*np.pi*
+                       Hz*numSecs/numPoints)
         self.dat50 = np.array([d50_10,d50_5])
         # calc the time range in MS
         offset = -50
@@ -70,8 +74,6 @@ class TestData:
         timeRange = np.linspace(sampStart,sampEnd,duration)
         self.dims50 = [Dim(np.arange(self.dat50.shape[0]),'channel'),
                         Dim(timeRange,'time',unit='ms')]
- 
-
 
 # test TimeSeries
 class test_TimeSeries(TestCase):
@@ -91,8 +93,10 @@ class test_TimeSeries(TestCase):
         self.assertEquals(ts.shape, self.dat200.shape)
         self.assertEquals(ts.taxis, len(self.dat200.shape)-1)
         self.assertEquals(ts.samplerate,200)
-        self.assertRaises(ValueError,TimeSeries,self.dat200,self.dims200,'bla',200)
-        self.assertRaises(ValueError,TimeSeries,self.dat200,self.dims200,'time',-200)
+        self.assertRaises(ValueError,TimeSeries,self.dat200,
+                          self.dims200,'bla',200)
+        self.assertRaises(ValueError,TimeSeries,self.dat200,
+                          self.dims200,'time',-200)
 
         
     def test_remove_buffer(self):
@@ -131,7 +135,8 @@ class test_TimeSeries(TestCase):
         np.testing.assert_equal(ts50_200.shape[:],ts50.shape[:])
         #print type(ts200['time'])
         #print type(ts50['time'])
-        np.testing.assert_array_almost_equal(ts50_200['time']*1000,ts50['time'],decimal=6)
+        np.testing.assert_array_almost_equal(
+            ts50_200['time']*1000,ts50['time'],decimal=6)
         np.testing.assert_array_almost_equal(ts50_200[:],ts50[:],decimal=6)
 
 # test RawBinaryEEG

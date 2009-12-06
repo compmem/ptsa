@@ -15,62 +15,51 @@ import re
 import sys
 from dimarray import Dim
 from timeseries import TimeSeries
+from datawrapper import DataWrapper
 
 #import pdb
 
-class Events(object):
-    def __init__(self,data=None,dtype=None,**fields):
+class Events(np.recarray):
 
-        if data is None:
-            if dtype is None:
-                # create from dtype
-                raise NotImplementedError
-            else:
-                # create from fields
-                raise NotImplementedError
-        else:
-            # passed a recarray or ndarray
-            # XXX should this do a copy?
-            self.data = data
-        
-    def __getitem__(self,item):
-        return self.data[item]
+    _required_fields = None
 
-    def __setitem__(self,item,value):
-        self.data[item] = value
+    def __new__(subtype, shape, dtype=None, buf=None, offset=0, strides=None,
+                formats=None, names=None, titles=None,
+                byteorder=None, aligned=False):
+        self=np.recarray.__new__(subtype, shape, dtype, buf, offset,
+                                 strides, formats, names, titles,
+                                 byteorder, aligned)
 
-    def select(self,item):
-        """
-        Return a new instance of the class with specified slice of the data.
-        """
-        return self.__class__(self.data[item])
+        if not(self._required_fields is None):
+            for req_field in self._required_fields:
+                if not(req_field in self.dtype.names):
+                    raise ValueError(
+                        req_field+' is a required field!')
+                if not(
+                    self[req_field].dtype==self._required_fields[req_field]):
+                    raise ValueError(
+                        req_field+' needs to be '+
+                        str(self._required_fields[req_field])+
+                        '. Provided dtype was '+str(self[req_field].dtype))                             
+        return self
     
-    def copy(self):
-        """
-        Return a copy of this Events instance.
-        """
-        if self.data is None:
-            new_dat = None
-        else:
-            new_dat = self.data.copy()        
-        return Events(new_dat)
-    
-    def extend(self,newrows):
-        raise NotImplementedError
-    
-    def remove_fields(self,*fieldsToRemove):
+    def remove_fields(self,*fields_to_remove):
         """
         Return a new instance of the array with specified fields
         removed.
         """
+        if not(self._required_fields is None):
+            for req_field in self._required_fields:
+                if sum(map(lambda x: x==req_field,fields_to_remove)) > 0:
+                    raise ValueError(req_field+' is a required field!')
         # sequence of arrays and names
         arrays = []
         names = ''
 
         # loop over fields, keeping if not matching fieldName
-        for field in self.data.dtype.names:
-            # don't add the field if in fieldsToRemove list
-            if sum(map(lambda x: x==field,fieldsToRemove)) == 0:
+        for field in self.dtype.names:
+            # don't add the field if in fields_to_remove list
+            if sum(map(lambda x: x==field,fields_to_remove)) == 0:
                 # append the data
                 arrays.append(self[field])
                 if len(names)>0:
@@ -79,26 +68,31 @@ class Events(object):
                 # append the name
                 names = names+field
 
-        # return the new recarray
-        return self.__class__(np.rec.fromarrays(arrays,names=names))
+        # return the new Events
+        return np.rec.fromarrays(arrays,names=names).view(self.__class__)
 
     def add_fields(self,**fields):
-        """ Add fields from the keyword args provided and return a new
+        """
+        Add fields from the keyword args provided and return a new
         instance.  To add an empty field, pass a dtype as the array.
 
         addFields(name1=array1, name2=dtype('i4'))
         
         """
+
+        # list of current dtypes to which new dtypes will be added:
+        # new_dtype = [(name,self[name].dtype) for name in self.dtype.names]
+        
         # sequence of arrays and names from starting recarray
-        arrays = map(lambda x: self[x], self.data.dtype.names)
-        names = string.join(self.data.dtype.names,',')
+        arrays = map(lambda x: self[x], self.dtype.names)
+        names = string.join(self.dtype.names,',')
         
         # loop over the kwargs of field
         for name,data in fields.iteritems():
             # see if already there, error if so
-            if self.data.dtype.fields.has_key(name):
+            if self.dtype.fields.has_key(name):
                 # already exists
-                raise AttributeError, 'Field "'+name+'" already exists.'
+                raise ValueError('Field "'+name+'" already exists.')
             
             # append the array and name
             if isinstance(data,np.dtype):
@@ -114,67 +108,60 @@ class Events(object):
                 names = names+','
             # append the name
             names = names+name
+        # return the new Events
+        return np.rec.fromarrays(arrays,names=names).view(self.__class__)
 
-        # return the new recarray
-        return self.__class__(np.rec.fromarrays(arrays,names=names))
 
+class TsEvents(Events):
+    """
+    Class to hold time series events.  The record fields must include
+    both tssrc (time series source) and tsoffset (time series offset)
+    so that the class can know how to retrieve data for each event.
+    """
 
-class EegEvents(Events):
-    """Class to hold EEG events.  The record fields must include both
-eegsrc and eegoffset so that the class can know how to retrieve data
-for each event."""
-    
-    def copy(self):
-        """
-        Return a copy of this EegEvents instance.
-        """
-        if self.data is None:
-            new_dat = None
-        else:
-            new_dat = self.data.copy()        
-        return EegEvents(new_dat)
-
-    def get_data(self,channel,dur,offset,buf,resampledRate=None,
-                  filtFreq=None,filtType='stop',filtOrder=4,keepBuffer=False):
+    _required_fields = {'tssrc':DataWrapper,'tsoffset':int}
+        
+    def get_data(self,channel,dur,offset,buf,resampled_rate=None,
+                 filt_freq=None,filt_type='stop',
+                 filt_order=4,keep_buffer=False):
         """
         Return the requested range of data for each event by using the
         proper data retrieval mechanism for each event.
 
-        The result will be an TimeSeries instance with
-        dimensions (events,time) for the data and also some
-        information about the data returned.  """
+        The result will be an TimeSeries instance with dimensions
+        (events,time) for the data and also some information about the
+        data returned.
+        """
 	# get ready to load dat
 	eventdata = None
         
-        events = self.data
+        # events = self.data
 
         # speed up by getting unique event sources first
-        usources = np.unique1d(events['eegsrc'])
+        usources = np.unique1d(self['eegsrc'])
 
         # loop over unique sources
         for src in usources:
             # get the eventOffsets from that source
-            ind = np.atleast_1d(events['eegsrc']==src)
-            if len(ind) <= 1:
-                if ind:
-                    srcEvents=self.copy()
-                else:
-                    raise ValueError
+            ind = np.atleast_1d(self['eegsrc']==src)
+            
+            if len(ind) == 1:
+                src_events=self
             else:
-                srcEvents = self.select(ind)
+                src_events = self[ind]
 
             #print "Loading %d events from %s" % (ind.sum(),src)
             # get the timeseries for those events            
             newdat = src.get_event_data(channel,
-                                        srcEvents,
+                                        src_events,
                                         dur,
                                         offset,
                                         buf,
-                                        resampledRate,
-                                        filtFreq,
-                                        filtType,
-                                        filtOrder,
-                                        keepBuffer)
+                                        resampled_rate,
+                                        filt_freq,
+                                        filt_type,
+                                        filt_order,
+                                        keep_buffer)
 
             # see if concatenate
             if eventdata is None:
