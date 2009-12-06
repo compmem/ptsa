@@ -22,13 +22,13 @@ from datawrapper import DataWrapper
 class Events(np.recarray):
 
     _required_fields = None
+    _skip_field_check = False
 
-    def __new__(subtype, shape, dtype=None, buf=None, offset=0, strides=None,
-                formats=None, names=None, titles=None,
-                byteorder=None, aligned=False):
-        self=np.recarray.__new__(subtype, shape, dtype, buf, offset,
-                                 strides, formats, names, titles,
-                                 byteorder, aligned)
+    # def __new__(subtype, shape, dtype=None, buf=None, offset=0, strides=None,
+    #             formats=None, names=None, titles=None,
+    #             byteorder=None, aligned=False):
+    def __new__(*args,**kwargs):
+        self=np.recarray.__new__(*args,**kwargs)
 
         if not(self._required_fields is None):
             for req_field in self._required_fields:
@@ -95,8 +95,10 @@ class Events(np.recarray):
                 raise ValueError('Field "'+name+'" already exists.')
             
             # append the array and name
-            if isinstance(data,np.dtype):
+            if(isinstance(data,np.dtype)|
+               isinstance(data,type)|isinstance(data,str)):
                 # add empty array the length of the data
+                print self.shape
                 arrays.append(np.empty(len(self),data))
             else:
                 # add the data as an array
@@ -111,6 +113,51 @@ class Events(np.recarray):
         # return the new Events
         return np.rec.fromarrays(arrays,names=names).view(self.__class__)
 
+    def __getitem__(self, index):
+        # try block to ensure the _skip_dim_check flag gets reset
+        # in the following finally block
+        try: 
+            # skip the dim check b/c we're going to fiddle with them
+            self._skip_field_check = True
+            ret = np.recarray.__getitem__(self,index)
+        finally:
+            # reset the _skip_dim_check flag:
+            self._skip_field_check = False
+        return ret
+            
+    def __getslice__(self,i,j):
+        try: 
+            # skip the field check
+            self._skip_field_check = True
+            ret = np.recarray.__getslice__(self,i,j)           
+        finally:
+            # reset the _skip_field_check flag:
+            self._skip_field_check = False
+        return ret
+
+
+    def __array_finalize__(self,obj):
+        # print self.shape,obj.shape
+        # # print self._skip_field_check,obj._skip_field_check
+        self._skip_field_check = False
+        # if this method is called with _skip_field_check == True, don't
+        # check fields:
+        # PBS: Also don't check if obj is None (implies it's unpickling)
+        # We must find out if there are other instances of it being None
+        if (isinstance(obj,Events) and obj._skip_field_check) or \
+           obj is None: return
+        # ensure that the fields are valid:
+        if not(self._required_fields is None):
+            for req_field in self._required_fields:
+                if not(req_field in obj.dtype.names):
+                    raise ValueError(
+                        req_field+' is a required field!')
+                if not(
+                    obj[req_field].dtype==self._required_fields[req_field]):
+                    raise ValueError(
+                        req_field+' needs to be '+
+                        str(self._required_fields[req_field])+
+                        '. Provided dtype was '+str(obj[req_field].dtype))
 
 class TsEvents(Events):
     """
