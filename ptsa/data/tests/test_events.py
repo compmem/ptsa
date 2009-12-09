@@ -295,7 +295,8 @@ class test_Events(TestCase):
         assert_array_equal(np.sort(test_a.dtype.names),
                            np.sort(test_b.dtype.names))
         for f,v in test_a.dtype.fields.iteritems():
-            assert_array_equal(test_a[f],test_b[f])
+            if f!='a':
+                assert_array_equal(test_a[f],test_b[f])
             self.assertTrue(test_a.dtype[f]==test_b.dtype[f])
         test_a = tst.test1xyz.view(Events)
         test_b = tst.test1x.view(Events).add_fields(y=y).add_fields(z=z)
@@ -405,3 +406,9 @@ class test_TsEvents(TestCase):
 
     def get_data(self):
         pass
+        # np.save('.test_events.npy',np.random.random((3,4)))
+        # dw = NumpyData('.test_events.npy')
+        # arrays = [[np.array(dw, 2, 42.),np.array(dw, 4, 33.)],
+        #           [np.array(dw, 5, 22.),np.array(dw, 6, 11.)]]
+        # names = 'tssrc,tsoffset,x'
+        # test = np.rec.fromarrays(arrays,names=names).view(TsEvents)

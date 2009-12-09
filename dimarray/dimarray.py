@@ -94,7 +94,7 @@ class Dim(AttrArray):
 
 class DimArray(AttrArray):
     """
-    DimArray(data, dims, dtype=None, copy=False, **kwargs)
+    DimArray(data, dims=None, dtype=None, copy=False, **kwargs)
     
     A DimArray (short for Dimensioned Array) is a child class of
     AttrArray with the constraints that each instance and have a dims

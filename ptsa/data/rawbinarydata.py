@@ -9,8 +9,8 @@
 
 # local imports
 from datawrapper import DataWrapper
-from events import Events,EegEvents
-from dimdata import Dim,Dims
+from events import Events,TsEvents
+from dimarray import DimArray,Dim
 from timeseries import TimeSeries
 
 # global imports
@@ -140,7 +140,7 @@ class RawBinaryEEG(DataWrapper):
 	# loop over events
 	eventdata = []
         # get the eventOffsets
-        if isinstance(eventInfo,EegEvents):
+        if isinstance(eventInfo,TsEvents):
             eventOffsets = eventInfo['eegoffset']
         else:
             eventOffsets = eventInfo
@@ -173,7 +173,7 @@ class RawBinaryEEG(DataWrapper):
         timeRange = np.linspace(sampStart,sampEnd,dur_samp)
 
 	# make it a timeseries
-        if isinstance(eventInfo,EegEvents):
+        if isinstance(eventInfo,TsEvents):
             dims = [Dim('event', eventInfo.data, 'event'),
                     Dim('time',timeRange,'ms')]
         else:
@@ -260,7 +260,7 @@ def createEventsFromMatFile(matfile):
 
     # see if process into DataArray or Events
     if hasEEGInfo:
-	newrec = EegEvents(newrec)
+	newrec = TsEvents(newrec)
     else:
 	newrec = Events(newrec)
 

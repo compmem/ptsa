@@ -88,21 +88,21 @@ class test_TimeSeries(TestCase):
         # the attributes are correct
 
         # fewest params
-        ts = TimeSeries(self.dat200,self.dims200,'time',200)
+        ts = TimeSeries(self.dat200,'time',200,dims = self.dims200)
         np.testing.assert_equal(ts[:], self.dat200[:])
         self.assertEquals(ts.shape, self.dat200.shape)
         self.assertEquals(ts.taxis, len(self.dat200.shape)-1)
         self.assertEquals(ts.samplerate,200)
         self.assertRaises(ValueError,TimeSeries,self.dat200,
-                          self.dims200,'bla',200)
+                          'bla',200,dims=self.dims200)
         self.assertRaises(ValueError,TimeSeries,self.dat200,
-                          self.dims200,'time',-200)
+                          'time',-200,dims=self.dims200)
 
         
     def test_remove_buffer(self):
         buf = 200
         numsamp = 4*200
-        ts = TimeSeries(self.dat200,self.dims200,'time',200)
+        ts = TimeSeries(self.dat200,'time',200, dims=self.dims200)
         ts_nobuff = ts.remove_buffer(1)
         self.assertEquals(ts_nobuff.shape[ts_nobuff.taxis],numsamp-2*buf)
         self.assertEquals(len(ts_nobuff['time']),numsamp-2*buf)
@@ -113,7 +113,7 @@ class test_TimeSeries(TestCase):
         self.assertRaises(ValueError,ts.remove_buffer,-1)
 
     def tst_setattr(self):
-        ts = TimeSeries(self.dat200,self.dims200,'time',200)
+        ts = TimeSeries(self.dat200,'time',200,dims=self.dims200)
         self.assertRaises(ValueError,ts.__setattr__,'tdim','bla')
         self.assertRaises(ValueError,ts.__setattr__,'samplerate',-1)
 
@@ -122,15 +122,16 @@ class test_TimeSeries(TestCase):
         filtType='stop'
         freqRange = [10,20]
         order = 4
-        ts = TimeSeries(self.dat200,self.dims200,'time',samplerate)
+        ts = TimeSeries(self.dat200,'time',samplerate,dims=self.dims200)
         ts_filt = ts.filtered(freqRange, filtType, order)
         test = filt.buttfilt(self.dat200,freqRange,samplerate,filtType,
                              order,axis=ts.taxis)
         np.testing.assert_array_almost_equal(ts_filt[:],test[:],decimal=6)
 
     def test_resample(self):
-        ts200 = TimeSeries(self.dat200,self.dims200,'time',200)
-        ts50 = TimeSeries(self.dat50,self.dims50,'time',50).remove_buffer(1.0)
+        ts200 = TimeSeries(self.dat200,'time',200,dims=self.dims200)
+        ts50 = TimeSeries(
+            self.dat50,'time',50,dims=self.dims50).remove_buffer(1.0)
         ts50_200 = ts200.resampled(50).remove_buffer(1.0)
         np.testing.assert_equal(ts50_200.shape[:],ts50.shape[:])
         #print type(ts200['time'])
