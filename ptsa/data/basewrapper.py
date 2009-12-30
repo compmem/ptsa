@@ -33,12 +33,14 @@ class BaseWrapper(object):
         Parameters
         ----------
         channel: Channel to load data from
-        eventOffsets: Array of even offsets (in samples) into the data, specifying each event time
+        eventOffsets: Array of even offsets (in samples) into the
+        data, specifying each event time
         Duration: Duration in ms of the data to return.
         Offset: Amount in ms to offset that data around the event.
         Buffer: Extra buffer to add when doing filtering to avoid edge effects.
         resampledRate: New samplerate to resample the data to after loading.
-        filtFreq: Frequency specification for filter (depends on the filter type.
+        filtFreq: Frequency specification for filter (depends on the
+        filter type.
         filtType: Type of filter to run on the data.
         filtOrder: Order of the filter.
         keepBuffer: Whether to keep the buffer when returning the data.
@@ -50,10 +52,12 @@ class BaseWrapper(object):
         # get the number of buffer samples
         buf_samp = int(np.ceil(buf/samplesize))
         # calculate the offset samples that contains the desired offsetMS
-        offset_samp = int(np.ceil((np.abs(offset)-samplesize*.5)/samplesize)*np.sign(offset))
+        offset_samp = int(np.ceil((np.abs(offset)-samplesize*.5)/samplesize)*
+                          np.sign(offset))
 
         # finally get the duration necessary to cover the desired span
-        dur_samp = int(np.ceil((dur+offset - samplesize*.5)/samplesize)) - offset_samp + 1
+        dur_samp = (int(np.ceil((dur+offset - samplesize*.5)/samplesize)) -
+                    offset_samp + 1)
         
         # add in the buffer
         dur_samp += 2*buf_samp
@@ -84,7 +88,8 @@ class BaseWrapper(object):
 	# filter if desired
 	if not(filtFreq is None):
 	    # filter that data
-            eventdata = eventdata.filter(filtFreq,filtType=filtType,order=filtOrder)
+            eventdata = eventdata.filter(filtFreq,filtType=filtType,
+                                         order=filtOrder)
 
 	# resample if desired
 	if not(resampledRate is None) and \
