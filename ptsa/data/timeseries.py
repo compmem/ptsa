@@ -19,7 +19,7 @@ __docformat__ = 'restructuredtext'
 
 class TimeSeries(DimArray):
     """
-    TimeSeries(data, dims, tdim, samplerate, dtype=None, copy=False, **kwargs)
+    TimeSeries(data, tdim, samplerate, *args, **kwargs)
 
     Class to hold continuous timeseries data.  In addition to having
     all the basic DimArray properties, it keeps track of the time
@@ -31,19 +31,21 @@ class TimeSeries(DimArray):
     ----------
     data : {array_like}
         The time series data.
-    dims : {numpy.ndarray or list of dimarray.Dim instances}
-        The dimensions of the data.
     tdim : {str}
         The name of the time dimension.
     samplerate : {float}
         The sample rate of the time dimension. Constrained to be of
         type float (any passed in value is converted to a float).
-    dtype : {numpy.dtype},optional
-        The data type.
-    copy : {bool},optional
-        Flag specifying whether or not data should be copied.
+    *args : {*args},optional
+        Additinal custom attributes
     **kwargs : {**kwargs},optional
-        Additional custom attributes.    
+        Additional custom keyword attributes.
+
+    Note
+    ----
+    Useful additional (keyword) attributes include dims, dtype, and
+    copy (see DimArray docstring for details).
+
     """
 
     _required_attrs = {'dims':np.ndarray,
@@ -53,26 +55,25 @@ class TimeSeries(DimArray):
                      self.get_axis(self.tdim),
                      doc="Numeric time axis (read only).")
 
-    def __new__(cls, data, dims, tdim, samplerate,
-                dtype=None, copy=False, **kwargs):
-        # set the kwargs to have tdim, samplerate
+    # def __new__(cls, data, dims, tdim, samplerate,
+    def __new__(cls, data, tdim, samplerate, *args, **kwargs):
+        # make new DimArray with timeseries attributes
+        ts = DimArray(data, *args, **kwargs)
         # ensure that tdim is a valid dimension name:
-        if not(tdim in [dim.name for dim in dims]):
+        if not(tdim in ts.dim_names):
             raise ValueError(
                 'Tdim must be a valid dimension name! Provided value: '+
                 str(tdim))
-        kwargs['tdim'] = tdim
+        ts.tdim = tdim
         # ensure that sample rate is a float:
         samplerate = float(samplerate)
         # ensure that sample rate is postive:
         if samplerate <= 0:
             raise ValueError(
                 'Samplerate must be positive! Provided value: '+
-                str(samplerate))            
-        kwargs['samplerate'] = samplerate
+                str(samplerate))
+        ts.samplerate = samplerate
         
-        # make new DimArray with timeseries attributes
-        ts = DimArray(data, dims, dtype=dtype, copy=copy, **kwargs)
         # convert to TimeSeries and return:
         return ts.view(cls)
     
@@ -154,8 +155,8 @@ class TimeSeries(DimArray):
         attrs = self._attrs.copy()
         for k in self._required_attrs.keys():
             attrs.pop(k,None)
-        return TimeSeries(filtered_array,self.dims.copy(),
-                          self.tdim, self.samplerate, **attrs)
+        return TimeSeries(filtered_array,self.tdim, self.samplerate,
+                          dims=self.dims.copy(), **attrs)
 
     def resampled(self,resampled_rate,window=None):
         """
@@ -198,6 +199,6 @@ class TimeSeries(DimArray):
         attrs = self._attrs.copy()
         for k in self._required_attrs.keys():
             attrs.pop(k,None)
-        return TimeSeries(newdat, newdims,
-                          self.tdim, resampled_rate, **attrs)
+        return TimeSeries(newdat, self.tdim, resampled_rate,
+                          dims=newdims, **attrs)
 

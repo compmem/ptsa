@@ -98,7 +98,6 @@ class Events(np.recarray):
             if(isinstance(data,np.dtype)|
                isinstance(data,type)|isinstance(data,str)):
                 # add empty array the length of the data
-                print self.shape
                 arrays.append(np.empty(len(self),data))
             else:
                 # add the data as an array
@@ -168,9 +167,10 @@ class TsEvents(Events):
 
     _required_fields = {'tssrc':DataWrapper,'tsoffset':int}
         
-    def get_data(self,channel,dur,offset,buf,resampled_rate=None,
-                 filt_freq=None,filt_type='stop',
-                 filt_order=4,keep_buffer=False):
+    # def get_data(self,channel,dur,offset,buf,resampled_rate=None,
+    #              filt_freq=None,filt_type='stop',
+    #              filt_order=4,keep_buffer=False):
+    def get_data(self,*args,**kwargs):
         """
         Return the requested range of data for each event by using the
         proper data retrieval mechanism for each event.
@@ -185,12 +185,12 @@ class TsEvents(Events):
         # events = self.data
 
         # speed up by getting unique event sources first
-        usources = np.unique1d(self['eegsrc'])
+        usources = np.unique1d(self['tssrc'])
 
         # loop over unique sources
         for src in usources:
             # get the eventOffsets from that source
-            ind = np.atleast_1d(self['eegsrc']==src)
+            ind = np.atleast_1d(self['tssrc']==src)
             
             if len(ind) == 1:
                 src_events=self
@@ -199,16 +199,17 @@ class TsEvents(Events):
 
             #print "Loading %d events from %s" % (ind.sum(),src)
             # get the timeseries for those events            
-            newdat = src.get_event_data(channel,
-                                        src_events,
-                                        dur,
-                                        offset,
-                                        buf,
-                                        resampled_rate,
-                                        filt_freq,
-                                        filt_type,
-                                        filt_order,
-                                        keep_buffer)
+            # newdat = src.get_event_data(channel,
+            #                             src_events,
+            #                             dur,
+            #                             offset,
+            #                             buf,
+            #                             resampled_rate,
+            #                             filt_freq,
+            #                             filt_type,
+            #                             filt_order,
+            #                             keep_buffer)
+            newdat = src.get_event_data(*args,**kwargs)
 
             # see if concatenate
             if eventdata is None:
@@ -216,15 +217,13 @@ class TsEvents(Events):
                 eventdata = newdat
             else:
                 # append it to the existing
-                eventdata.extend(newdat,0)
+                np.concatenate(eventdata,newdat,eventdata.tdim)
 
         if eventdata is None:
             dims = [Dim(np.array(None), 'event'),
                     Dim(np.array(None), 'time')]
             eventdata = TimeSeries(np.atleast_2d(np.array(None)),
-                                   dims,
-                                   samplerate=None,
-                                   tdim='time')
+                                   samplerate=None,tdim='time',dims=dims)
         return eventdata
     
 

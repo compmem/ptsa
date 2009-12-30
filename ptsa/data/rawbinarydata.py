@@ -112,7 +112,6 @@ class RawBinaryEEG(DataWrapper):
         # eventOffsets = np.asarray(eventOffsets)
 	# if len(eventOffsets.shape)==0:
 	#     eventOffsets = [eventOffsets]
-
 	for evOffset in eventOffsets:
 	    # seek to the position in the file
 	    thetime = offset_samp+evOffset
