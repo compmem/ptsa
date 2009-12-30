@@ -78,9 +78,8 @@ class BaseWrapper(object):
         dims = [Dim(eventOffsets,'eventOffsets'),
                 Dim(timeRange,'time')]
         eventdata = TimeSeries(np.asarray(eventdata),
-                               dims,
                                'time',
-                               self.samplerate)
+                               self.samplerate,dims=dims)
 
 	# filter if desired
 	if not(filtFreq is None):
