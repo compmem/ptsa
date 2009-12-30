@@ -7,14 +7,21 @@
 #
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ##
 
-class DataWrapper(object):
+# local imports
+#from events import Events,TsEvents
+from timeseries import TimeSeries,Dim
+
+# global imports
+import numpy as np
+
+class BaseWrapper(object):
     """
-    Base class to provide interface to timeseries data.  
+    Base class to provide interface to data.  
     """
-    def _load_data(self,channel,eventOffsets,dur_samp,offset_samp):
+    def _load_timeseries(self,channel,eventOffsets,dur_samp,offset_samp):
         raise NotImplementedError
     
-    def get_event_data(self,channels,eventOffsets,
+    def get_event_data(self,channel,eventOffsets,
                        dur,offset,buf,
                        resampledRate=None,
                        filtFreq=None,filtType='stop',filtOrder=4,
@@ -38,7 +45,7 @@ class DataWrapper(object):
         """
         
         # set event durations from rate
-        # get the samplesize in ms
+        # get the samplesize
         samplesize = 1./self.samplerate
         # get the number of buffer samples
         buf_samp = int(np.ceil(buf/samplesize))
@@ -56,6 +63,7 @@ class DataWrapper(object):
         eventdata = self._load_data(channel,eventOffsets,dur_samp,offset_samp)
 
         # calc the time range
+        # get the samplesize
         sampStart = offset_samp*samplesize
         sampEnd = sampStart + (dur_samp-1)*samplesize
         timeRange = np.linspace(sampStart,sampEnd,dur_samp)
@@ -71,11 +79,8 @@ class DataWrapper(object):
                 Dim(timeRange,'time')]
         eventdata = TimeSeries(np.asarray(eventdata),
                                dims,
-                               tdim='time',
+                               'time',
                                self.samplerate)
-
-        return eventdata
-
 
 	# filter if desired
 	if not(filtFreq is None):
@@ -91,7 +96,7 @@ class DataWrapper(object):
         # remove the buffer and set the time range
 	if buf > 0 and not(keepBuffer):
 	    # remove the buffer
-            eventdata = eventdata.removeBuf(buf)
+            eventdata = eventdata.remove_buffer(buf)
 
         # return the timeseries
         return eventdata

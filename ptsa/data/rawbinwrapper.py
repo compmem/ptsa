@@ -8,7 +8,7 @@
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ##
 
 # local imports
-from datawrapper import DataWrapper
+from basewrapper import BaseWrapper
 from events import Events,TsEvents
 from timeseries import TimeSeries,Dim
 
@@ -19,7 +19,7 @@ import struct
 import os
 from scipy.io import loadmat
 
-class RawBinaryEEG(DataWrapper):
+class RawBinWrapper(BaseWrapper):
     """
     Interface to data stored in binary format with a separate file for
     each channel.  
@@ -83,7 +83,7 @@ class RawBinaryEEG(DataWrapper):
         return params
         
 
-    def _load_timeseries(self,channel,eventOffsets,dur_samp,offset_samp):
+    def _load_data(self,channel,eventOffsets,dur_samp,offset_samp):
         """
         
         """
