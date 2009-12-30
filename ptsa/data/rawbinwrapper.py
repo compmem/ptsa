@@ -9,8 +9,6 @@
 
 # local imports
 from basewrapper import BaseWrapper
-from events import Events,TsEvents
-from timeseries import TimeSeries,Dim
 
 # global imports
 import numpy as np
@@ -83,9 +81,8 @@ class RawBinWrapper(BaseWrapper):
         return params
         
 
-    def _load_data(self,channel,eventOffsets,dur_samp,offset_samp):
+    def _load_data(self,channel,event_offsets,dur_samp,offset_samp):
         """
-        
         """
 
         # determine the file
@@ -101,19 +98,12 @@ class RawBinWrapper(BaseWrapper):
 		raise IOError('EEG file not found for channel %i and file root %s\n' 
 			      % (channel,self.dataroot))
                 
+        # allocate for data
+	eventdata = np.empty((len(event_offsets),dur_samp),
+                             dtype=self.data.dtype)
+
 	# loop over events
-	eventdata = []
-
-        # # get the eventOffsets
-        # if isinstance(eventInfo,TsEvents):
-        #     eventOffsets = eventInfo['eegoffset']
-        # else:
-        #     eventOffsets = eventInfo
-        # eventOffsets = np.asarray(eventOffsets)
-	# if len(eventOffsets.shape)==0:
-	#     eventOffsets = [eventOffsets]
-
-	for evOffset in eventOffsets:
+	for e,evOffset in enumerate(event_offsets):
 	    # seek to the position in the file
 	    thetime = offset_samp+evOffset
 	    efile.seek(self.nBytes*thetime,0)
@@ -131,28 +121,10 @@ class RawBinWrapper(BaseWrapper):
 			      % (evOffset,eegfname))
 
 	    # append it to the events
-	    eventdata.append(data)
-
-        # calc the time range
-        sampStart = offset_samp*samplesize
-        sampEnd = sampStart + (dur_samp-1)*samplesize
-        timeRange = np.linspace(sampStart,sampEnd,dur_samp)
-
-	# make it a timeseries
-        if isinstance(eventInfo,TsEvents):
-            dims = [Dim('event', eventInfo.data, 'event'),
-                    Dim('time',timeRange)]
-        else:
-            dims = [Dim('eventOffsets', eventOffsets, 'samples'),
-                    Dim('time',timeRange)]
-        eventdata = TimeSeries(np.array(eventdata),
-                               dims,
-                               tdim='time',
-                               self.samplerate)
+            eventdata[e,:] = data
 
         # multiply by the gain
 	eventdata *= self.gain
-
 	
         return eventdata
 

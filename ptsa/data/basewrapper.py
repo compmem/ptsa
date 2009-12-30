@@ -18,32 +18,69 @@ class BaseWrapper(object):
     """
     Base class to provide interface to data.  
     """
-    def _load_timeseries(self,channel,eventOffsets,dur_samp,offset_samp):
+    # required properties that the child class must set.
+    samplerate = None
+    
+    def _load_data(self,channel,event_offsets,dur_samp,offset_samp):
+        """
+        Method for loading data that each child wrapper class must
+        implement.
+
+        Parameters
+        ----------
+        channel : {int}
+            Channel to load.
+        event_offsets : {array_like}
+            List of offsets into the data (in samples) marking event
+            onsets.
+        dur_samp : {int}
+            Duration in samples of each event.
+        offset_samp : {int}
+            Offset from the event onset from where to extract the
+            duration of the event.
+
+        Returns
+        -------
+        data : {ndarray}
+            Array of data for the specified channel in the form
+            [events, duration].
+        """
         raise NotImplementedError
     
-    def get_event_data(self,channel,eventOffsets,
+    def get_event_data(self,channel,event_offsets,
                        dur,offset,buf,
-                       resampledRate=None,
-                       filtFreq=None,filtType='stop',filtOrder=4,
-                       keepBuffer=False):
+                       resampled_rate=None,
+                       filt_freq=None,filt_type='stop',filt_order=4,
+                       keep_buffer=False):
         """
-        Return an dictionary containing data for the specified channel
+        Return an TimeSeries containing data for the specified channel
         in the form [events,duration].
 
         Parameters
         ----------
-        channel: Channel to load data from
-        eventOffsets: Array of even offsets (in samples) into the
-        data, specifying each event time
-        Duration: Duration in ms of the data to return.
-        Offset: Amount in ms to offset that data around the event.
-        Buffer: Extra buffer to add when doing filtering to avoid edge effects.
-        resampledRate: New samplerate to resample the data to after loading.
-        filtFreq: Frequency specification for filter (depends on the
-        filter type.
-        filtType: Type of filter to run on the data.
-        filtOrder: Order of the filter.
-        keepBuffer: Whether to keep the buffer when returning the data.
+        channel: {int}
+            Channel from which to load data.
+        event_offsets: {array_like}
+            Array/list of event offsets (in samples) into the data,
+            specifying each event onset time.
+        dur: {float}
+            Duration in seconds of the data to return.
+        offset: {float}
+            Amount in seconds to offset the data around the event.
+        buf: {float}
+            Extra buffer to add on either side of the event in order
+            to avoid edge effects when filtering.
+        resampled_rate: {float}
+            New samplerate to resample the data to after loading.
+        filt_freq: {array_like}
+            The range of frequencies to filter (depends on the filter
+            type.)
+        filt_type = {scipy.signal.band_dict.keys()},optional
+            Filter type.
+        filt_order = {int}
+            The order of the filter.
+        keep_buffer: {boolean}
+            Whether to keep the buffer when returning the data.
         """
         
         # set event durations from rate
@@ -64,7 +101,7 @@ class BaseWrapper(object):
         offset_samp -= buf_samp
 
         # load the timeseries (this must be implemented by subclasses)
-        eventdata = self._load_data(channel,eventOffsets,dur_samp,offset_samp)
+        eventdata = self._load_data(channel,event_offsets,dur_samp,offset_samp)
 
         # calc the time range
         # get the samplesize
@@ -77,28 +114,29 @@ class BaseWrapper(object):
         #     dims = [Dim('event', eventInfo.data, 'event'),
         #             Dim('time',timeRange)]
         # else:
-        #     dims = [Dim('eventOffsets', eventOffsets, 'samples'),
+        #     dims = [Dim('event_offsets', event_offsets, 'samples'),
         #             Dim('time',timeRange)]            
-        dims = [Dim(eventOffsets,'eventOffsets'),
+        dims = [Dim(event_offsets,'event_offsets'),
                 Dim(timeRange,'time')]
         eventdata = TimeSeries(np.asarray(eventdata),
                                'time',
                                self.samplerate,dims=dims)
 
 	# filter if desired
-	if not(filtFreq is None):
+	if not(filt_freq is None):
 	    # filter that data
-            eventdata = eventdata.filter(filtFreq,filtType=filtType,
-                                         order=filtOrder)
+            eventdata = eventdata.filter(filt_freq,
+                                         filt_type=filt_type,
+                                         order=filt_order)
 
 	# resample if desired
-	if not(resampledRate is None) and \
-               not(resampledRate == eventdata.samplerate):
+	if not(resampled_rate is None) and \
+               not(resampled_rate == eventdata.samplerate):
 	    # resample the data
-            eventdata = eventdata.resampled(resampledRate)
+            eventdata = eventdata.resampled(resampled_rate)
 
         # remove the buffer and set the time range
-	if buf > 0 and not(keepBuffer):
+	if buf > 0 and not(keep_buffer):
 	    # remove the buffer
             eventdata = eventdata.remove_buffer(buf)
 

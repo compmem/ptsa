@@ -25,15 +25,15 @@ class ArrayWrapper(BaseWrapper):
         self.data = data
         self.samplerate = samplerate
 
-    def _load_data(self,channel,eventOffsets,dur_samp,offset_samp):
+    def _load_data(self,channel,event_offsets,dur_samp,offset_samp):
         """        
         """
         # allocate for data
-	eventdata = np.empty((len(eventOffsets),dur_samp),
+	eventdata = np.empty((len(event_offsets),dur_samp),
                              dtype=self.data.dtype)
 
 	# loop over events
-	for e,evOffset in enumerate(eventOffsets):
+	for e,evOffset in enumerate(event_offsets):
             # set the range
             ssamp = offset_samp+evOffset
             esamp = ssamp + dur_samp
