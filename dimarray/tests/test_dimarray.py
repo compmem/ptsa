@@ -440,6 +440,24 @@ class test_DimArray(TestCase):
                                  Dim(range(1),name='four')],test='tst')
         self.assertRaises(NotImplementedError,dat.resize,(5,2,2,3,3))
 
+    def test_newaxis(self):
+        # make ndarray an Dimaray with identical data        
+        arr = np.random.rand(5,12,3,1)
+        dat = DimArray(arr,dims=[Dim(range(5),name='one'),
+                                 Dim(range(12),name='two'),
+                                 Dim(range(3),name='three'),
+                                 Dim(range(1),name='four')],test='tst')
+        # add a new axis at beginning
+        d0 = dat[np.newaxis,:]
+        self.assertEquals(d0.dim_names[0],'newaxis_0')
+        self.assertEquals(d0.dim_names[-1],'four')
+        self.assertEquals(len(d0.shape),len(arr.shape)+1)
+        # add a new axis at end
+        d0 = dat[:,:,:,:,np.newaxis]
+        self.assertEquals(d0.dim_names[-1],'newaxis_4')
+        self.assertEquals(d0.dim_names[0],'one')
+        self.assertEquals(len(d0.shape),len(arr.shape)+1)
+
     def test_make_bins(self):
         """Test the make_bins method"""
         # make ndarray an Dimaray with identical data
