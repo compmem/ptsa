@@ -12,10 +12,9 @@ import numpy as np
 from numpy.testing import TestCase
 
 from ptsa.data import ArrayWrapper
-from ptsa.data.events import TsEvents
+from ptsa.data.events import Events
 
-
-class test_TsEvents(TestCase):
+class test_Events(TestCase):
     def setUp(self):
         self.dat = np.random.rand(10,1000)
         self.aw = ArrayWrapper(self.dat,200)
@@ -27,7 +26,7 @@ class test_TsEvents(TestCase):
         # get data from a tsevents
         # make some events
         events = np.rec.fromarrays(([self.aw]*len(self.eoffsets),self.eoffsets),
-                                   names='esrc,eoffset').view(TsEvents)
+                                   names='esrc,eoffset').view(Events)
         ed2 = events.get_data(3,.5,-.1,.25)
 
         np.testing.assert_array_almost_equal(ed[:],ed2[:],decimal=6)
