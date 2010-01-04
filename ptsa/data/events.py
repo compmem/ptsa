@@ -10,51 +10,27 @@
 # global imports
 import numpy as np
 
-import string
-import re
-import sys
-from dimarray import Dim
-from timeseries import TimeSeries
-from datawrapper import DataWrapper
+from timeseries import TimeSeries,Dim
+from basewrapper import BaseWrapper
 
 #import pdb
 
 class Events(np.recarray):
-
-    _required_fields = None
-    _skip_field_check = False
-
     # def __new__(subtype, shape, dtype=None, buf=None, offset=0, strides=None,
     #             formats=None, names=None, titles=None,
     #             byteorder=None, aligned=False):
     def __new__(*args,**kwargs):
-        self=np.recarray.__new__(*args,**kwargs)
-
-        if not(self._required_fields is None):
-            for req_field in self._required_fields:
-                if not(req_field in self.dtype.names):
-                    raise ValueError(
-                        req_field+' is a required field!')
-                if not(
-                    self[req_field].dtype==self._required_fields[req_field]):
-                    raise ValueError(
-                        req_field+' needs to be '+
-                        str(self._required_fields[req_field])+
-                        '. Provided dtype was '+str(self[req_field].dtype))                             
-        return self
+        ret = np.recarray.__new__(*args,**kwargs)        
+        return ret
     
     def remove_fields(self,*fields_to_remove):
         """
         Return a new instance of the array with specified fields
         removed.
         """
-        if not(self._required_fields is None):
-            for req_field in self._required_fields:
-                if sum(map(lambda x: x==req_field,fields_to_remove)) > 0:
-                    raise ValueError(req_field+' is a required field!')
         # sequence of arrays and names
         arrays = []
-        names = ''
+        names = []
 
         # loop over fields, keeping if not matching fieldName
         for field in self.dtype.names:
@@ -62,14 +38,10 @@ class Events(np.recarray):
             if sum(map(lambda x: x==field,fields_to_remove)) == 0:
                 # append the data
                 arrays.append(self[field])
-                if len(names)>0:
-                    # append ,
-                    names = names+','
-                # append the name
-                names = names+field
+                names.append(field)
 
         # return the new Events
-        return np.rec.fromarrays(arrays,names=names).view(self.__class__)
+        return np.rec.fromarrays(arrays,names=','.join(names)).view(self.__class__)
 
     def add_fields(self,**fields):
         """
@@ -85,7 +57,7 @@ class Events(np.recarray):
         
         # sequence of arrays and names from starting recarray
         arrays = map(lambda x: self[x], self.dtype.names)
-        names = string.join(self.dtype.names,',')
+        names = ','.join(self.dtype.names)
         
         # loop over the kwargs of field
         for name,data in fields.iteritems():
@@ -112,51 +84,6 @@ class Events(np.recarray):
         # return the new Events
         return np.rec.fromarrays(arrays,names=names).view(self.__class__)
 
-    def __getitem__(self, index):
-        # try block to ensure the _skip_dim_check flag gets reset
-        # in the following finally block
-        try: 
-            # skip the dim check b/c we're going to fiddle with them
-            self._skip_field_check = True
-            ret = np.recarray.__getitem__(self,index)
-        finally:
-            # reset the _skip_dim_check flag:
-            self._skip_field_check = False
-        return ret
-            
-    def __getslice__(self,i,j):
-        try: 
-            # skip the field check
-            self._skip_field_check = True
-            ret = np.recarray.__getslice__(self,i,j)           
-        finally:
-            # reset the _skip_field_check flag:
-            self._skip_field_check = False
-        return ret
-
-
-    def __array_finalize__(self,obj):
-        # print self.shape,obj.shape
-        # # print self._skip_field_check,obj._skip_field_check
-        self._skip_field_check = False
-        # if this method is called with _skip_field_check == True, don't
-        # check fields:
-        # PBS: Also don't check if obj is None (implies it's unpickling)
-        # We must find out if there are other instances of it being None
-        if (isinstance(obj,Events) and obj._skip_field_check) or \
-           obj is None: return
-        # ensure that the fields are valid:
-        if not(self._required_fields is None):
-            for req_field in self._required_fields:
-                if not(req_field in obj.dtype.names):
-                    raise ValueError(
-                        req_field+' is a required field!')
-                if not(
-                    obj[req_field].dtype==self._required_fields[req_field]):
-                    raise ValueError(
-                        req_field+' needs to be '+
-                        str(self._required_fields[req_field])+
-                        '. Provided dtype was '+str(obj[req_field].dtype))
 
 class TsEvents(Events):
     """
@@ -164,66 +91,58 @@ class TsEvents(Events):
     both tssrc (time series source) and tsoffset (time series offset)
     so that the class can know how to retrieve data for each event.
     """
-
-    _required_fields = {'tssrc':DataWrapper,'tsoffset':int}
-        
-    # def get_data(self,channel,dur,offset,buf,resampled_rate=None,
-    #              filt_freq=None,filt_type='stop',
-    #              filt_order=4,keep_buffer=False):
-    def get_data(self,*args,**kwargs):
+    def get_data(self,channel,dur,offset,buf,resampled_rate=None,
+                 filt_freq=None,filt_type='stop',
+                 filt_order=4,keep_buffer=False):
         """
         Return the requested range of data for each event by using the
         proper data retrieval mechanism for each event.
 
         The result will be an TimeSeries instance with dimensions
-        (events,time) for the data and also some information about the
-        data returned.
+        (events,time).
         """
-	# get ready to load dat
-	eventdata = None
+        # make sure we have the proper fields
         
-        # events = self.data
-
+	# get ready to load dat
+	eventdata = []
+        events = []
+        
         # speed up by getting unique event sources first
-        usources = np.unique1d(self['tssrc'])
+        usources = np.unique1d(self['esrc'])
 
         # loop over unique sources
         for src in usources:
             # get the eventOffsets from that source
-            ind = np.atleast_1d(self['tssrc']==src)
+            ind = np.atleast_1d(self['esrc']==src)
             
             if len(ind) == 1:
-                src_events=self
+                event_offsets=self['eoffset']
+                events.append(self)
             else:
-                src_events = self[ind]
+                event_offsets = self[ind]['eoffset']
+                events.append(self[ind])
 
             #print "Loading %d events from %s" % (ind.sum(),src)
             # get the timeseries for those events            
-            # newdat = src.get_event_data(channel,
-            #                             src_events,
-            #                             dur,
-            #                             offset,
-            #                             buf,
-            #                             resampled_rate,
-            #                             filt_freq,
-            #                             filt_type,
-            #                             filt_order,
-            #                             keep_buffer)
-            newdat = src.get_event_data(*args,**kwargs)
-
-            # see if concatenate
-            if eventdata is None:
-                # start the new eventdata
-                eventdata = newdat
-            else:
-                # append it to the existing
-                np.concatenate(eventdata,newdat,eventdata.tdim)
-
-        if eventdata is None:
-            dims = [Dim(np.array(None), 'event'),
-                    Dim(np.array(None), 'time')]
-            eventdata = TimeSeries(np.atleast_2d(np.array(None)),
-                                   samplerate=None,tdim='time',dims=dims)
+            eventdata.append(src.get_event_data(channel,
+                                                event_offsets,
+                                                dur,
+                                                offset,
+                                                buf,
+                                                resampled_rate,
+                                                filt_freq,
+                                                filt_type,
+                                                filt_order,
+                                                keep_buffer))
+            
+        # concatenate (must eventually check that dims match)
+        tdim = eventdata[0]['time']
+        srate = eventdata[0].samplerate
+        events = np.concatenate(events).view(self.__class__)
+        eventdata = TimeSeries(np.concatenate(eventdata),
+                               'time', srate,
+                               dims=[Dim(events,'events'),tdim])
+        
         return eventdata
     
 
