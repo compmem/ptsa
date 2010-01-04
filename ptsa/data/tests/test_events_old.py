@@ -4,7 +4,7 @@ from numpy.testing import TestCase,\
      assert_array_equal, assert_array_almost_equal
 
 from ptsa.data.events import Events,TsEvents
-from ptsa.data.datawrapper import DataWrapper
+from ptsa.data.basewrapper import BaseWrapper
 
 class Setup():
     def __init__(self):
@@ -24,93 +24,93 @@ class Setup():
         self.test1z = np.array([('bla1',), ('bla2',)],
                                dtype=[('z', '|S4')])
 
-        dw = DataWrapper()
+        dw = BaseWrapper()
 
         self.test2sox = np.array([[(dw, 2, 42.),
                                    (dw, 4, 33.)],
                                   [(dw, 5, 22.),
                                    (dw, 6, 11.)]],
-                                 dtype=[('tssrc', DataWrapper),
-                                        ('tsoffset', int),
+                                 dtype=[('esrc', BaseWrapper),
+                                        ('eoffset', int),
                                         ('x', float)])
         self.test2so = np.array([[(dw, 2),
                                   (dw, 4)],
                                  [(dw, 5),
                                   (dw, 6)]],
-                                dtype=[('tssrc', DataWrapper),
-                                       ('tsoffset', int)])
+                                dtype=[('esrc', BaseWrapper),
+                                       ('eoffset', int)])
         self.test2sx = np.array([[(dw, 42.),
                                   (dw, 33.)],
                                  [(dw, 22.),
                                   (dw, 11.)]],
-                                dtype=[('tssrc', DataWrapper),
+                                dtype=[('esrc', BaseWrapper),
                                        ('x', float)])
         self.test2sox1 = np.array([[(1.5, 2, dw),
                                     (1.5, 4, dw)],
                                    [(1.5, 5, dw),
                                     (1.5, 6, dw)]],
-                                  dtype=[('tssrc', float),
-                                         ('tsoffset', int),
-                                         ('x', DataWrapper)])
+                                  dtype=[('esrc', float),
+                                         ('eoffset', int),
+                                         ('x', BaseWrapper)])
         self.test2sox2 = np.array([[(dw, dw, 42),
                                     (dw, dw, 33)],
                                    [(dw, dw, 22),
                                     (dw, dw, 11)]],
-                                  dtype=[('tssrc', DataWrapper),
-                                         ('tsoffset', DataWrapper),
+                                  dtype=[('esrc', BaseWrapper),
+                                         ('eoffset', BaseWrapper),
                                          ('x', int)])
         self.test2sox3 = np.array([[(3, 2, dw),
                                     (3, 4, dw)],
                                    [(3, 5, dw),
                                     (3, 6, dw)]],
-                                  dtype=[('tssrc', int),
-                                         ('tsoffset', int),
-                                         ('x', DataWrapper)])
+                                  dtype=[('esrc', int),
+                                         ('eoffset', int),
+                                         ('x', BaseWrapper)])
         self.test2soxy = np.array([[(dw, 2, 42., 1),
                                     (dw, 4, 33., 2)],
                                    [(dw, 5, 22., 3),
                                     (dw, 6, 11., 4)]],
-                                  dtype=[('tssrc', DataWrapper),
-                                         ('tsoffset', int),
+                                  dtype=[('esrc', BaseWrapper),
+                                         ('eoffset', int),
                                          ('x', float),('y',int)])
 
         self.test2soxyz = np.array([[(dw, 2, 42., 1, 'z1'),
                                      (dw, 4, 33., 2, 'z2')],
                                     [(dw, 5, 22., 3, 'z3'),
                                      (dw, 6, 11., 4, 'z4')]],
-                                   dtype=[('tssrc', DataWrapper),
-                                          ('tsoffset', int),
+                                   dtype=[('esrc', BaseWrapper),
+                                          ('eoffset', int),
                                           ('x', float),('y',int),('z','|S2')])
         self.test2soy = np.array([[(dw, 2, 1),
                                      (dw, 4, 2)],
                                     [(dw, 5, 3),
                                      (dw, 6, 4)]],
-                                 dtype=[('tssrc', DataWrapper),
-                                        ('tsoffset', int),
+                                 dtype=[('esrc', BaseWrapper),
+                                        ('eoffset', int),
                                         ('y',int)])
 
         self.test2soz = np.array([[(dw, 2, 'z1'),
                                    (dw, 4, 'z2')],
                                   [(dw, 5, 'z3'),
                                    (dw, 6, 'z4')]],
-                                 dtype=[('tssrc', DataWrapper),
-                                        ('tsoffset', int),
+                                 dtype=[('esrc', BaseWrapper),
+                                        ('eoffset', int),
                                         ('z','|S2')])
 
         self.test2soyz = np.array([[(dw, 2, 1, 'z1'),
                                     (dw, 4, 2, 'z2')],
                                    [(dw, 5, 3, 'z3'),
                                     (dw, 6, 4, 'z4')]],
-                                  dtype=[('tssrc', DataWrapper),
-                                         ('tsoffset', int),
+                                  dtype=[('esrc', BaseWrapper),
+                                         ('eoffset', int),
                                          ('y', int),('z', '|S2')])
 
         self.test2soxz = np.array([[(dw, 2, 42., 'z1'),
                                     (dw, 4, 33., 'z2')],
                                    [(dw, 5, 22., 'z3'),
                                     (dw, 6, 11., 'z4')]],
-                                  dtype=[('tssrc', DataWrapper),
-                                         ('tsoffset', int),
+                                  dtype=[('esrc', BaseWrapper),
+                                         ('eoffset', int),
                                          ('x', float),('z', '|S2')])
         
 
@@ -375,27 +375,27 @@ class test_TsEvents(TestCase):
     def test_remove_fields(self):
         tst = Setup()
         test = tst.test2soxyz.view(TsEvents)
-        self.assertRaises(ValueError,test.remove_fields,'tssrc')
-        self.assertRaises(ValueError,test.remove_fields,'tsoffset')
-        self.assertRaises(ValueError,test.remove_fields,'tssrc','tsoffset','x','y','z')
-        self.assertRaises(ValueError,test.remove_fields,'tsoffset','x','y','z')
-        self.assertRaises(ValueError,test.remove_fields,'tsoffset','x','y','z')
-        self.assertRaises(ValueError,test.remove_fields,'tssrc','tsoffset','x','y')
-        self.assertRaises(ValueError,test.remove_fields,'tssrc','tsoffset','x')
-        self.assertRaises(ValueError,test.remove_fields,'tssrc','tsoffset','y')
-        self.assertRaises(ValueError,test.remove_fields,'tssrc','tsoffset','z')
-        self.assertRaises(ValueError,test.remove_fields,'tssrc','tsoffset','x','z')
-        self.assertRaises(ValueError,test.remove_fields,'tssrc','tsoffset','y','z')
-        self.assertRaises(ValueError,test.remove_fields,'tssrc','tsoffset')
-        self.assertRaises(ValueError,test.remove_fields,'tssrc','x')
-        self.assertRaises(ValueError,test.remove_fields,'tssrc','y')
-        self.assertRaises(ValueError,test.remove_fields,'tssrc','z')
-        self.assertRaises(ValueError,test.remove_fields,'tsoffset','x')
-        self.assertRaises(ValueError,test.remove_fields,'tsoffset','y')
-        self.assertRaises(ValueError,test.remove_fields,'tsoffset','z')
+        self.assertRaises(ValueError,test.remove_fields,'esrc')
+        self.assertRaises(ValueError,test.remove_fields,'eoffset')
+        self.assertRaises(ValueError,test.remove_fields,'esrc','eoffset','x','y','z')
+        self.assertRaises(ValueError,test.remove_fields,'eoffset','x','y','z')
+        self.assertRaises(ValueError,test.remove_fields,'eoffset','x','y','z')
+        self.assertRaises(ValueError,test.remove_fields,'esrc','eoffset','x','y')
+        self.assertRaises(ValueError,test.remove_fields,'esrc','eoffset','x')
+        self.assertRaises(ValueError,test.remove_fields,'esrc','eoffset','y')
+        self.assertRaises(ValueError,test.remove_fields,'esrc','eoffset','z')
+        self.assertRaises(ValueError,test.remove_fields,'esrc','eoffset','x','z')
+        self.assertRaises(ValueError,test.remove_fields,'esrc','eoffset','y','z')
+        self.assertRaises(ValueError,test.remove_fields,'esrc','eoffset')
+        self.assertRaises(ValueError,test.remove_fields,'esrc','x')
+        self.assertRaises(ValueError,test.remove_fields,'esrc','y')
+        self.assertRaises(ValueError,test.remove_fields,'esrc','z')
+        self.assertRaises(ValueError,test.remove_fields,'eoffset','x')
+        self.assertRaises(ValueError,test.remove_fields,'eoffset','y')
+        self.assertRaises(ValueError,test.remove_fields,'eoffset','z')
         test = test.remove_fields('z')
-        self.assertRaises(ValueError,test.remove_fields,'tsoffset')
-        self.assertRaises(ValueError,test.remove_fields,'tssrc')
+        self.assertRaises(ValueError,test.remove_fields,'eoffset')
+        self.assertRaises(ValueError,test.remove_fields,'esrc')
 
         # CTW: I can't figure out why the below test fails for
         # TsEvents (it works fine for Events). For all I can tell, the
@@ -410,5 +410,5 @@ class test_TsEvents(TestCase):
         # dw = NumpyData('.test_events.npy')
         # arrays = [[np.array(dw, 2, 42.),np.array(dw, 4, 33.)],
         #           [np.array(dw, 5, 22.),np.array(dw, 6, 11.)]]
-        # names = 'tssrc,tsoffset,x'
+        # names = 'esrc,eoffset,x'
         # test = np.rec.fromarrays(arrays,names=names).view(TsEvents)
