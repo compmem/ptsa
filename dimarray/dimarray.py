@@ -430,6 +430,21 @@ class DimArray(AttrArray):
                     # if a changed dimension was reduced to one
                     # level, remove that dimension
                     tokeep = tokeep[tokeep!=i]
+                elif ind is None:
+                    # XXX Does not ensure new dim name does not exist
+                    # It's a new axis, so make temp dim
+                    newdim = Dim([0],'newaxis_%d'%(i))
+                    newdims = ret.dims.tolist()
+                    newdims.insert(i+1,newdim)
+                    ret.dims = np.empty(len(newdims),dtype=Dim)
+                    ret.dims[:] = newdims
+
+                    # must also update the tokeep list
+                    # must shift them up
+                    tokeep[tokeep>=i]+=1
+                    tokeep = tokeep.tolist()
+                    tokeep.insert(i+1,i)
+                    tokeep = np.array(tokeep)
                 elif not isinstance(ind, slice) and len(ind)==0:
                     # handle where we selected nothing
                     ret.dims[i] = ret.dims[i][[]]
