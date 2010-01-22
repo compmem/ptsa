@@ -17,7 +17,9 @@ from basewrapper import BaseWrapper
 
 class Events(np.recarray):
     """
-    Docs here.
+    A recarray with the events to be analyzed. Includes convenience
+    functions to add and remove fields and a function to get a
+    TimeSeries instance with the data linked to each event.
     """
 
     # def __new__(subtype, shape, dtype=None, buf=None, offset=0, strides=None,
@@ -28,8 +30,16 @@ class Events(np.recarray):
     
     def remove_fields(self,*fields_to_remove):
         """
-        Return a new instance of the array with specified fields
+        Return a new instance of the recarray with specified fields
         removed.
+
+        Parameters
+        ----------
+        *fields_to_remove : {list of strings}
+
+        Returns
+        -------
+        New Events instance without the specified fields.
         """
         # sequence of arrays and names
         arrays = []
@@ -52,9 +62,22 @@ class Events(np.recarray):
     def add_fields(self,**fields):
         """
         Add fields from the keyword args provided and return a new
-        instance.  To add an empty field, pass a dtype as the array.
+        instance.
 
-        addFields(name1=array1, name2=dtype('i4'))
+        Parameters
+        ----------
+        **fields_to_remove : {dictionary}
+            Names in the dictionary correspond to new field names and
+            the values specify their content. To add an empty field,
+            pass a dtype as the value.
+
+        Returns
+        -------
+        New Events instance with the specified new fields.
+        
+        Examples
+        --------
+        events.add_fields(name1=array1, name2=dtype('i4'))
         
         """
 
@@ -92,38 +115,68 @@ class Events(np.recarray):
         return np.rec.fromarrays(arrays,names=names).view(self.__class__)
 
     def get_data(self,channel,dur,offset,buf,resampled_rate=None,
-                 filt_freq=None,filt_type='stop',
-                 filt_order=4,keep_buffer=False):
+                 filt_freq=None,filt_type='stop',filt_order=4,
+                 keep_buffer=False,esrc='esrc',eoffset='eoffset'):
         """
         Return the requested range of data for each event by using the
         proper data retrieval mechanism for each event.
 
-        The result will be an TimeSeries instance with dimensions
-        (events,time).
+        Parameters
+        ----------
+        channel: {int}
+            Channel from which to load data.
+        dur: {float}
+            Duration of the data to return (in time-unit of the data).
+        offset: {float}
+            Amount (in time-unit of data) to offset the data around the event.
+        buf: {float}
+            Extra buffer to add on either side of the event in order
+            to avoid edge effects when filtering (in time unit of the data).
+        resampled_rate: {float},optional
+            New samplerate to resample the data to after loading.
+        filt_freq: {array_like},optional
+            The range of frequencies to filter (depends on the filter
+            type.)
+        filt_type = {scipy.signal.band_dict.keys()},optional
+            Filter type.
+        filt_order = {int},optional
+            The order of the filter.
+        keep_buffer: {boolean},optional
+            Whether to keep the buffer when returning the data.
+        esrc : {string},optional
+            Name for the field containing the event source.
+        eoffset: {string},optional
+            Name for the field containing the event offset within the
+            specified source.
+        
+        Returns
+        -------
+        A TimeSeries instance with dimensions (events,time).
         """
+        
         # check for necessary fields
-        if not ('esrc' in self.dtype.names and
-                'eoffset' in self.dtype.names):
-            raise ValueError('You must have esrc and eoffset fields in ' + \
-                             'order to retrieve event data.')
+        if not (esrc in self.dtype.names and
+                eoffset in self.dtype.names):
+            raise ValueError(esrc+' and '+eoffset+' must be valid fieldnames '+
+                             'specifying source and offset for the data.')
         
 	# get ready to load dat
 	eventdata = []
         events = []
         
         # speed up by getting unique event sources first
-        usources = np.unique1d(self['esrc'])
+        usources = np.unique1d(self[esrc])
 
         # loop over unique sources
         for src in usources:
             # get the eventOffsets from that source
-            ind = np.atleast_1d(self['esrc']==src)
+            ind = np.atleast_1d(self[esrc]==src)
             
             if len(ind) == 1:
-                event_offsets=self['eoffset']
+                event_offsets=self[eoffset]
                 events.append(self)
             else:
-                event_offsets = self[ind]['eoffset']
+                event_offsets = self[ind][eoffset]
                 events.append(self[ind])
 
             #print "Loading %d events from %s" % (ind.sum(),src)
