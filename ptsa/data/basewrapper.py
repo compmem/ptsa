@@ -64,22 +64,24 @@ class BaseWrapper(object):
             Array/list of event offsets (in samples) into the data,
             specifying each event onset time.
         dur: {float}
-            Duration in seconds of the data to return.
+            Duration of the data to return (in time-unit of the data).
         offset: {float}
-            Amount in seconds to offset the data around the event.
+            Amount (in time-unit of data) to offset the data around
+            the event.
         buf: {float}
             Extra buffer to add on either side of the event in order
-            to avoid edge effects when filtering.
-        resampled_rate: {float}
+            to avoid edge effects when filtering (in time unit of the
+            data).
+        resampled_rate: {float},optional
             New samplerate to resample the data to after loading.
-        filt_freq: {array_like}
+        filt_freq: {array_like},optional
             The range of frequencies to filter (depends on the filter
             type.)
         filt_type = {scipy.signal.band_dict.keys()},optional
             Filter type.
-        filt_order = {int}
+        filt_order = {int},optional
             The order of the filter.
-        keep_buffer: {boolean}
+        keep_buffer: {boolean},optional
             Whether to keep the buffer when returning the data.
         """
         
@@ -130,8 +132,8 @@ class BaseWrapper(object):
                                          order=filt_order)
 
 	# resample if desired
-	if not(resampled_rate is None) and \
-               not(resampled_rate == eventdata.samplerate):
+	if (not(resampled_rate is None) and
+            not(resampled_rate == eventdata.samplerate)):
 	    # resample the data
             eventdata = eventdata.resampled(resampled_rate)
 
