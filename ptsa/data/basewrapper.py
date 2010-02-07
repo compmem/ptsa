@@ -18,8 +18,23 @@ class BaseWrapper(object):
     """
     Base class to provide interface to data.  
     """
-    # required properties that the child class must set.
-    samplerate = None
+    # required methods that the child class must define.
+    def get_samplerate(channel):
+        """
+        Returns sample rate for a given channel.
+
+        Parameters
+        ----------
+        channel : {int,str}
+            Either integer or (if appropriate for a given data format)
+            a string label specifying the channel.
+        
+        Returns
+        -------
+        samplerate : {float}
+            Samplerate for the specified channel.
+        """
+        raise NotImplementedError
     
     def _load_data(self,channel,event_offsets,dur_samp,offset_samp):
         """
@@ -28,8 +43,9 @@ class BaseWrapper(object):
 
         Parameters
         ----------
-        channel : {int}
-            Channel to load.
+        channel : {int,str}
+            Channel to load. Either integer number or (if appropriate
+            for a given data format) a string label.
         event_offsets : {array_like}
             List of offsets into the data (in samples) marking event
             onsets.
@@ -87,7 +103,7 @@ class BaseWrapper(object):
         
         # set event durations from rate
         # get the samplesize
-        samplesize = 1./self.samplerate
+        samplesize = 1./self.get_samplerate(channel)
         # get the number of buffer samples
         buf_samp = int(np.ceil(buf/samplesize))
         # calculate the offset samples that contains the desired offsetMS
@@ -122,7 +138,7 @@ class BaseWrapper(object):
                 Dim(timeRange,'time')]
         eventdata = TimeSeries(np.asarray(eventdata),
                                'time',
-                               self.samplerate,dims=dims)
+                               self.get_samplerate(channel),dims=dims)
 
 	# filter if desired
 	if not(filt_freq is None):

@@ -23,14 +23,18 @@ class ArrayWrapper(BaseWrapper):
         data and the samplerate."""
         # set up the basic params of the data
         self.data = data
-        self.samplerate = samplerate
+        self._samplerate = samplerate
+
+    def get_samplerate(self,*args):
+        # Same samplerate for all channels:
+        return self._samplerate
 
     def _load_data(self,channel,event_offsets,dur_samp,offset_samp):
         """        
         """
         # allocate for data
 	eventdata = np.empty((len(event_offsets),dur_samp),
-                             dtype=self.data.dtype)
+                             dtype=self.data.dtype)*np.nan
 
 	# loop over events
 	for e,evOffset in enumerate(event_offsets):

@@ -14,26 +14,26 @@ from basewrapper import BaseWrapper
 
 # global imports
 import numpy as np
+import scipy as sp
 import datetime
 
 # bdf_file = 'M03_ec.bdf'
 bdf_file = 'Newtest17-256.bdf'
 
-class EdfWrapper(BaseWrapper):
+class BdfWrapper(BaseWrapper):
     """
     Interface to data stored in European Data Format (EDF) and
     derivatives. In addition to EDF, the BioSemi Data Format (BDF) is
     currently supported.
     """
-    def __init__(self, datafile, yearbase = 2000):
+    def __init__(self, datafile_name, yearbase = 2000):
         """
         Initialize the interface to the data
 
         Parameters
         ----------
-        datafile : {file,string}
-            File object for the data file or string specifying the
-            path to the data file.
+        datafile : {string}
+            String specifying the path to the data file.
         year_base : {int},optional
             Only two year digits are stored for the recording date in
             the EDF and related formats. This number specifies how to
@@ -41,38 +41,108 @@ class EdfWrapper(BaseWrapper):
             after the year 2000 this number should be 2000, for
             earlier years, this number should be 1900. 
         """
-    # if isinstance(datafile,str):
-    #     datafile = file(datafile,'rb')
-    # elif not isinstance(datafile,file):
-    #     raise ValueError('data_file must be a valid file object or '+
-    #                      'string specifying the path to the data file: '+
-    #                      str(datafile))
+        self.header = get_edf_header(datafile, yearbase)
+        # self.data = get_edf_data(datafile, self.header)
 
-    self.header = get_edf_header(datafile, yearbase)
-    self.data = get_edf_data(datafile, self.header)
+    def _load_data(self,channel,event_offsets,dur_samp,offset_samp):
+        if isinstance(channel,str):
+            chan, = np.nonzero(channel==self.header['label'])
+            if len(chan) == 1:
+                channel = chan[0]
+            else:
+                raise ValueError(
+                    'Invalid channel label!\nChannel labels must be one of '+
+                    'the following: '+str(self.header['labels'])+'\nGiven: '+
+                    channel)
 
-    # idcode = datafile.read(8)
-    # datafile.close()
-    # if idcode[1:] == 'BIOSEMI':
-    #     self.header,self.data = edfdata(datafile, yearbase, idcode, 'BDF')
-    # elif idcode == '0       ':
-    #     self.header,self.data = edfdata(datafile, yearbase, idcode, 'EDF')
-    # # elif id_code[:3] == 'GDF':
-    # #     return(get_GDF_data(datafile, yearbase, idcode, 'EDF'))
-    # else:
-    #     raise IOError('This file format is not (yet) supported!\n'+
-    #                   str(id_code))
+        # determine the file
+	if os.path.isfile(self.header['filename']):
+	    efile = open(self.header['filename'],'rb')
+	else:
+            raise IOError('Invalid filename: '+str(self.header['filename']))
+            
+        # allocate for data
+	eventdata = np.empty((len(event_offsets),dur_samp),
+                             dtype=np.float)*np.nan
+
+        # Ensure array to allow for calculations below
+        event_offsets = np.array(event_offsets)
+        
+        # The number of data records (blocks) that correspond to the offset:
+        event_offset_blocks = np.int(event_offsets/self.header['dat_dur'])
+        # The remaining number of samples in the next data records (blocks):
+        event_offset_inblocks = event_offsets%self.header['dat_dur']
+
+        # The number of additional data records (blocks) to offset each sample:
+        offset_samp_blocks = np.int(offset_samp/self.header['dat_dur'])
+        # The remaining number of samples in the next data records (blocks)
+        offset_samp_inblocks = offset_samp%self.header['dat_dur']
+
+	# loop over events
+	for e,evOffset in enumerate(event_offsets):
+	    # seek to the position in the file
+
+            startpoints = np.int(dur_samp/(self.header['samples'][channel]*
+                                          self.header['dat_dur']))
+            durations = (np.ones(startpoints) *
+                         (self.header['samples'][channel] *
+                          self.header['dat_dur']))
+            if (dur_samp%(self.header['samples'][channel] *
+                          self.header['dat_dur'])) != 0:
+                durations[-1] = (dur_samp % (self.header['samples'][channel] *
+                                             self.header['dat_dur']))
+            # add header lenth to times
+            thetimes = self.header['header_len'] + np.array(
+                [((np.sum((event_offset_blocks[e] + block) *
+                          self.header['dat_dur'] *
+                          self.header['samples'][:(channel+1)]) +
+                   event_offset_inblocks[e]) +
+                  (np.sum(
+                      offset_samp_blocks * self.header['dat_dur'] *
+                      self.header['samples'][
+                          (channel+1):(channel+offset_samp_blocks+1)]) +
+                   offset_samp_inblocks))
+                 for block in range(startpoints)])
+            data = np.empty(dur_samp,float)
+            dat_indx = 0
+            byte_mult = 2**np.arange(0,self.header['dat_bytes']*8,8)
+            for t,time in enumerate(thetimes):
+                efile.seek(self.header['dat_bytes']*time,0)
+                raw_data = efile.read(self.header['dat_bytes']*durations[t])
+                # make sure we got some data
+                if len(raw_data) < durations[t]:
+                    raise IOError('Block '+str(t)+' of Event '+str(e)+
+                                  'with offset '+str(time)+
+                                  ' is outside the bounds of the file.')
+
+                # specific to BDF! Needs to be adapted for EDF &
+                # related formats!
+                for d in range(durations[t]):
+                    bytes = np.int16(sp.fromstring(
+                        raw_data[(d*self.header['dat_bytes']):\
+                                 ((d+1)*self.header['dat_bytes'])],uint8))
+                    if bytes[-1] >= 128:
+                        bytes[-1] -= 256
+                    data[dat_indx] = np.sum(bytes*byte_mult)
+                    dat_indx += 1
+            # append it to the events
+            eventdata[e,:] = data
+            
+        # multiply by the gain
+        eventdata *= self.header['gain'][channel]
+        return eventdata    
+
+def get_edf_header(datafile_name, yearbase):
     
-
-def get_edf_header(datafile, yearbase):
-    # if data_file is a string, convert to file object:
-    if isinstance(datafile,str):
-        datafile = file(datafile,'rb')
-    elif not isinstance(datafile,file):
-        raise ValueError('data_file must be a valid file object or '+
-                         'string specifying the path to the data file: '+
-                         str(datafile))
+    # create file object:
+    if isinstance(datafile_name,str):
+        datafile = file(datafile_name,'rb')
+    else:
+        raise ValueError('data_file must be a string specifying the path '+
+                         'to the data file: '+str(datafile))
+    
     header = {}
+    header['filename'] = datafile_name
     header['id_code'] = datafile.read(8) # File identification code
     header['subj_id'] = datafile.read(80).strip() # Local subject identification
     header['rcrd_id'] = datafile.read(80).strip() # Local recording
@@ -90,49 +160,52 @@ def get_edf_header(datafile, yearbase):
     header['header_len'] = int(datafile.read(8)) # Number of bytes in
                                                  # header record
     header['dat_format'] = datafile.read(44).strip() # Version of data format
+    if header['dat_format'] == '24BIT':
+        header['dat_bytes'] = 3
+    else:
+        header['dat_bytes'] = 2
+        raise NotImplementedError('Currently only 24-Bit BDF support!')
     header['dat_records_num'] = int(datafile.read(8)) # Number of data
                                                       # records (-1 if unknown)
     header['dat_dur'] = int(datafile.read(8)) # Duration of data
                                               # record in seconds
     header['chan_num'] = int(datafile.read(4)) # Number of channels
     # Labels of the channels:
-    header['labels'] = [datafile.read(16).strip()
-                        for i in range(header['chan_num'])]
+    header['labels'] = np.array([datafile.read(16).strip()
+                                 for i in range(header['chan_num'])])
     # Transducer type:
-    header['transducer'] = [datafile.read(80).strip()
-                            for i in range(header['chan_num'])]
+    header['transducer'] = np.array([datafile.read(80).strip()
+                                     for i in range(header['chan_num'])])
     # Physical dimensions of channels:
-    header['phys_dim'] = [datafile.read(8).strip()
-                          for i in range(header['chan_num'])]
+    header['phys_dim'] = np.array([datafile.read(8).strip()
+                                   for i in range(header['chan_num'])])
     # Physical minimum in units of physical dimension:
-    header['phys_min'] = [int(datafile.read(8))
-                          for i in range(header['chan_num'])]
+    header['phys_min'] = np.array([int(datafile.read(8))
+                                   for i in range(header['chan_num'])],float)
     # Physical maximum in units of physical dimension:
-    header['phys_max'] = [int(datafile.read(8))
-                          for i in range(header['chan_num'])]
+    header['phys_max'] = np.array([int(datafile.read(8))
+                                   for i in range(header['chan_num'])],float)
     # Digital minimum:
-    header['dig_min'] = [int(datafile.read(8))
-                         for i in range(header['chan_num'])]
+    header['dig_min'] = np.array([int(datafile.read(8))
+                                  for i in range(header['chan_num'])],float)
     # Digital maximum:
-    header['dig_max'] = [int(datafile.read(8))
-                         for i in range(header['chan_num'])]
+    header['dig_max'] = np.array([int(datafile.read(8))
+                                  for i in range(header['chan_num'])],float)
     # Prefiltering:
-    header['prefilt'] = [datafile.read(80).strip()
-                         for i in range(header['chan_num'])]
+    header['prefilt'] = np.array([datafile.read(80).strip()
+                                  for i in range(header['chan_num'])])
     # Number of samples in each data record (sample-rate if duration
     # of data record == 1):
-    header['samples'] = [int(datafile.read(8))
-                         for i in range(header['chan_num'])]
+    header['samples'] = np.array([int(datafile.read(8))
+                                  for i in range(header['chan_num'])],float)
     # Reserved:
-    header['reserved'] = [datafile.read(32).strip()
-                          for i in range(header['chan_num'])]
+    header['reserved'] = np.array([datafile.read(32).strip()
+                                   for i in range(header['chan_num'])])
 
     # Gain (LSB value in the specified physical dimension of channels):
-    header['gain'] = ((np.array(header['phys_max'],float)-
-                       np.array(header['phys_min'],float))/
-                      (np.array(header['dig_max'],float)-
-                       np.array(header['dig_min'],float)))
-    header['sample_rate'] = np.array(header['samples'],float)/header['dat_dur']
+    header['gain'] = ((header['phys_max']-header['phys_min'])/
+                      (header['dig_max']-header['dig_min']))
+    header['sample_rate'] = header['samples']/header['dat_dur']
 
     # not sure:
     header['off'] = (np.array(header['phys_min'],float)-
@@ -150,6 +223,8 @@ def get_edf_header(datafile, yearbase):
         file_end_pos = datafile.tell()
         header['dat_records_num_retrieved'] = int(np.floor(
             (file_end_pos-file_pos)/(np.sum(header['samples'])*3.0)))
+        
+    datafile.close()
     return(header)
 
 def get_edf_data(datafile,header):
