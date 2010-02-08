@@ -16,9 +16,10 @@ from basewrapper import BaseWrapper
 import numpy as np
 import scipy as sp
 import datetime
+import os
 
 # bdf_file = 'M03_ec.bdf'
-bdf_file = 'Newtest17-256.bdf'
+#bdf_file = 'Newtest17-256.bdf'
 
 class BdfWrapper(BaseWrapper):
     """
@@ -41,7 +42,7 @@ class BdfWrapper(BaseWrapper):
             after the year 2000 this number should be 2000, for
             earlier years, this number should be 1900. 
         """
-        self.header = get_edf_header(datafile, yearbase)
+        self.header = get_bdf_header(datafile_name, yearbase)
         # self.data = get_edf_data(datafile, self.header)
 
     def _load_data(self,channel,event_offsets,dur_samp,offset_samp):
@@ -69,62 +70,111 @@ class BdfWrapper(BaseWrapper):
         event_offsets = np.array(event_offsets)
         
         # The number of data records (blocks) that correspond to the offset:
-        event_offset_blocks = np.int(event_offsets/self.header['dat_dur'])
+        # event_offset_blocks = np.int16(event_offsets/self.header['dat_dur'])
+        event_offset_blocks = np.int16(event_offsets/
+                                       np.sum(self.header['samples']))
         # The remaining number of samples in the next data records (blocks):
         event_offset_inblocks = event_offsets%self.header['dat_dur']
 
         # The number of additional data records (blocks) to offset each sample:
-        offset_samp_blocks = np.int(offset_samp/self.header['dat_dur'])
+        offset_samp_blocks = np.int16((event_offset_inblocks + offset_samp) /
+                                    self.header['dat_dur'])
         # The remaining number of samples in the next data records (blocks)
-        offset_samp_inblocks = offset_samp%self.header['dat_dur']
+        offset_samp_inblocks = ((event_offset_inblocks+offset_samp) %
+                                self.header['dat_dur'])
 
 	# loop over events
 	for e,evOffset in enumerate(event_offsets):
 	    # seek to the position in the file
 
-            startpoints = np.int(dur_samp/(self.header['samples'][channel]*
-                                          self.header['dat_dur']))
-            durations = (np.ones(startpoints) *
-                         (self.header['samples'][channel] *
-                          self.header['dat_dur']))
-            if (dur_samp%(self.header['samples'][channel] *
-                          self.header['dat_dur'])) != 0:
-                durations[-1] = (dur_samp % (self.header['samples'][channel] *
-                                             self.header['dat_dur']))
-            # add header lenth to times
-            thetimes = self.header['header_len'] + np.array(
-                [((np.sum((event_offset_blocks[e] + block) *
-                          self.header['dat_dur'] *
-                          self.header['samples'][:(channel+1)]) +
-                   event_offset_inblocks[e]) +
-                  (np.sum(
-                      offset_samp_blocks * self.header['dat_dur'] *
-                      self.header['samples'][
-                          (channel+1):(channel+offset_samp_blocks+1)]) +
-                   offset_samp_inblocks))
-                 for block in range(startpoints)])
-            data = np.empty(dur_samp,float)
+            samples_in_block = (self.header['samples'][channel] *
+                                self.header['dat_dur'])
+
+            first_offset = dur_samp - (samples_in_block *
+                                       np.int(evOffset / samples_in_block))
+            if((first_offset<0)|(first_offset>=samples_in_block)):
+                first_offset = 0
+            durations = [(samples_in_block - first_offset)]#(
+                # dur_samp - (samples_in_block *
+                #             np.int(evOffset / samples_in_block))))]
+            
+
+            # if durations[0] <= 0:
+            #     durations[0] = samples_in_block
+                
+            durations[0] = np.min([durations[0],dur_samp])
+            
+            while(np.sum(durations) < dur_samp):
+                durations.append(
+                    np.min([samples_in_block, (dur_samp - np.sum(durations))]))
+            # print 'bla',durations,np.min(samples_in_block, (dur_samp - np.sum(durations))),samples_in_block,(dur_samp - np.sum(durations))
+
+            startpoints = len(durations)
+            
+            #durations = evOffsets
+            
+            # startpoints = np.int(dur_samp/(self.header['samples'][channel]*
+            #                               self.header['dat_dur']))+1
+            # durations = (np.ones(startpoints) *
+            #              (self.header['samples'][channel] *
+            #               self.header['dat_dur']))
+            # if (dur_samp%(self.header['samples'][channel] *
+            #               self.header['dat_dur'])) != 0:
+            #     durations[-1] = (dur_samp % (self.header['samples'][channel] *
+            #                                  self.header['dat_dur']))
+            print startpoints,durations,e,evOffset
+
+            print event_offset_blocks[e],offset_samp_blocks[e],self.header['dat_dur'],np.sum(self.header['samples']),offset_samp_inblocks[e]
+
+            thetimes = (self.header['header_len'] +
+                        np.sum(self.header['samples'][:channel]) +
+                        (np.sum(self.header['samples']) * np.array(
+                            [event_offset_blocks[e] + block
+                             for block in range(startpoints)])))
+            thetimes[0] += first_offset
+            
+            # thetimes = self.header['header_len'] + np.array([
+            #     ((event_offset_blocks[e] + block + offset_samp_blocks[e]) *
+            #      self.header['dat_dur'] * np.sum(self.header['samples']))
+            #     for block in range(startpoints)]) + offset_samp_inblocks[e]
+
+            # thetimes -= np.sum(self.header['samples'])
+            
+            # thetimes = self.header['header_len'] + np.array(
+            #     [((np.sum((event_offset_blocks[e] + block) *
+            #               self.header['dat_dur'] *
+            #               self.header['samples'][:(channel+1)]) +
+            #        event_offset_inblocks[e]) +
+            #       (np.sum(
+            #           offset_samp_blocks * self.header['dat_dur'] *
+            #           self.header['samples'][
+            #               (channel+1):(channel+offset_samp_blocks+1)]) +
+            #        offset_samp_inblocks))
+            #      for block in range(startpoints)])
+            print thetimes
+            # data = np.empty(dur_samp,float)*np.nan
+            data = np.empty((dur_samp,3),float)*np.nan
             dat_indx = 0
-            byte_mult = 2**np.arange(0,self.header['dat_bytes']*8,8)
+            dat_mult = 2**np.arange(0,self.header['dat_bytes']*8,8)
             for t,time in enumerate(thetimes):
-                efile.seek(self.header['dat_bytes']*time,0)
-                raw_data = efile.read(self.header['dat_bytes']*durations[t])
+                efile.seek(np.int(self.header['dat_bytes']*time),0)
+                raw_data = efile.read(
+                    np.int(self.header['dat_bytes']*durations[t]))
                 # make sure we got some data
                 if len(raw_data) < durations[t]:
                     raise IOError('Block '+str(t)+' of Event '+str(e)+
-                                  'with offset '+str(time)+
+                                  ' with offset '+str(time)+
                                   ' is outside the bounds of the file.')
 
                 # specific to BDF! Needs to be adapted for EDF &
                 # related formats!
-                for d in range(durations[t]):
-                    bytes = np.int16(sp.fromstring(
+                for d in range(np.int(durations[t])):
+                    data[dat_indx,:] = np.int16(sp.fromstring(
                         raw_data[(d*self.header['dat_bytes']):\
-                                 ((d+1)*self.header['dat_bytes'])],uint8))
-                    if bytes[-1] >= 128:
-                        bytes[-1] -= 256
-                    data[dat_indx] = np.sum(bytes*byte_mult)
+                                 ((d+1)*self.header['dat_bytes'])],np.uint8))
                     dat_indx += 1
+            data[:,2][data[:,2]>=128] -= 256
+            data = np.dot(data,dat_mult)
             # append it to the events
             eventdata[e,:] = data
             
@@ -132,7 +182,11 @@ class BdfWrapper(BaseWrapper):
         eventdata *= self.header['gain'][channel]
         return eventdata    
 
-def get_edf_header(datafile_name, yearbase):
+#from ptsa.data import BdfWrapper
+#bdfwrap = BdfWrapper('/home/ctw/Christoph/Analyses/biosemi/Newtest17-256.bdf')
+#tmp = bdfwrap._load_data(1,np.arange(0,600,300),300,0)
+
+def get_bdf_header(datafile_name, yearbase):
     
     # create file object:
     if isinstance(datafile_name,str):
@@ -238,14 +292,6 @@ def get_edf_data(datafile,header):
     data = np.empty((header['chan_num'],header['samples']))*np.nan
     datafile.seek(header['header_len'])
     raw_data = datafile.read()
-    
-    
-value = sp.fromstring(raw_data[0:3], uint8).tolist()
-if value[2] >= 128:	# negative
-    value = value[0] + value[1] * 2**8 + (value[2] - 256) * 2**16
-else:			# positive
-    value = value[0] + value[1] * 2**8 + value[2] * 2**16
-        
 
 
 def get_header(data_file, year_base = 2000):
