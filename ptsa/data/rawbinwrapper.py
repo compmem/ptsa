@@ -29,7 +29,7 @@ class RawBinWrapper(BaseWrapper):
         root, up to the channel numbers, where the data are stored."""
         # set up the basic params of the data
         self.dataroot = dataroot
-        self.samplerate = samplerate
+        self._samplerate = samplerate
         self.format = format
         self.gain = gain
 
@@ -56,6 +56,11 @@ class RawBinWrapper(BaseWrapper):
         elif self.format == 'double':
             self.nBytes = 8
             self.fmtStr = 'd'
+
+    def get_samplerate(*args):
+        # Same samplerate for all channels:
+        return self._samplerate
+
 
     def _get_params(self,dataroot):
         """Get parameters of the data from the dataroot."""
@@ -96,12 +101,13 @@ class RawBinWrapper(BaseWrapper):
 	    if os.path.isfile(eegfname):
 		efile = open(eegfname,'rb')
 	    else:
-		raise IOError('EEG file not found for channel %i and file root %s\n' 
-			      % (channel,self.dataroot))
+		raise IOError(
+                    'EEG file not found for channel %i and file root %s\n' 
+                    % (channel,self.dataroot))
                 
         # allocate for data
 	eventdata = np.empty((len(event_offsets),dur_samp),
-                             dtype=self.data.dtype)
+                             dtype=np.float)*np.nan
 
 	# loop over events
 	for e,evOffset in enumerate(event_offsets):
@@ -114,12 +120,13 @@ class RawBinWrapper(BaseWrapper):
 
 	    # convert from string to array based on the format
 	    # hard codes little endian
-	    data = np.array(struct.unpack('<'+str(len(data)/self.nBytes)+self.fmtStr,data))
+	    data = np.array(struct.unpack('<'+str(len(data)/self.nBytes)+
+                                          self.fmtStr,data))
 
 	    # make sure we got some data
 	    if len(data) < dur_samp:
-		raise IOError('Event with offset %d is outside the bounds of file %s.\n'
-			      % (evOffset,eegfname))
+		raise IOError('Event with offset '+str(evOffset)+
+                              ' is outside the bounds of file '+str(eegfname))
 
 	    # append it to the events
             eventdata[e,:] = data
@@ -181,8 +188,10 @@ def createEventsFromMatFile(matfile):
 	    efile_dict[''] = None
 	
 	    # set the eegfile to the correct data wrapper
-	    #newdat = np.array(map(lambda x: efile_dict[str(x.__getattribute__(field))],
-            #                  events))
+            
+	    # newdat = np.array(
+            #     map(lambda x: efile_dict[str(x.__getattribute__(field))],
+            #         events))
             newdat = np.array([efile_dict[str(x.__getattribute__(field)[0])]
                                for x in events])
 			
@@ -195,7 +204,8 @@ def createEventsFromMatFile(matfile):
                                for x in events])
 	else:
 	    # get the data in normal fashion
-	    #newdat = np.array(map(lambda x: x.__getattribute__(field),events))
+	    # newdat = np.array(
+            #     map(lambda x: x.__getattribute__(field),events))
             newdat = np.array([x.__getattribute__(field)[0]
                                for x in events])
 

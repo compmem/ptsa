@@ -18,8 +18,23 @@ class BaseWrapper(object):
     """
     Base class to provide interface to data.  
     """
-    # required properties that the child class must set.
-    samplerate = None
+    # required methods that the child class must define.
+    def get_samplerate(channel):
+        """
+        Returns sample rate for a given channel.
+
+        Parameters
+        ----------
+        channel : {int,str}
+            Either integer or (if appropriate for a given data format)
+            a string label specifying the channel.
+        
+        Returns
+        -------
+        samplerate : {float}
+            Samplerate for the specified channel.
+        """
+        raise NotImplementedError
     
     def _load_data(self,channel,event_offsets,dur_samp,offset_samp):
         """
@@ -28,8 +43,9 @@ class BaseWrapper(object):
 
         Parameters
         ----------
-        channel : {int}
-            Channel to load.
+        channel : {int,str}
+            Channel to load. Either integer number or (if appropriate
+            for a given data format) a string label.
         event_offsets : {array_like}
             List of offsets into the data (in samples) marking event
             onsets.
@@ -64,28 +80,30 @@ class BaseWrapper(object):
             Array/list of event offsets (in samples) into the data,
             specifying each event onset time.
         dur: {float}
-            Duration in seconds of the data to return.
+            Duration of the data to return (in time-unit of the data).
         offset: {float}
-            Amount in seconds to offset the data around the event.
+            Amount (in time-unit of data) to offset the data around
+            the event.
         buf: {float}
             Extra buffer to add on either side of the event in order
-            to avoid edge effects when filtering.
-        resampled_rate: {float}
+            to avoid edge effects when filtering (in time unit of the
+            data).
+        resampled_rate: {float},optional
             New samplerate to resample the data to after loading.
-        filt_freq: {array_like}
+        filt_freq: {array_like},optional
             The range of frequencies to filter (depends on the filter
             type.)
         filt_type = {scipy.signal.band_dict.keys()},optional
             Filter type.
-        filt_order = {int}
+        filt_order = {int},optional
             The order of the filter.
-        keep_buffer: {boolean}
+        keep_buffer: {boolean},optional
             Whether to keep the buffer when returning the data.
         """
         
         # set event durations from rate
         # get the samplesize
-        samplesize = 1./self.samplerate
+        samplesize = 1./self.get_samplerate(channel)
         # get the number of buffer samples
         buf_samp = int(np.ceil(buf/samplesize))
         # calculate the offset samples that contains the desired offsetMS
@@ -120,7 +138,7 @@ class BaseWrapper(object):
                 Dim(timeRange,'time')]
         eventdata = TimeSeries(np.asarray(eventdata),
                                'time',
-                               self.samplerate,dims=dims)
+                               self.get_samplerate(channel),dims=dims)
 
 	# filter if desired
 	if not(filt_freq is None):
@@ -130,8 +148,8 @@ class BaseWrapper(object):
                                          order=filt_order)
 
 	# resample if desired
-	if not(resampled_rate is None) and \
-               not(resampled_rate == eventdata.samplerate):
+	if (not(resampled_rate is None) and
+            not(resampled_rate == eventdata.samplerate)):
 	    # resample the data
             eventdata = eventdata.resampled(resampled_rate)
 
