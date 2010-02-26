@@ -6,18 +6,12 @@
 
 #include "edfwrap.h"
 
-int read_samples_from_file(const char *filepath, 
-			   int edfsignal, 
-			   long long offset,
-			   int n, 
-			   double *buf)
+int open_file_readonly(const char *filepath,
+		       struct edf_hdr_struct *hdr)
 {
-  int hdl;
-  struct edf_hdr_struct hdr;
-
-  if(edfopen_file_readonly(filepath, &hdr, EDFLIB_DO_NOT_READ_ANNOTATIONS))
+  if(edfopen_file_readonly(filepath, hdr, EDFLIB_DO_NOT_READ_ANNOTATIONS))
   {
-    switch(hdr.filetype)
+    switch(hdr->filetype)
     {
       case EDFLIB_MALLOC_ERROR                : printf("\nmalloc error\n\n");
                                                 break;
@@ -39,15 +33,51 @@ int read_samples_from_file(const char *filepath,
     return(-1);
   }
 
-  // get the handle
-  hdl = hdr.handle;
+  return 0;
+}
+
+double get_samplerate(struct edf_hdr_struct *hdr,
+		      int edfsignal)
+{
+  double samplerate;
 
   // check the channel
-  if(edfsignal>(hdr.edfsignals))
+  if(edfsignal>(hdr->edfsignals))
   {
     printf("\nerror: file has %i signals and you selected signal %i\n\n", 
-	   hdr.edfsignals, edfsignal);
-    edfclose_file(hdl);
+	   hdr->edfsignals, edfsignal);
+    return(0.0);
+  }
+
+  samplerate = ((double)hdr->signalparam[edfsignal].smp_in_datarecord / 
+		(double)hdr->datarecord_duration) * EDFLIB_TIME_DIMENSION;
+  return samplerate;
+}
+
+int read_samples_from_file(struct edf_hdr_struct *hdr,
+			   int edfsignal, 
+			   long long offset,
+			   int n, 
+			   double *buf)
+{
+  int hdl;
+  /* struct edf_hdr_struct hdr; */
+
+  /* if (open_file_readonly(filepath, &hdr) < 0) */
+  /* { */
+  /*   printf("\nerror opening file\n\n"); */
+  /*   return -1; */
+  /* } */
+
+  // get the handle
+  hdl = hdr->handle;
+
+  // check the channel
+  if(edfsignal>(hdr->edfsignals))
+  {
+    printf("\nerror: file has %i signals and you selected signal %i\n\n", 
+	   hdr->edfsignals, edfsignal);
+    //edfclose_file(hdl);
     return(-1);
   }
 
@@ -58,7 +88,7 @@ int read_samples_from_file(const char *filepath,
   n = edfread_physical_samples(hdl, edfsignal, n, buf);
 
   // close the file
-  edfclose_file(hdl);
+  //edfclose_file(hdl);
   
   // return how many we read
   return n;
