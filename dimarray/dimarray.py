@@ -235,6 +235,11 @@ class DimArray(AttrArray):
         return dimarray.view(cls)
 
     def __array_finalize__(self,obj):
+        # catch case where we multiply ndarray by a scaler
+        # and the dimensions do not match
+        if obj.shape == (1,) and self.shape != (1,):
+            self = self.view(np.ndarray)
+            return
         # call the AttrArray finalize
         AttrArray.__array_finalize__(self,obj)
         # ensure _skip_dim_check flag is off
