@@ -93,6 +93,28 @@ class TimeSeries(DimArray):
                     str(value))
         DimArray.__setattr__(self,name,value)
 
+    def _ret_func(self, ret, axis):
+        """
+        Return function output for functions that take an axis
+        argument after adjusting dims properly.
+        """
+        if axis is None:
+            # just return what we got
+            return ret.view(AttrArray)
+        else:
+            # see if is time axis
+            return_as_dimarray = False
+            if self.get_axis(axis) == self.taxis:
+                return_as_dimarray = True
+            # pop the dim
+            #ret.dims.pop(axis)
+            ret.dims = ret.dims[np.arange(len(ret.dims))!=axis]
+            # we removed the
+        if return_as_dimarray:
+            return ret.view(DimArray)
+        else:
+            return ret.view(self.__class__)
+    
         
     def remove_buffer(self, duration):
 	"""
