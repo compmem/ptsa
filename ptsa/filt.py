@@ -10,7 +10,7 @@
 from scipy.signal import butter, cheby1, firwin, lfilter
 from numpy import asarray, vstack, hstack, eye, ones, zeros, linalg, newaxis, r_, flipud, convolve, matrix, array,concatenate
 
-from helper import reshapeTo2D, reshapeFrom2D, repeat_to_match_dims
+from helper import reshape_to_2d, reshape_from_2d, repeat_to_match_dims
 
 import pdb
 
@@ -24,7 +24,7 @@ def buttfilt(dat,freq_range,sample_rate,filt_type,order,axis=-1):
 
     # reshape the data to 2D with time on the 2nd dimension
     origshape = dat.shape
-    dat = reshapeTo2D(dat,axis)
+    dat = reshape_to_2d(dat,axis)
 
     # set up the filter
     freq_range = asarray(freq_range)
@@ -41,7 +41,7 @@ def buttfilt(dat,freq_range,sample_rate,filt_type,order,axis=-1):
     #dat = filtfilt2(b,a,dat)
 
     # reshape the data back
-    dat = reshapeFrom2D(dat,axis,origshape)
+    dat = reshape_from_2d(dat,axis,origshape)
     return dat
 
 ######
@@ -89,7 +89,7 @@ def decimate(x, q, n=None, ftype='iir', axis=-1):
 
         # reshape the data to 2D with time on the 2nd dimension
         origshape = x.shape
-        y = reshapeTo2D(x,axis)
+        y = reshape_to_2d(x,axis)
 
         # loop over final dimension
         for i in xrange(y.shape[0]):
@@ -97,7 +97,7 @@ def decimate(x, q, n=None, ftype='iir', axis=-1):
         #y = filtfilt2(b,a,y)
 
         # reshape the data back
-        y = reshapeFrom2D(y,axis,origshape)
+        y = reshape_from_2d(y,axis,origshape)
 
         # This needs to be filtfilt eventually
         #y = lfilter(b, a, x, axis=axis)
