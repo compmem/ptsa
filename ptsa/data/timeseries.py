@@ -7,7 +7,7 @@
 #
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ##
 
-from dimarray import Dim,DimArray
+from dimarray import Dim,DimArray,AttrArray
 from ptsa import filt
 
 from scipy.signal import resample
