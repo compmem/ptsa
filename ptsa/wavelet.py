@@ -83,7 +83,7 @@ def morlet_multi(freqs, widths, samplerates,
     # ensure the proper dimensions
     freqs = np.atleast_1d(freqs)
     widths = np.atleast_1d(widths)
-    samplerates = np.atleast_1d(samplerates)
+    samplerates = np.atleast_1d(samplerates).astype(np.float64)
     sampling_windows = np.atleast_1d(sampling_windows)
 
     # check input:
@@ -141,8 +141,8 @@ def morlet_multi(freqs, widths, samplerates,
 
 
 def phase_pow_multi(freqs, dat,  samplerates=None, widths=5,
-                    to_return='both', time_axis=-1, freq_axis=0,
-                    conv_dtype=np.complex64, freq_name='Frequencies',
+                    to_return='both', time_axis=-1,
+                    conv_dtype=np.complex64, freq_name='freqs',
                     **kwargs):
     """
     Calculate phase and power with wavelets across multiple events.
@@ -177,9 +177,6 @@ def phase_pow_multi(freqs, dat,  samplerates=None, widths=5,
         if dat is not a TimeSeries instance. If dat is a TimeSeries
         instance any value specified here will be replaced by the
         value specified in the tdim attribute.
-    freq_axis : {int},optional
-        Index of the frequency dimension in the returned array(s).
-        Should be in {0, time_axis, time_axis+1,len(dat.shape)}.
     conv_dtype : {numpy.complex*},optional
         Data type for the convolution array. Using a larger dtype
         (e.g., numpy.complex128) can increase processing time.
@@ -187,7 +184,7 @@ def phase_pow_multi(freqs, dat,  samplerates=None, widths=5,
         numpy.complex64 the dtype of the output array is numpy.float32.
         Higher complex dtypes produce higher float dtypes in the output.
     freq_name : {string},optional
-        Name of Frequency dimension of the returned TimeSeries object
+        Name of frequency dimension of the returned TimeSeries object
         (only used if dat is a TimeSeries instance).
     **kwargs : {**kwargs},optional
         Additional key word arguments to be passed on to morlet_multi().
@@ -196,7 +193,8 @@ def phase_pow_multi(freqs, dat,  samplerates=None, widths=5,
     -------
     Array(s) of phase and/or power values as specified in to_return. The
     returned array(s) has/have one more dimension than dat. The added
-    dimension is for the frequencies and is inserted at freq_axis.
+    dimension is for the frequencies and is inserted as the first
+    dimension.
     """
 
     dat_is_ts = False # is dat a TimeSeries instance?
@@ -205,8 +203,12 @@ def phase_pow_multi(freqs, dat,  samplerates=None, widths=5,
         time_axis = dat.get_axis(dat.tdim)
         dat_is_ts = True
     elif samplerates is None:
-        raise ValueError('Samplerate must be specified!')
+        raise ValueError('Samplerate must be specified unless you provide a TimeSeries!')
 
+    # convert the time_axis to positive index
+    if time_axis < 0: 
+        time_axis += len(dat.shape)
+    
     # ensure proper dimensionality (needed for len call later):
     freqs = np.atleast_1d(freqs)
     
@@ -237,7 +239,7 @@ def phase_pow_multi(freqs, dat,  samplerates=None, widths=5,
 
     # for efficiency pre-generate empty array for convolution:
     wav_coef = np.empty((eegdat.shape[time_axis-1]*len(freqs),
-                        eegdat.shape[time_axis]),dtype=conv_dtype)
+                         eegdat.shape[time_axis]),dtype=conv_dtype)
     
     # populate this array with the convolutions:
     i=0
@@ -249,16 +251,16 @@ def phase_pow_multi(freqs, dat,  samplerates=None, widths=5,
     # Determine shape for ouput arrays with added frequency dimension:
     newshape = list(origshape)
     # freqs must be first for reshape_from_2d to work
-    newshape.insert(freq_axis,len(freqs))
+    newshape.insert(0,len(freqs))
     newshape = tuple(newshape)
+    # must add to the time axis, too
+    time_axis += 1
     if dat_is_ts:
         freq_dim = Dim(freqs,freq_name)
         dims_with_freq = np.empty(len(dat.dims)+1,dat.dims.dtype)
-        dims_with_freq[:freq_axis] = dat.dims[:freq_axis]
-        dims_with_freq[freq_axis] = freq_dim
-        dims_with_freq[(freq_axis+1):] = dat.dims[freq_axis:]
+        dims_with_freq[0] = freq_dim
+        dims_with_freq[1:] = dat.dims[:]
         
-    
     if to_return == 'power' or to_return == 'both':
         # calculate power (wav_coef values are complex, so taking the
         # absolute value is necessary before taking the power):
@@ -266,7 +268,8 @@ def phase_pow_multi(freqs, dat,  samplerates=None, widths=5,
         # reshape to new shape:
         power = reshape_from_2d(power,time_axis,newshape)
         if dat_is_ts:
-            power = TimeSeries(power, tdim=dat.tdim, samplerate=dat.samplerate,
+            power = TimeSeries(power, tdim=dat.tdim,
+                               samplerate=dat.samplerate,
                                dims=dims_with_freq)
             
     
@@ -285,7 +288,8 @@ def phase_pow_multi(freqs, dat,  samplerates=None, widths=5,
         # reshape to new shape
         phase = reshape_from_2d(phase,time_axis,newshape)
         if dat_is_ts:
-            phase = TimeSeries(phase, tdim=dat.tdim, samplerate=dat.samplerate,
+            phase = TimeSeries(phase, tdim=dat.tdim,
+                               samplerate=dat.samplerate,
                                dims=dims_with_freq)
 
     
