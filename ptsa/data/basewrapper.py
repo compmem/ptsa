@@ -143,9 +143,9 @@ class BaseWrapper(object):
 	# filter if desired
 	if not(filt_freq is None):
 	    # filter that data
-            eventdata = eventdata.filter(filt_freq,
-                                         filt_type=filt_type,
-                                         order=filt_order)
+            eventdata = eventdata.filtered(filt_freq,
+                                           filt_type=filt_type,
+                                           order=filt_order)
 
 	# resample if desired
 	if (not(resampled_rate is None) and
