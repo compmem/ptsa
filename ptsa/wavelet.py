@@ -14,7 +14,7 @@ import scipy.stats as stats
 from scipy.fftpack import fft,ifft
 
 from ptsa.filt import decimate
-from ptsa.helper import reshapeTo2D,reshapeFrom2D,nextPow2,centered
+from ptsa.helper import reshape_to_2d,reshape_from_2d
 from ptsa.data import TimeSeries,Dim
 from ptsa.fixed_scipy import morlet as morlet_wavelet
 
@@ -140,8 +140,170 @@ def morlet_multi(freqs, widths, samplerates,
     return norm_wavelets
 
 
-def phase_pow_multi(freqs, dat, samplerates, widths=5, to_return='both',
-                    time_axis=-1, freq_axis=0, conv_dtype=np.complex64, **kwargs):
+def phase_pow_multi(freqs, dat,  samplerates=None, widths=5,
+                    to_return='both', time_axis=-1, freq_axis=0,
+                    conv_dtype=np.complex64, freq_name='Frequencies',
+                    **kwargs):
+    """
+    Calculate phase and power with wavelets across multiple events.
+
+    Calls the morlet_multi() and fconv_multi() functions to convolve
+    dat with Morlet wavelets.  Phase and power over time across all
+    events are calculated from the results. Time/samples should
+    include a buffer before onsets and after offsets of the events of
+    interest to avoid edge effects.
+
+    Parameters
+    ----------
+    freqs : {int, float, array_like of ints or floats}
+        The frequencies of the Morlet wavelets.
+    dat : {array_like}
+        The data to determine the phase and power of. Sample rate(s)
+        and time dimension must be specified as attributes of dat or
+        in the key word arguments.  The time dimension should include
+        a buffer to avoid edge effects.
+    samplerates : {float, array_like of floats}, optional
+        The sample rate(s) of the signal. Must be specified if dat is
+        not a TimeSeries instance. If dat is a TimeSeries instance,
+        any value specified here will be replaced by the value stored
+        in the samplerate attribute.
+    widths : {float, array_like of floats},optional
+        The width(s) of the wavelets in cycles. See docstring of
+        morlet_multi() for details.
+    to_return : {'both','power','phase'}, optional
+        Specify whether to return power, phase, or both.        
+    time_axis : {int},optional
+        Index of the time/samples dimension in dat. Must be specified
+        if dat is not a TimeSeries instance. If dat is a TimeSeries
+        instance any value specified here will be replaced by the
+        value specified in the tdim attribute.
+    freq_axis : {int},optional
+        Index of the frequency dimension in the returned array(s).
+        Should be in {0, time_axis, time_axis+1,len(dat.shape)}.
+    conv_dtype : {numpy.complex*},optional
+        Data type for the convolution array. Using a larger dtype
+        (e.g., numpy.complex128) can increase processing time.
+        This value influences the dtype of the output array. In case of
+        numpy.complex64 the dtype of the output array is numpy.float32.
+        Higher complex dtypes produce higher float dtypes in the output.
+    freq_name : {string},optional
+        Name of Frequency dimension of the returned TimeSeries object
+        (only used if dat is a TimeSeries instance).
+    **kwargs : {**kwargs},optional
+        Additional key word arguments to be passed on to morlet_multi().
+    
+    Returns
+    -------
+    Array(s) of phase and/or power values as specified in to_return. The
+    returned array(s) has/have one more dimension than dat. The added
+    dimension is for the frequencies and is inserted at freq_axis.
+    """
+
+    dat_is_ts = False # is dat a TimeSeries instance?
+    if isinstance(dat,TimeSeries):
+        samplerates = dat.samplerate
+        time_axis = dat.get_axis(dat.tdim)
+        dat_is_ts = True
+    elif samplerates is None:
+        raise ValueError('Samplerate must be specified!')
+
+    # ensure proper dimensionality (needed for len call later):
+    freqs = np.atleast_1d(freqs)
+    
+    # check input values:
+    if to_return != 'both' and to_return != 'power' and to_return != 'phase':
+        raise ValueError("to_return must be \'power\', \'phase\', or \'both\' to "+
+                         "specify whether power, phase, or both are to be "+
+                         "returned. Invalid value: %s " % to_return)
+
+    if not np.issubdtype(conv_dtype,np.complex):
+        raise ValueError("conv_dtype must be a complex data type!\n"+
+                         "Invalid value: "+str(conv_dtype))
+
+    # generate list of wavelets:
+    wavelets = morlet_multi(freqs,widths,samplerates,**kwargs)
+        
+    # make sure we have at least as many data samples as wavelet samples
+    if (np.max([len(i) for i in wavelets]) >  dat.shape[time_axis]):
+        raise ValueError("The number of data samples is insufficient compared "+
+                         "to the number of wavelet samples. Try increasing "+
+                         "data samples by using a (longer) buffer.\n data "+
+                         "samples: "+str(dat.shape[time_axis])+"\nmax wavelet "+
+                         "samples: "+str(np.max([len(i) for i in wavelets])))
+    
+    # reshape the data to 2D with time on the 2nd dimension
+    origshape = dat.shape
+    eegdat = reshape_to_2d(dat, time_axis)
+
+    # for efficiency pre-generate empty array for convolution:
+    wav_coef = np.empty((eegdat.shape[time_axis-1]*len(freqs),
+                        eegdat.shape[time_axis]),dtype=conv_dtype)
+    
+    # populate this array with the convolutions:
+    i=0
+    for wav in wavelets:
+        for ev_dat in dat:
+            wav_coef[i]=np.convolve(wav,ev_dat,'same')
+            i+=1
+    
+    # Determine shape for ouput arrays with added frequency dimension:
+    newshape = list(origshape)
+    # freqs must be first for reshape_from_2d to work
+    newshape.insert(freq_axis,len(freqs))
+    newshape = tuple(newshape)
+    if dat_is_ts:
+        freq_dim = Dim(freqs,freq_name)
+        dims_with_freq = np.empty(len(dat.dims)+1,dat.dims.dtype)
+        dims_with_freq[:freq_axis] = dat.dims[:freq_axis]
+        dims_with_freq[freq_axis] = freq_dim
+        dims_with_freq[(freq_axis+1):] = dat.dims[freq_axis:]
+        
+    
+    if to_return == 'power' or to_return == 'both':
+        # calculate power (wav_coef values are complex, so taking the
+        # absolute value is necessary before taking the power):
+        power = np.abs(wav_coef)**2
+        # reshape to new shape:
+        power = reshape_from_2d(power,time_axis,newshape)
+        if dat_is_ts:
+            power = TimeSeries(power, tdim=dat.tdim, samplerate=dat.samplerate,
+                               dims=dims_with_freq)
+            
+    
+    if to_return == 'phase' or to_return == 'both':
+        # normalize the phase estimates to length one taking care of
+        # instances where they are zero:
+        norm_factor = np.abs(wav_coef)
+        ind = norm_factor == 0
+        norm_factor[ind] = 1.
+        wav_coef = wav_coef/norm_factor
+        # wav_coef contains complex numbers, so we need to set these
+        # to 0 when the absolute value 0.
+        wav_coef[ind] = 0
+        # calculate phase:
+        phase = np.angle(wav_coef)
+        # reshape to new shape
+        phase = reshape_from_2d(phase,time_axis,newshape)
+        if dat_is_ts:
+            phase = TimeSeries(phase, tdim=dat.tdim, samplerate=dat.samplerate,
+                               dims=dims_with_freq)
+
+    
+    if to_return == 'power':
+        return power
+    elif to_return == 'phase':
+        return phase
+    elif to_return == 'both':
+        return phase,power
+
+
+
+##################
+# Old wavelet code
+##################
+
+def phase_pow_multi_old(freqs, dat, samplerates, widths=5, to_return='both',
+                        time_axis=-1, freq_axis=0, conv_dtype=np.complex64, **kwargs):
     """
     Calculate phase and power with wavelets across multiple events.
 
@@ -260,9 +422,9 @@ def phase_pow_multi(freqs, dat, samplerates, widths=5, to_return='both',
 
 
 
-##################
-# Old wavelet code
-##################
+
+
+
 
 def morlet(freq,t,width):
     """Generate a Morlet wavelet for specified frequncy for times t.

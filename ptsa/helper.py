@@ -11,7 +11,7 @@
 import numpy as np
 import os.path
 
-def reshapeTo2D(data,axis):
+def reshape_to_2d(data,axis):
     """Reshape data to 2D with specified axis as the 2nd dimension."""
     # get the shape, rank, and the length of the chosen axis
     dshape = data.shape
@@ -32,7 +32,7 @@ def reshapeTo2D(data,axis):
 
     return newdata
 
-def reshapeFrom2D(data,axis,dshape):
+def reshape_from_2d(data,axis,dshape):
     """Reshape data from 2D back to specified dshape."""
 
     # set the rank of the array
@@ -120,7 +120,7 @@ def cart2pol(x,y,z=None,radians=True):
     else:
         return theta,radius
 
-def lockFile(filename,lockdirpath=None,lockdirname=None):
+def lock_file(filename,lockdirpath=None,lockdirname=None):
     if lockdirname is None:
         lockdirname=filename+'.lock'
     if not(lockdirpath is None):
@@ -134,7 +134,7 @@ def lockFile(filename,lockdirpath=None,lockdirname=None):
             return False
     return True
 
-def releaseFile(filename,lockdirpath=None,lockdirname=None):
+def release_file(filename,lockdirpath=None,lockdirname=None):
     if lockdirname is None:
         lockdirname=filename+'.lock'
     if not(lockdirpath is None):
@@ -145,7 +145,7 @@ def releaseFile(filename,lockdirpath=None,lockdirname=None):
         return False
     return True
       
-def nextPow2(n):
+def next_pow2(n):
     """
     Returns p such that 2 ** p >= n
     """
