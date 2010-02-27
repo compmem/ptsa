@@ -42,7 +42,7 @@ def reshape_from_2d(data,axis,dshape):
     if axis < 0: 
         axis = axis + rnk
 
-    # determine the dims from reshapeTo2D call
+    # determine the dims from reshape_to_2d call
     newdims = np.r_[0:axis,axis+1:rnk,axis]
 
     # determine the transposed shape and reshape it back
