@@ -140,6 +140,10 @@ class test_TimeSeries(TestCase):
             ts50_200['time']*1000,ts50['time'],decimal=6)
         np.testing.assert_array_almost_equal(ts50_200[:],ts50[:],decimal=6)
 
+    def test_remove_tdim(self):
+        ts200 = TimeSeries(self.dat200,'time',200,dims=self.dims200)
+        self.assert(isinstance(ts200.mean('time'),DimArray))
+
 # test RawBinaryEEG
 
 # load data from file
