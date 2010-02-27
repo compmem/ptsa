@@ -32,15 +32,13 @@ Methods for extracting sync pulses and aligning events.
 
 Artifact removal (blink detection, ...)
 
-Minor events indexing bug. (I don't remember if this is still there.)
-
 
 Basic workflow:
 
  - We have a bunch of subjects who performed some task.
  - Events for each subject, allow us to access the eeg data.
  - Calculate phase and power for eeg, saving to file (for now, we'll
- - save to dictionaries, eventually netCDF)
+ - save to dictionaries, eventually HDF5)
  - Run stats on power values.
  - Plot/display results.
 

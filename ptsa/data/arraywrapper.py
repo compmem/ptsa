@@ -42,7 +42,19 @@ class ArrayWrapper(BaseWrapper):
             ssamp = offset_samp+evOffset
             esamp = ssamp + dur_samp
 
-            eventdata[e,:] = self.data[channel,ssamp:esamp]
+            # set the indices
+            sind = 0
+            eind = dur_samp
+            
+            # check the ranges
+            if ssamp < 0:
+                sind -= ssamp
+                ssamp = 0
+            if esamp > self.data.shape[1]:
+                eind -= (esamp-self.data.shape[1])
+                esamp = self.data.shape[1]
+
+            eventdata[e,sind:eind] = self.data[channel,ssamp:esamp]
 
         return eventdata
     

@@ -25,9 +25,13 @@ class Events(np.recarray):
     # def __new__(subtype, shape, dtype=None, buf=None, offset=0, strides=None,
     #             formats=None, names=None, titles=None,
     #             byteorder=None, aligned=False):
-    def __new__(*args,**kwargs):
-        return np.recarray.__new__(*args,**kwargs)
     
+    # def __new__(*args,**kwargs):
+    #     return np.recarray.__new__(*args,**kwargs)
+
+    def __new__(subtype, data):
+        return data.view(subtype)
+        
     def remove_fields(self,*fields_to_remove):
         """
         Return a new instance of the recarray with specified fields

@@ -10,6 +10,9 @@
 import numpy as np
 import copy as copylib
 
+import h5py
+import os
+
 
 #################################
 # New array class with attributes
@@ -61,8 +64,19 @@ class AttrArray(np.ndarray):
     # {'name':str} or {'misc':object}
     _required_attrs = None
     
-    def __new__(cls, data, dtype=None, copy=False, **kwargs):
+    def __new__(cls, data, dtype=None, copy=False,
+                hdf5_group=None, **kwargs):
+        # see if linking to hdf5 file
+        if isinstance(data,str):
+            # we are gonna try and connect to a file
+            hdf5_file = data
+            data = np.array([])
+        else:
+            hdf5_file = None
+        #self.hdf5_group = hdf5_group
+            
         # get the data in the proper format, copied if desired
+        # PBS: Does this clobber the attrs?
         result = np.array(data, dtype=dtype, copy=copy)
 
         # transform the data to the new class
@@ -206,6 +220,27 @@ class AttrArray(np.ndarray):
         #self._required_attrs = req_attrs
         self._attrs = attrs
         self._set_all_attr()
+
+    def h5save(self, filename, group=None, mode='w', **kwargs):
+        """
+        Save the data and attributes out to an HDF5 file.
+        """
+        f = h5py.File(filename, mode)
+        grp = f
+        if not group is None:
+            # see if already exists
+            grp_name = ''
+            for name in os.path.split(group):
+                grp_name = '/'.join([grp_name,name])
+                if grp_name in f:
+                    grp = f[grp_name]
+                else:
+                    grp = grp.create_group(name)
+
+        # grp now has the group where we're going to put the new group
+        # for this AttrArray
+        
+        pass
 
     def nanvar(a, axis=None, ddof=0):
         """

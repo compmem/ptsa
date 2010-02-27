@@ -206,14 +206,18 @@ class DimArray(AttrArray):
     _skip_dim_check = False
     
     def __new__(cls, data, dims=None, dtype=None, copy=False, **kwargs):
-        # got to make sure data is array-type
-        data = np.asanyarray(data)
+        if isinstance(data,str):
+            data_shape = (0,)
+        else:
+            # got to make sure data is array-type
+            data = np.asanyarray(data)
+            data_shape = data.shape
         
         # see how to process dims
         if dims is None:
             # fill with default values
             dims = []
-            for i,dlen in enumerate(data.shape):
+            for i,dlen in enumerate(data_shape):
                 dims.append(Dim(np.arange(dlen), 'dim%d'%(i+1)))
 
         # Ensure that any array_like container of dims is turned into a
