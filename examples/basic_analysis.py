@@ -10,7 +10,7 @@ nchan = 2
 samplerate = 200
 nsamples = samplerate*100
 event_dur = samplerate*1
-buf_dur = 2.0
+buf_dur = 1.0
 
 # generate fake data
 dat = np.random.rand(nchan, nsamples)
