@@ -825,6 +825,15 @@ class DimArray(AttrArray):
                              " a label for each bin. Provided bins: "+str(bins))
 
     
+    def extend(self, data, axis):
+        """
+        Extend a DimArray along a specified axis with another
+        DimArray.  The non-extended axis dimensions must all match
+        exactly.
+        """
+        raise NotImplementedError("Coming soon!")
+        
+
     def get_axis(self,axis):
         """
         Get the axis number for a dimension name.
