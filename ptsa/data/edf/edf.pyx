@@ -37,6 +37,24 @@ cdef extern from "edfwrap.h":
                                int n, 
                                double *buf)
 
+def read_samplerate(char *filepath, int edfsignal):
+    # get a header
+    cdef edf_hdr_struct hdr
+
+    # open the file
+    if open_file_readonly(filepath, &hdr) < 0:
+        print "Error opening file."
+        return None
+
+    # get the samplerate
+    cdef float samplerate = get_samplerate(&hdr,
+                                           edfsignal)
+
+    # close the file
+    edfclose_file(hdr.handle)
+
+    return samplerate
+
 def read_samples(char *filepath, int edfsignal, long offset, int n):
 
     # allocate space
@@ -61,14 +79,9 @@ def read_samples(char *filepath, int edfsignal, long offset, int n):
         # we had an error, so return none
         nread = 0
 
-    # get the samplerate
-    cdef float samplerate = get_samplerate(&hdr,
-                                           edfsignal)
-
     # close the file
     edfclose_file(hdr.handle)
     
     # return the buffer, truncated to the number of samples
-    # eventually return a TimeSeries
-    return {'samplerate':samplerate, 'data':buf[0:nread]}
+    return buf[0:nread]
 
