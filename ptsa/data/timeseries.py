@@ -21,11 +21,10 @@ class TimeSeries(DimArray):
     """
     TimeSeries(data, tdim, samplerate, *args, **kwargs)
 
-    Class to hold continuous timeseries data.  In addition to having
-    all the basic DimArray properties, it keeps track of the time
-    dimension and its sample rate.  It also provides methods for
-    manipulating the time dimension, such as resampling and filtering
-    the data.
+    A subclass of DimArray to hold timeseries data (i.e. data with a
+    time dimension and associated sample rate).  It also provides
+    methods for manipulating the time dimension, such as resampling
+    and filtering the data.
     
     Parameters
     ----------
@@ -46,6 +45,28 @@ class TimeSeries(DimArray):
     Useful additional (keyword) attributes include dims, dtype, and
     copy (see DimArray docstring for details).
 
+    See also
+    --------
+    DimArray
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> import dimarray as da
+    >>> import ptsa.data.timeseries as ts
+    >>> observations = da.Dim(['a','b','c'],'obs')
+    >>> time = da.Dim(np.arange(4),'time')
+    >>> data = ts.TimeSeries(np.random.rand(3,4),'time',samplerate=1,
+                             dims=[observations,time])
+    >>> data
+    TimeSeries([[ 0.51244513,  0.39930142,  0.63501339,  0.67071605],
+       [ 0.46962664,  0.51071395,  0.46748319,  0.78265951],
+       [ 0.85515317,  0.10996395,  0.41642481,  0.50561768]])
+
+    >>> data.samplerate
+    1.0
+    >>> data.tdim
+    'time'
     """
 
     _required_attrs = {'dims':np.ndarray,
@@ -62,8 +83,9 @@ class TimeSeries(DimArray):
         # ensure that tdim is a valid dimension name:
         if not(tdim in ts.dim_names):
             raise ValueError(
-                'Tdim must be a valid dimension name! Provided value: '+
-                str(tdim))
+                'Provided time dimension name (tdim) is invalid!\n'+
+                'Provided value: '+ str(tdim)+'\nAvailable dimensions: '+
+                ts.dim_names)
         ts.tdim = tdim
         # ensure that sample rate is a float:
         samplerate = float(samplerate)
@@ -82,8 +104,9 @@ class TimeSeries(DimArray):
         if name == 'tdim':
             if not(value in self.dim_names):
                 raise ValueError(
-                    'Tdim must be a valid dimension name! Provided value: '+
-                    str(value))
+                    'Provided time dimension name (tdim) is invalid!\n'+
+                    'Provided value: '+ str(value)+'\nAvailable dimensions: '+
+                    self.dim_names)
         # ensure that sample rate is a postive float:
         elif name == 'samplerate':
             value = float(value)
@@ -107,10 +130,10 @@ class TimeSeries(DimArray):
             if self.get_axis(axis) == self.taxis:
                 return_as_dimarray = True
             # pop the dim
-            #ret.dims.pop(axis)
             ret.dims = ret.dims[np.arange(len(ret.dims))!=axis]
-            # we removed the
         if return_as_dimarray:
+            # The function removed the time dimension, so we return a
+            # DimArray instead of a TimeSeries
             return ret.view(DimArray)
         else:
             return ret.view(self.__class__)
