@@ -10,7 +10,7 @@ nchan = 2
 samplerate = 200
 nsamples = samplerate*100
 event_dur = samplerate*1
-buf_dur = 2.0
+buf_dur = 1.0
 
 # generate fake data
 dat = np.random.rand(nchan, nsamples)
@@ -42,15 +42,19 @@ ndat = events[events.recalled==False].get_data(0, # channel
                                                keep_buffer=True
                                                )
 
-
 # calc wavelet power
 freqs = np.arange(2,50,2)
 rpow = phase_pow_multi(freqs,rdat,to_return='power')
 npow = phase_pow_multi(freqs,ndat,to_return='power')
 
 # remove the buffer now that we have filtered and calculated power
-for ts in [rdat,ndat,rpow,npow]:
-    ts = ts.remove_buffer(buf_dur)
+#for ts in [rdat,ndat,rpow,npow]:
+#    ts = ts.remove_buffer(buf_dur)
+# why does the above not work?
+rdat = rdat.remove_buffer(buf_dur)
+ndat = ndat.remove_buffer(buf_dur)
+rpow = rpow.remove_buffer(buf_dur)
+npow = npow.remove_buffer(buf_dur)
     
 # plot ERP
 pl.figure(1)
@@ -61,9 +65,13 @@ pl.legend(('Recalled','Not Recalled'),loc=0)
 pl.xlabel('Time (s)')
 pl.ylabel('Voltage')
 
-# plot power spectrogram
+# plot power spectrum
 pl.figure(2)
 pl.clf()
-
+pl.plot(rpow['freqs'],rpow.nanmean('events').nanmean('time'),'r')
+pl.plot(npow['freqs'],npow.nanmean('events').nanmean('time'),'b')
+pl.legend(('Recalled','Not Recalled'),loc=0)
+pl.xlabel('Frequency (Hz)')
+pl.ylabel('Power')
 
 pl.show()

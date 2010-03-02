@@ -9,56 +9,47 @@
 
 # local imports
 from basewrapper import BaseWrapper
-
+from edf import read_samples, read_samplerate
 # global imports
 import numpy as np
 
-class ArrayWrapper(BaseWrapper):
+class EdfWrapper(BaseWrapper):
     """
-    Interface to data stored in a numpy ndarray where the first
-    dimension is the channel and the second dimension is samples.
+    Interface to data stored in a EDF/BDF file.
     """
-    def __init__(self,data,samplerate):
+    def __init__(self, filename):
         """Initialize the interface to the data.  You must specify the
         data and the samplerate."""
         # set up the basic params of the data
-        self.data = data
-        self._samplerate = samplerate
+        self.filename = filename
 
     def get_samplerate(self, channel):
         # Same samplerate for all channels:
-        return self._samplerate
+        return read_samplerate(self.filename, channel)
 
     def _load_data(self,channel,event_offsets,dur_samp,offset_samp):
         """        
         """
         # allocate for data
 	eventdata = np.empty((len(event_offsets),dur_samp),
-                             dtype=self.data.dtype)*np.nan
+                             dtype=np.float64)*np.nan
 
 	# loop over events
+        # PBS: eventually move this to the cython file
 	for e,evOffset in enumerate(event_offsets):
             # set the range
             ssamp = offset_samp+evOffset
-            esamp = ssamp + dur_samp
 
-            # # set the indices
-            # sind = 0
-            # eind = dur_samp
-
-            # if ssamp < 0
-            #     sind -= ssamp
-            #     ssamp = 0
-            # if esamp > self.data.shape[1]:
-            #     eind -= (esamp-self.data.shape[1])
-            #     esamp = self.data.shape[1]
-            # eventdata[e,sind:eind] = self.data[channel,ssamp:esamp]
+            # read the data
+            dat = read_samples(self.filename,
+                               channel,
+                               ssamp, dur_samp)
             
             # check the ranges
-            if ssamp < 0 or esamp > self.data.shape[1]:
+            if len(dat) < dur_samp:
                 raise IOError('Event with offset '+str(evOffset)+
                               ' is outside the bounds of the data.')
-            eventdata[e,:] = self.data[channel,ssamp:esamp]
+            eventdata[e,:] = dat
 
 
         return eventdata

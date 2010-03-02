@@ -19,7 +19,7 @@ class BaseWrapper(object):
     Base class to provide interface to data.  
     """
     # required methods that the child class must define.
-    def get_samplerate(channel):
+    def get_samplerate(self,channel):
         """
         Returns sample rate for a given channel.
 

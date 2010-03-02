@@ -230,7 +230,7 @@ class TimeSeries(DimArray):
         time_range = self[self.tdim]
         new_length = int(np.round(len(time_range)*resampled_rate/self.samplerate))
         newdat,new_time_range = resample(self, new_length, t=time_range,
-                                     axis=self.taxis, window=window)
+                                         axis=self.taxis, window=window)
 
         # set the time dimension
         newdims = self.dims.copy()

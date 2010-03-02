@@ -384,7 +384,13 @@ class test_DimArray(TestCase):
         self.assertEquals(dat[np.ix_([0],[0,1],[0,1])].shape,(1,2,2))
 
         # test string index returning nothing
-        
+
+        # test list index
+        dim1=Dim(['dim'],'dim1')
+        dim2=Dim([1,2],'dim2')
+        dim3=Dim([3,4,5],'dim3')
+        dat=DimArray([[[6,7,8],[9,10,11]]],[dim1,dim2,dim3])
+        assert_array_equal(dat[[0]],dat[np.array([0])])
 
     def test_select(self):
         # check indexing with a tuple of arrays and with 1-level dimensions:
@@ -804,3 +810,21 @@ class test_DimArray(TestCase):
         self.assertTrue(isinstance(dat.swapaxes('two','four'),DimArray))
         self.assertEquals(dat.swapaxes('two','four').test,'tst')
        
+    def test_ufuncs(self):
+        """Test the numpy u-functions"""
+        # make ndarray an Dimaray with identical data
+        arr = np.random.rand(5)
+        dat = DimArray(arr,dims=[Dim(range(5),name='one')],
+                       test='tst')
+
+        x = np.ones(10) * dat[[0]]
+        self.assertTrue(isinstance(x,np.ndarray))
+
+        x = np.ones(1) * dat[[0]]
+        self.assertTrue(isinstance(x,DimArray))
+
+        x = 22 * dat
+        self.assertTrue(isinstance(x,DimArray))
+        assert_array_equal(x,arr*22)
+        
+        

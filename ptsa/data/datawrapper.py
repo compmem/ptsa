@@ -26,7 +26,7 @@ class DataWrapper(object):
         Parameters
         ----------
         channel: Channel to load data from
-        eventOffsets: Array of even offsets (in samples) into the data, specifying each event time
+        eventOffsets: Array of event offsets (in samples) into the data, specifying each event time
         Duration: Duration in ms of the data to return.
         Offset: Amount in ms to offset that data around the event.
         Buffer: Extra buffer to add when doing filtering to avoid edge effects.

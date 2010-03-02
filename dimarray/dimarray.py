@@ -235,6 +235,15 @@ class DimArray(AttrArray):
         return dimarray.view(cls)
 
     def __array_finalize__(self,obj):
+        # Check if obj is None (implies it's unpickling)
+        # We must find out if there are other instances of it being None
+        if obj is None:
+            return
+        # catch case where we multiply ndarray by a scaler
+        # and the dimensions do not match
+        if obj.shape == (1,) and self.shape != (1,):
+            self = self.view(np.ndarray)
+            return
         # call the AttrArray finalize
         AttrArray.__array_finalize__(self,obj)
         # ensure _skip_dim_check flag is off
@@ -242,10 +251,8 @@ class DimArray(AttrArray):
         # if this method is called with _skip_dim_check == True, don't
         # check dims (they need to be adjusted by whatever method
         # called __array_finalize__ with this flag set):
-        # PBS: also don't check if obj is None (implies it's unpickling)
-        # We must find out if there are other instances of it being None
-        if (isinstance(obj,DimArray) and obj._skip_dim_check) or \
-           obj is None: return
+        if (isinstance(obj,DimArray) and obj._skip_dim_check):
+            return
         # ensure that the dims attribute is valid:
         self._chk_dims()
 
@@ -459,6 +466,7 @@ class DimArray(AttrArray):
                     #        ret = ret.view(AttrArray)
                     if not isinstance(ind, slice):
                         # squeeze it to maintain dimensionality
+                        ind = np.asanyarray(ind)
                         tosqueeze = [0]*len(ind.shape)
                         tosqueeze[i] = slice(None)
                         ind = ind[tuple(tosqueeze)]
@@ -817,6 +825,15 @@ class DimArray(AttrArray):
                              " a label for each bin. Provided bins: "+str(bins))
 
     
+    def extend(self, data, axis):
+        """
+        Extend a DimArray along a specified axis with another
+        DimArray.  The non-extended axis dimensions must all match
+        exactly.
+        """
+        raise NotImplementedError("Coming soon!")
+        
+
     def get_axis(self,axis):
         """
         Get the axis number for a dimension name.
