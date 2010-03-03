@@ -25,7 +25,9 @@ Documentation
 =============
 
 * :ref:`Main data structures in ptsa <dimarray>`: The documentation for AttrArray, Dim, and DimArray -- powerful data structures based on NumPy ndarrays.
-.. * `Time Series Anaysis`: to come...
+
+* :ref:`TimeSeries data structure <timeseries>`: The documentation of TimeSeries, a subclass of DimArray for storing and analyzing data with a time dimension.
+
 .. * `Installation Instructions`: to come...
 * :ref:`Developer Guidelines <devguide>` (information for people contributing
   code)

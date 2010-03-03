@@ -871,7 +871,6 @@ class DimArray(AttrArray):
             return ret.view(AttrArray)
         else:
             # pop the dim
-            #ret.dims.pop(axis)
             ret.dims = ret.dims[np.arange(len(ret.dims))!=axis]
             return ret.view(self.__class__)
     
