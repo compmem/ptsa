@@ -85,7 +85,7 @@ class TimeSeries(DimArray):
             raise ValueError(
                 'Provided time dimension name (tdim) is invalid!\n'+
                 'Provided value: '+ str(tdim)+'\nAvailable dimensions: '+
-                ts.dim_names)
+                str(ts.dim_names))
         ts.tdim = tdim
         # ensure that sample rate is a float:
         samplerate = float(samplerate)
@@ -106,7 +106,7 @@ class TimeSeries(DimArray):
                 raise ValueError(
                     'Provided time dimension name (tdim) is invalid!\n'+
                     'Provided value: '+ str(value)+'\nAvailable dimensions: '+
-                    self.dim_names)
+                    str(self.dim_names))
         # ensure that sample rate is a postive float:
         elif name == 'samplerate':
             value = float(value)

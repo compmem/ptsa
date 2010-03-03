@@ -6,6 +6,7 @@
   #   copyright and license terms.
   #
   ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
+
 **ptsa** (pronounced pizza) is a Python_ module for performing time series
 analysis. Although it is specifically designed with neural data in
 mind (EEG, MEG, fMRI, etc. ...), the code should be applicable to almost
@@ -24,13 +25,18 @@ any type of time series.
 Documentation
 =============
 
-* :ref:`Main data structures in ptsa <dimarray>`: The documentation for AttrArray, Dim, and DimArray -- powerful data structures based on NumPy ndarrays.
+* :ref:`Main data structures in ptsa <dimarray>`: The documentation
+  for AttrArray, Dim, and DimArray -- powerful data structures based
+  on NumPy ndarrays.
 
-* :ref:`TimeSeries data structure <timeseries>`: The documentation of TimeSeries, a subclass of DimArray for storing and analyzing data with a time dimension.
+* :ref:`Analysis of time series data <timeseries>`: The documentation
+  of TimeSeries, a subclass of DimArray for storing and analyzing data
+  with a time dimension.
 
 .. * `Installation Instructions`: to come...
-* :ref:`Developer Guidelines <devguide>` (information for people contributing
-  code)
+* :ref:`Developer Guidelines <devguide>` (information for people
+  contributing code)
+
 .. * `API Reference`_ (comprehensive and up-to-date information about the details
 ..   of the implementation)
 * :ref:`genindex` (access by keywords)

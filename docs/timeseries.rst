@@ -11,16 +11,17 @@
 
 .. index:: AttrArray, Attribute Array, Dim, Dimension, DimArray, Dimensioned Array, TimeSeries, time series
 
-****************************************
-Storage and analyzes of time series data
-****************************************
+****************************
+Analysis of time series data
+****************************
 
 .. index:: TimeSeries
 
-.. _TimeSeries:
 
-Data structure for time series  (TimeSeries)
-=========================== 
+Data structure for time series (TimeSeries)
+===========================================
 
 .. autoclass:: ptsa.data.TimeSeries
    :members:
+
+
