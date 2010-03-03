@@ -204,7 +204,8 @@ class DimArray(AttrArray):
                      + '\\b(?!.)'))
     T = property(lambda self: self.transpose())
     _skip_dim_check = False
-    
+    _valid_dimname = re.compile('[a-zA-Z_]\w*')
+
     def __new__(cls, data, dims=None, dtype=None, copy=False, **kwargs):
         if isinstance(data,str):
             data_shape = (0,)
@@ -295,8 +296,7 @@ class DimArray(AttrArray):
                                  " in lenght!\nnames: "+str(self.dim_names))
 
         # Ensure unique dimension names are valid identifiers
-        valid_dimname = re.compile('[a-zA-Z_]\w*')
-        if np.any([len(valid_dimname.findall(s)[0])!=len(s)
+        if np.any([len(self._valid_dimname.findall(s)[0])!=len(s)
                    for s in self.dim_names]):
             raise AttributeError("Dimension names can only contain "+
                                  "alphanumeric characters and underscores, "+
@@ -362,6 +362,7 @@ class DimArray(AttrArray):
             if key in self.dim_names:
                 # get the proper dimension to cull
                 d = self.dim_names.index(key)
+                # treat as boolean index
                 ind[d] = ind[d] & value
 
         # create the final master index from the list of filtered indices
