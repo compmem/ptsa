@@ -10,17 +10,8 @@ cdef extern from "edflib.h":
     struct edf_hdr_struct:
         int       handle
         long annotations_in_file
-    #       int       filetype
-    #       int       edfsignals
-    #       long      file_duration  # was long long
-    #       int       startdate_day
-    #       int       startdate_month
-    #       int       startdate_year
-    #       long      starttime_subsecond # was long long
-    #       int       starttime_second
-    #       int       starttime_minute
-    #       int       starttime_hour
 
+    # Dummy enums for variables defined by macros in the header
     enum:
         EDFLIB_TIME_DIMENSION
         EDFLIB_DO_NOT_READ_ANNOTATIONS
@@ -37,9 +28,6 @@ cdef extern from "edflib.h":
     
     int edfclose_file(int handle)
 
-    # int edfopen_file_readonly(char *path,
-    #                           struct edf_hdr_struct *edfhdr,
-    #                           int read_annotations)
 
 cdef extern from "edfwrap.h":
     int open_file_readonly(char *filepath,
@@ -54,6 +42,23 @@ cdef extern from "edfwrap.h":
                                double *buf)
 
 def read_annotations(char *filepath):
+    """
+    read_annotations(filepath)
+
+    Read in all the annotations from an EDF/BDF file into a record
+    array. Note that the onset times converted to seconds.
+
+    Parameters
+    ----------
+    filepath : {str}
+        The path and name of the EDF/BDF file.
+
+    Returns
+    -------
+    annotations : {np.recarray}
+        A record array with onsets, duration, and annotations.
+    
+    """
     # get a header
     cdef edf_hdr_struct hdr
 
@@ -90,6 +95,25 @@ def read_annotations(char *filepath):
                              names='onsets,durations,annotations')
         
 def read_samplerate(char *filepath, int edfsignal):
+    """
+    read_samplerate(filepath, edfsignal)
+
+    Read the samplerate for a signal in an EDF/BDF file.  Note that
+    different signals can have different samplerates.
+
+    Parameters
+    ----------
+    filepath : {str}
+        The path and name of the EDF/BDF file.
+    edfsignal : {int}
+        The signal whose samplerate to retrieve.
+        
+    Returns
+    -------
+    samplerate : {float}
+        The samplerate for that signal.
+
+    """
     # get a header
     cdef edf_hdr_struct hdr
 
@@ -108,7 +132,28 @@ def read_samplerate(char *filepath, int edfsignal):
     return samplerate
 
 def read_samples(char *filepath, int edfsignal, long offset, int n):
+    """
+    read_samples(filepath, edfsignal, offset, n)
 
+    Read in samples from a signal in an EDF/BDF file.
+
+    Parameters
+    ----------
+    filepath : {str}
+        The path and name of the EDF/BDF file.
+    edfsignal : {int}
+        The signal whose samplerate to retrieve.
+    offset : {long}
+        Offset in samples into the file where to start reading.
+    n : {int}
+        Number of samples to read, starting at offset.
+        
+    Returns
+    -------
+    samples : {np.ndarray}
+        An ndarray of samples read from the file.
+
+    """
     # allocate space
     cdef np.ndarray[dtype_f64_t, ndim=1] buf = np.empty((n),dtype=dtype_f64)
 
