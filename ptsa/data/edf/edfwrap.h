@@ -5,7 +5,8 @@
 #include "edflib.h"
 
 int open_file_readonly(const char *filepath,
-		       struct edf_hdr_struct *hdr);
+		       struct edf_hdr_struct *hdr,
+		       int read_annot);
 
 double get_samplerate(struct edf_hdr_struct *hdr,
 		      int edfsignal);
