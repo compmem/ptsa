@@ -7,9 +7,10 @@
 #include "edfwrap.h"
 
 int open_file_readonly(const char *filepath,
-		       struct edf_hdr_struct *hdr)
+		       struct edf_hdr_struct *hdr,
+		       int read_annot)
 {
-  if(edfopen_file_readonly(filepath, hdr, EDFLIB_DO_NOT_READ_ANNOTATIONS))
+  if(edfopen_file_readonly(filepath, hdr, read_annot))
   {
     switch(hdr->filetype)
     {
