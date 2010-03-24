@@ -71,8 +71,8 @@ def read_annotations(char *filepath):
     cdef edf_annotation_struct annot
 
     # this could be improved
-    cdef np.ndarray[dtype_f64_t, ndim=1] onsets = np.empty(hdr.annotations_in_file,
-                                                           dtype=dtype_f64)
+    cdef np.ndarray[dtype_f64_t, ndim=1] onsets = np.empty(
+        hdr.annotations_in_file,dtype=dtype_f64)
     durations = []
     annotations = []
     
@@ -91,8 +91,9 @@ def read_annotations(char *filepath):
     edfclose_file(hdr.handle)
 
     # return record array of annotations
-    return np.rec.fromarrays([onsets/EDFLIB_TIME_DIMENSION,durations,annotations],
-                             names='onsets,durations,annotations')
+    return np.rec.fromarrays(
+        [onsets/EDFLIB_TIME_DIMENSION,durations,annotations],
+        names='onsets,durations,annotations')
         
 def read_samplerate(char *filepath, int edfsignal):
     """
