@@ -12,20 +12,34 @@ from basewrapper import BaseWrapper
 from edf import read_samples, read_samplerate
 # global imports
 import numpy as np
+import os.path
 
 class EdfWrapper(BaseWrapper):
     """
-    Interface to data stored in a EDF/BDF file.
+    Interface to data stored in a EDF file and related formats (such
+    as BDF).
     """
-    def __init__(self, filename):
-        """Initialize the interface to the data.  You must specify the
-        data and the samplerate."""
+    def __init__(self, filepath):
+        """
+        Initialize the interface to the data.
+
+        Parameters
+        ----------
+        filepath : string
+            String specifiying the filename (with full path if
+            applicable).
+        """
         # set up the basic params of the data
-        self.filename = filename
+
+        if os.path.exists(filepath):
+            self.filepath = filepath
+        else:
+            raise IOError(str(filepath)+'\n does not exist!'+
+                          'Valid path to data file is needed!')
 
     def get_samplerate(self, channel):
         # Same samplerate for all channels:
-        return read_samplerate(self.filename, channel)
+        return read_samplerate(self.filepath, channel)
 
     def _load_data(self,channel,event_offsets,dur_samp,offset_samp):
         """        
@@ -41,7 +55,7 @@ class EdfWrapper(BaseWrapper):
             ssamp = offset_samp+evOffset
 
             # read the data
-            dat = read_samples(self.filename,
+            dat = read_samples(self.filepath,
                                channel,
                                ssamp, dur_samp)
             
