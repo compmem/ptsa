@@ -21,29 +21,26 @@ for chan_num in [0,1]:
     buf_dur = 1.0
     
     
-    # generate fake event
-    eoffset = np.arange(20)# np.array([0.])
+    # generate fake events (one every .25 second)
+    eoffset = np.arange(20)*samplerate/4
     esrc = [edfw]*len(eoffset)
     events = Events(np.rec.fromarrays([esrc,eoffset],
                                       names='esrc,eoffset'))
     
-    # load in data with events (filter at the same time)
+    # load in data with events (resample at the same time)
+    # check out the ringing induced in the saw-tooth with the resample!
     dat = events.get_data(chan_num, # channel
                           1.0, # duration in sec
                           0.0, # offset in sec
                           buf_dur, # buffer in sec
-                          # filt_freq = 20.,
-                          filt_type = 'low',
-                          keep_buffer=True
+                          keep_buffer=True,
+                          resampled_rate=500
                           )
     # calc wavelet power
     freqs = np.arange(2,50,2)
     datpow = phase_pow_multi(freqs,dat,to_return='power')
     
     # remove the buffer now that we have filtered and calculated power
-    # for ts in [rdat,ndat,rpow,npow]:
-    #     ts = ts.remove_buffer(buf_dur)
-    # why does the above not work?
     dat = dat.remove_buffer(buf_dur)
     datpow = datpow.remove_buffer(buf_dur)
     
