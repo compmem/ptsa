@@ -9,10 +9,14 @@
 
 import numpy as np
 import copy as copylib
-
-import h5py
 import os
 
+try:
+    import h5py
+    HAS_H5PY = True
+except ImportError:
+    HAS_H5PY = False
+    
 
 #################################
 # New array class with attributes
@@ -225,6 +229,9 @@ class AttrArray(np.ndarray):
         """
         Save the data and attributes out to an HDF5 file.
         """
+        if not HAS_H5PY:
+            raise RuntimeError("You must have h5py installed to save to hdf5.")
+        
         f = h5py.File(filename, mode)
         grp = f
         if not group is None:
