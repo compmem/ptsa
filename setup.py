@@ -27,7 +27,7 @@ setup(name='ptsa',
       maintainer_email=['psederberg@gmail.com'],
       url=['http://ptsa.sourceforge.net'],
       packages=['ptsa','ptsa.tests','ptsa.data','ptsa.data.tests',
-                'ptsa.plotting','ptsa.plotting.tests',
+                'ptsa.data.emd','ptsa.plotting','ptsa.plotting.tests',
                 'dimarray','dimarray.tests'],
       ext_modules = ext_modules
       )
