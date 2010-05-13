@@ -9,7 +9,7 @@
 
 # local imports
 from basewrapper import BaseWrapper
-from edf import read_samples, read_samplerate
+from edf import read_samples, read_samplerate, read_annotations
 # global imports
 import numpy as np
 import os.path
@@ -40,6 +40,9 @@ class EdfWrapper(BaseWrapper):
     def get_samplerate(self, channel):
         # Same samplerate for all channels:
         return read_samplerate(self.filepath, channel)
+
+    def get_annotations(self):
+        return read_annotations(self.filepath)
 
     def _load_data(self,channel,event_offsets,dur_samp,offset_samp):
         """        

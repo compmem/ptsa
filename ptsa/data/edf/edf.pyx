@@ -20,7 +20,7 @@ cdef extern from "edflib.h":
         EDFLIB_MAX_ANNOTATION_LEN
 
     struct edf_annotation_struct:
-        long onset
+        long long onset
         char *duration
         char *annotation
 
@@ -83,7 +83,7 @@ def read_annotations(char *filepath):
             return None
 
         # append the annotations
-        onsets[i] = annot.onset
+        onsets[i] = annot.onset #/EDFLIB_TIME_DIMENSION
         durations.append(annot.duration)
         annotations.append(annot.annotation)
 
@@ -93,6 +93,7 @@ def read_annotations(char *filepath):
     # return record array of annotations
     return np.rec.fromarrays(
         [onsets/EDFLIB_TIME_DIMENSION,durations,annotations],
+        #[onsets,durations,annotations],
         names='onsets,durations,annotations')
         
 def read_samplerate(char *filepath, int edfsignal):
