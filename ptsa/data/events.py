@@ -70,7 +70,7 @@ class Events(np.recarray):
 
         Parameters
         ----------
-        **fields_to_remove : {dictionary}
+        **fields_to_add : {dictionary}
             Names in the dictionary correspond to new field names and
             the values specify their content. To add an empty field,
             pass a dtype as the value.
