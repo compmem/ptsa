@@ -1,4 +1,4 @@
-from pylab import load, rand, figure, xlim, ylim, show
+from pylab import loadtxt, rand, figure, xlim, ylim, show
 from ptsa.plotting.topoplot import topoplot
 
 def getElecs():
@@ -7,7 +7,7 @@ def getElecs():
     # locs=locs_orig(4:end); %ignore orig locations 1-3, these are frontal ones we dont have
     # tmp = [locs.theta; locs.radius];
     # save testLocs.dat tmp -ascii
-    locs=load("testLocs.dat")
+    locs=loadtxt("testLocs.dat")
     theta=-locs[0]+90
     
     #theta=deg2rad(theta)
@@ -17,7 +17,7 @@ def getElecs():
 
 def getPowerVals():
     # read in toPlotDiff
-    toPlot = load("toPlotDiff.dat")
+    toPlot = loadtxt("toPlotDiff.dat")
     return toPlot
 
 els = getElecs()

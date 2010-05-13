@@ -9,7 +9,7 @@ ctypedef np.float64_t dtype_f64_t
 cdef extern from "edflib.h":
     struct edf_hdr_struct:
         int       handle
-        long annotations_in_file
+        long long annotations_in_file
 
     # Dummy enums for variables defined by macros in the header
     enum:
@@ -37,7 +37,7 @@ cdef extern from "edfwrap.h":
                          int edfsignal)
     int read_samples_from_file(edf_hdr_struct *hdr,
                                int edfsignal, 
-                               long offset,
+                               long long offset,
                                int n, 
                                double *buf)
 
