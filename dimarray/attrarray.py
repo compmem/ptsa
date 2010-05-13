@@ -82,6 +82,8 @@ class AttrArray(np.ndarray):
         # get the data in the proper format, copied if desired
         # PBS: Does this clobber the attrs?
         result = np.array(data, dtype=dtype, copy=copy)
+        # PBS: do we want this?
+        #result = np.array(data, dtype=dtype, copy=copy, subok=True)
 
         # transform the data to the new class
         result = result.view(cls)

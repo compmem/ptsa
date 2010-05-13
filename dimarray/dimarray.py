@@ -342,8 +342,14 @@ class DimArray(AttrArray):
                     # apply it to the proper dimension index
                     ind[d] = ind[d] & newind
 
-                    # see if we should remove the dim
-                    if re.search('==',filterStr):
+                    # see if we should remove the dim to emulate
+                    # picking a specific index (e.g., x[10] same as
+                    # x[time==4])
+                    # we normally require each value in a dim is unique,
+                    # but a dim could be a list of events that you probe,
+                    # which could have multiple values after an equality test,
+                    # so we only remove a dimension if there is only one index left
+                    if re.search('==',filterStr) and newind.sum()==1:
                         # we are using equality, so remove dim
                         remove_dim[d] = True
 
