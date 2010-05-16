@@ -30,51 +30,51 @@ topoplot()
 
 fig+=1
 figure(fig)
-topoplot(elecs=els)
+topoplot(sensors=els)
 #show()
 
 fig+=1
 figure(fig)
-topoplot(elecs=els,plotHead=False)
+topoplot(sensors=els,colors=[None,'black','black'])
 #show()
 
 fig+=1
 figure(fig)
-topoplot(elecs=els,valsToPlot=toPlot,elecsCol=None)
+topoplot(values=toPlot,sensors=els,colors=['black',None,'black'])
 
 fig+=1
 figure(fig)
-topoplot(elecs=els,valsToPlot=toPlot,contWidth=0)
+topoplot(sensors=els,values=toPlot,colors=['black','black',None])
 
 fig+=1
 figure(fig)
-topoplot(elecs=els,valsToPlot=toPlot,elecsCol=None,plotHead=False)
+topoplot(sensors=els,values=toPlot,colors=[None,None,'black'])
 
 
 fig+=1
 figure(fig)
-topoplot(headCenter=(0,0),elecs=els,valsToPlot=toPlot,plotMask='linear')
-topoplot(headCenter=(2,0),elecs=els,valsToPlot=toPlot,plotMask='circular')
-topoplot(headCenter=(4,0),elecs=els,valsToPlot=toPlot,plotMask='square')
+topoplot(center=(0,0),sensors=els,values=toPlot,plot_mask='linear')
+topoplot(center=(2,0),sensors=els,values=toPlot,plot_mask='circular')
+topoplot(center=(4,0),sensors=els,values=toPlot,plot_mask='square')
 xlim(-1,5)
 
 grid=100
 fig+=1
 figure(fig)
-topoplot(headCenter=(0,0),headRad=0.2,elecs=els,valsToPlot=toPlot,gridRes=grid)
-topoplot(headCenter=(1.5,0),headRad=0.5,elecs=els,valsToPlot=toPlot,gridRes=grid)
-topoplot(headCenter=(4,0),headRad=1,elecs=els,valsToPlot=toPlot,gridRes=grid)
-topoplot(headCenter=(8.5,0),headRad=2,elecs=els,valsToPlot=toPlot,gridRes=grid)
+topoplot(center=(0,0),radius=0.2,sensors=els,values=toPlot,resolution=grid)
+topoplot(center=(1.5,0),radius=0.5,sensors=els,values=toPlot,resolution=grid)
+topoplot(center=(4,0),radius=1,sensors=els,values=toPlot,resolution=grid)
+topoplot(center=(8.5,0),radius=2,sensors=els,values=toPlot,resolution=grid)
 xlim(-0.5,12)
 #axis('on')
 #show()
 
 fig+=1
 figure(fig)
-topoplot(headCenter=(0,0),noseDir=-45,elecs=els,valsToPlot=toPlot,elecsCol=None,gridRes=grid)
-topoplot(headCenter=(0,2),noseDir=-135,elecs=els,valsToPlot=toPlot,elecsCol=None,gridRes=grid)
-topoplot(headCenter=(2,0),noseDir=135,elecs=els,valsToPlot=toPlot,elecsCol=None,gridRes=grid)
-topoplot(headCenter=(2,2),noseDir=45,elecs=els,valsToPlot=toPlot,elecsCol=None,gridRes=grid)
+topoplot(center=(0,0),nose_dir=-45,sensors=els,values=toPlot,colors=['black',None,'black'],resolution=grid)
+topoplot(center=(0,2),nose_dir=-135,sensors=els,values=toPlot,colors=['black',None,'black'],resolution=grid)
+topoplot(center=(2,0),nose_dir=135,sensors=els,values=toPlot,colors=['black',None,'black'],resolution=grid)
+topoplot(center=(2,2),nose_dir=45,sensors=els,values=toPlot,colors=['black',None,'black'],resolution=grid)
 xlim(-1,3)
 ylim(-1,3)
 #show()
