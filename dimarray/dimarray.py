@@ -841,6 +841,19 @@ class DimArray(AttrArray):
         raise NotImplementedError("Coming soon!")
         
 
+    def add_dim(self, dim):
+        """
+        Add a new Dim to a DimArray, repeating the existing data for
+        each value of the new dim.
+        """
+        # add the axis and repeat the data
+        ret = self[np.newaxis].repeat(len(dim),axis=0)
+        # now replace the dim
+        ret.dims[0] = dim
+        # return as desired class
+        return ret.view(self.__class__)
+    
+
     def get_axis(self,axis):
         """
         Get the axis number for a dimension name.

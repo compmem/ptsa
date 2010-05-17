@@ -463,6 +463,32 @@ class test_DimArray(TestCase):
         self.assertEquals(d0.dim_names[-1],'newaxis_4')
         self.assertEquals(d0.dim_names[0],'one')
         self.assertEquals(len(d0.shape),len(arr.shape)+1)
+        # add two axes at once
+        d0 = dat[np.newaxis,:,:,:,:,np.newaxis]
+        self.assertEquals(d0.dim_names[-1],'newaxis_5')
+        self.assertEquals(d0.dim_names[0],'newaxis_0')
+        self.assertEquals(len(d0.shape),len(arr.shape)+2)
+        # make sure the attribute is still there
+        d0.test = 'tst'
+
+    def test_add_dim(self):
+        # make ndarray an Dimaray with identical data        
+        arr = np.random.rand(5)
+        dat = DimArray(arr,dims=[Dim(range(5),name='one')])
+        # make new dim to add
+        d = Dim(range(10),name='replicate')
+        # add it to the dat
+        ndat = dat.add_dim(d)
+        # test that it worked
+        # verify shape
+        self.assertEquals(len(ndat.shape),len(dat.shape)+1)
+        self.assertEquals(ndat.shape[0],10)
+        self.assertEquals(ndat.shape[1],5)
+        # verify contents (a couple random spots)
+        assert_array_equal(ndat[4],dat)
+        assert_array_equal(ndat[7],dat)
+        assert_array_equal(ndat.dims[0],d)
+        assert_array_equal(ndat.dims[1],dat.dims[0])
 
     def test_make_bins(self):
         """Test the make_bins method"""
