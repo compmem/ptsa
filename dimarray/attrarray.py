@@ -71,14 +71,14 @@ class AttrArray(np.ndarray):
     def __new__(cls, data, dtype=None, copy=False,
                 hdf5_group=None, **kwargs):
         # see if linking to hdf5 file
-        self._hdf5_group = hdf5_group
-        if isinstance(data,str):
-            # we are gonna try and connect to a file
-            self._hdf5_file = data
-            data = np.array([])
-        else:
-            self._hdf5_file = None
-        #self.hdf5_group = hdf5_group
+        # cls._hdf5_group = hdf5_group
+        # if isinstance(data,str):
+        #     # we are gonna try and connect to a file
+        #     cls._hdf5_file = data
+        #     data = np.array([])
+        # else:
+        #     cls._hdf5_file = None
+        # #cls.hdf5_group = hdf5_group
             
         # get the data in the proper format, copied if desired
         # PBS: Does this clobber the attrs?
