@@ -235,7 +235,7 @@ def phase_pow_multi(freqs, dat,  samplerates=None, widths=5,
     
     # reshape the data to 2D with time on the 2nd dimension
     origshape = dat.shape
-    eegdat = reshape_to_2d(dat, time_axis)
+    eegdat = reshape_to_2d(dat, time_axis).view(np.ndarray)
 
     # for efficiency pre-generate empty array for convolution:
     wav_coef = np.empty((eegdat.shape[time_axis-1]*len(freqs),
@@ -244,7 +244,7 @@ def phase_pow_multi(freqs, dat,  samplerates=None, widths=5,
     # populate this array with the convolutions:
     i=0
     for wav in wavelets:
-        for ev_dat in dat:
+        for ev_dat in eegdat:
             wav_coef[i]=np.convolve(wav,ev_dat,'same')
             i+=1
     

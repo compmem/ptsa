@@ -18,8 +18,8 @@ def errorfill(xvals,yvals,errvals,**kwargs):
     See the pylab.fill method for kwargs.
     """
     # set the xrange
-    xrange = np.concatenate((xvals,np.flipud(xvals)))
-    yrange = np.concatenate((yvals+errvals,np.flipud(yvals-errvals)))
+    x_range = np.concatenate((xvals,np.flipud(xvals)))
+    y_range = np.concatenate((yvals+errvals,np.flipud(yvals-errvals)))
 
     # do the fill
-    return pl.fill(xrange,yrange,**kwargs)
+    return pl.fill(x_range,y_range,**kwargs)

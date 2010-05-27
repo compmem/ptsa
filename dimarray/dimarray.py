@@ -443,11 +443,22 @@ class DimArray(AttrArray):
                 remove_dim[:] = False
                 
             # loop over the indlist, slicing the dimensions
-            for i,ind in enumerate(indlist):
+            i = -1
+            for ind in indlist:
+                # increment the current dim
+                i += 1
                 if isinstance(ind,int):
                     # if a changed dimension was reduced to one
                     # level, remove that dimension
                     tokeep = tokeep[tokeep!=i]
+                elif ind is Ellipsis:
+                    # do nothing
+                    # PBS: Must add tests for [1,...], [1,...,2], [...,4]
+                    # adjust current dim if necesary
+                    if i < self.ndim-1:
+                        # adjust to account for ellipsis
+                        i = self.ndim - len(indlist) + i
+                    continue
                 elif ind is None:
                     # XXX Does not ensure new dim name does not exist
                     # It's a new axis, so make temp dim
@@ -1075,7 +1086,8 @@ class DimArray(AttrArray):
 
     def transpose(self, *axes):
         axes = np.squeeze(axes)
-        if len(axes.shape)==len(self):
+        # PBS (I think this was wrong):if len(axes.shape)==len(self):
+        if len(axes) == self.ndim:
             axes = [self.get_axis(a) for a in axes]
             ret = self.view(AttrArray).transpose(*axes)
             #ret.dims = [ret.dims[a] for a in axes]
