@@ -71,12 +71,13 @@ class AttrArray(np.ndarray):
     def __new__(cls, data, dtype=None, copy=False,
                 hdf5_group=None, **kwargs):
         # see if linking to hdf5 file
+        self._hdf5_group = hdf5_group
         if isinstance(data,str):
             # we are gonna try and connect to a file
-            hdf5_file = data
+            self._hdf5_file = data
             data = np.array([])
         else:
-            hdf5_file = None
+            self._hdf5_file = None
         #self.hdf5_group = hdf5_group
             
         # get the data in the proper format, copied if desired
@@ -233,8 +234,16 @@ class AttrArray(np.ndarray):
         """
         if not HAS_H5PY:
             raise RuntimeError("You must have h5py installed to save to hdf5.")
-        
-        f = h5py.File(filename, mode)
+
+        # process the file
+        if isinstance(filename, h5py.File):
+            # use the provided file
+            f = filename
+        else:
+            # open the file based on the filename
+            f = h5py.File(filename, mode)
+
+        # process the group
         grp = f
         if not group is None:
             # see if already exists
