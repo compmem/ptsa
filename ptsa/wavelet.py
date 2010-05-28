@@ -235,7 +235,7 @@ def phase_pow_multi(freqs, dat,  samplerates=None, widths=5,
     
     # reshape the data to 2D with time on the 2nd dimension
     origshape = dat.shape
-    eegdat = reshape_to_2d(dat, time_axis).view(np.ndarray)
+    eegdat = reshape_to_2d(dat, time_axis) #.view(np.ndarray)
 
     # for efficiency pre-generate empty array for convolution:
     wav_coef = np.empty((eegdat.shape[time_axis-1]*len(freqs),
