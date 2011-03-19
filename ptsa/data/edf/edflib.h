@@ -1,7 +1,7 @@
 /*
 *****************************************************************************
 *
-* Copyright (c) 2009, Teunis van Beelen
+* Copyright (c) 2009, 2010 Teunis van Beelen
 * All rights reserved.
 *
 * email: teuniz@gmail.com
@@ -41,21 +41,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#ifndef __APPLE_CC__
-
-#include <malloc.h>
-
-#endif
-
 #include <time.h>
-
 
 
 
 #define EDFLIB_TIME_DIMENSION (10000000LL)
 #define EDFLIB_MAXSIGNALS 256
 #define EDFLIB_MAX_ANNOTATION_LEN 512
+
+#define EDFSEEK_SET 0
+#define EDFSEEK_CUR 1
+#define EDFSEEK_END 2
 
 
 
@@ -175,7 +171,7 @@ int edfopen_file_readonly(const char *path, struct edf_hdr_struct *edfhdr, int r
 /* read_annotations must have one of the following values:      */
 /*   EDFLIB_DO_NOT_READ_ANNOTATIONS      annotations will not be read (this saves time when opening a very large EDFplus or BDFplus file */
 /*   EDFLIB_READ_ANNOTATIONS             annotations will be read immediately, stops when an annotation has */
-/*                                       been found which contains the description "RECORD STOP"            */
+/*                                       been found which contains the description "Recording ends"         */
 /*   EDFLIB_READ_ALL_ANNOTATIONS         all annotations will be read immediately                           */
 
 /* returns 0 on success, in case of an error it returns -1 and an errorcode will be set in the member "filetype" of struct edf_hdr_struct */
@@ -216,7 +212,7 @@ long long edfseek(int handle, int edfsignal, long long offset, int whence);
 
 /* The edfseek() function sets the sample position indicator for the edfsignal pointed to by edfsignal. */
 /* The new position, measured in samples, is obtained by adding offset samples to the position specified by whence. */
-/* If whence is set to SEEK_SET, SEEK_CUR, or SEEK_END, the offset is relative to the start of the file, */
+/* If whence is set to EDFSEEK_SET, EDFSEEK_CUR, or EDFSEEK_END, the offset is relative to the start of the file, */
 /* the current position indicator, or end-of-file, respectively. */
 /* Returns the current offset. Otherwise, -1 is returned. */
 /* note that every signal has it's own independent sample position indicator and edfseek() affects only one of them */
@@ -232,7 +228,7 @@ long long edftell(int handle, int edfsignal);
 void edfrewind(int handle, int edfsignal);
 
 /* The edfrewind() function sets the sample position indicator for the edfsignal pointed to by edfsignal to the beginning of the file. */
-/* It is equivalent to: (void) edfseek(int handle, int edfsignal, 0LL, SEEK_SET) */
+/* It is equivalent to: (void) edfseek(int handle, int edfsignal, 0LL, EDFSEEK_SET) */
 /* note that every signal has it's own independent sample position indicator and edfrewind() affects only one of them */
 
 
@@ -392,7 +388,7 @@ int edf_set_patientcode(int handle, const char *patientcode);
 
 int edf_set_gender(int handle, int gender);
 
-/* Sets the gender. 0 is male, 1 is female. */
+/* Sets the gender. 1 is male, 0 is female. */
 /* Returns 0 on success, otherwise -1 */
 /* This function is optional and can be called only after opening a file in writemode */
 /* and before the first sample write action */
@@ -526,6 +522,24 @@ int edfwrite_annotation_latin1(int handle, long long onset, long long duration, 
 /* description is a null-terminated Latin1-string containing the text that describes the event */
 /* This function is optional and can be called only after opening a file in writemode */
 /* and before closing the file */
+
+
+int edf_set_datarecord_duration(int handle, int duration);
+
+/* Sets the datarecord duration. The default value is 1 second. */
+/* ATTENTION: the argument "duration" is expressed in units of 10 microSeconds! */
+/* So, if you want to set the datarecord duration to 0.1 second, you must give */
+/* the argument "duration" a value of "10000". */
+/* This function is optional, normally you don't need to change the default value. */
+/* The datarecord duration must be in the range 0.025 to 20.0 seconds. */
+/* Returns 0 on success, otherwise -1 */
+/* This function is NOT REQUIRED but can be called after opening a */
+/* file in writemode and before the first sample write action. */
+/* This function can be used when you want to use a samplerate */
+/* which is not an integer. For example, if you want to use a samplerate of 0.5 Hz, */
+/* set the samplefrequency to 5 Hz and the datarecord duration to 10 seconds, */
+/* or set the samplefrequency to 1 Hz and the datarecord duration to 2 seconds. */
+/* Do not use this function, except when absolutely necessary! */
 
 
 #ifdef __cplusplus
