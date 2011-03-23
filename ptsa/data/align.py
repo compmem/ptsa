@@ -7,13 +7,8 @@
 #
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ##
 
-from dimarray import Dim,DimArray,AttrArray
-from timeseries import TimeSeries
 
-from basewrapper import BaseWrapper
-from arraywrapper import ArrayWrapper
-#from edfwrapper import EdfWrapper
+# methods for aligning events and eeg data
 
-from events import Events
 
 

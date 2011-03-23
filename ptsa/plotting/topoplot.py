@@ -189,10 +189,12 @@ def topoplot(values=None, axes=None, center=(0,0), nose_dir=0., radius=0.5,
         # electrode boundaries is made this effectively creates a mask
         # with a linear boundary (connecting the outer electrode
         # locations)
-        zi = griddata(x,y,z,xi,yi,masked=True)
+        #zi = griddata(x,y,z,xi,yi,masked=True)
+        zi = griddata(x,y,z,xi,yi)
     else:
         # we need a custom mask:
-        zi = griddata(x,y,z,xi,yi,ext=1,masked=False)
+        #zi = griddata(x,y,z,xi,yi,ext=1,masked=False)
+        zi = griddata(x,y,z,xi,yi)
         if plot_mask=='circular':
             # the interpolated array doesn't know about its position
             # in space and hence we need to subtract head center from
