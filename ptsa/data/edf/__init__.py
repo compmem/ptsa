@@ -7,5 +7,6 @@
 #
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ##
 
-from edf import read_samples, read_samplerate, read_annotations
+from edf import read_samples, read_number_of_samples
+from edf import read_samplerate, read_annotations, read_number_of_signals
 

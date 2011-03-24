@@ -9,7 +9,9 @@
 
 # local imports
 from basewrapper import BaseWrapper
-from edf import read_samples, read_samplerate, read_annotations
+from edf import read_samples, read_number_of_samples
+from edf import read_samplerate, read_annotations
+from edf import read_number_of_signals
 # global imports
 import numpy as np
 import os.path
@@ -36,6 +38,12 @@ class EdfWrapper(BaseWrapper):
         else:
             raise IOError(str(filepath)+'\n does not exist!'+
                           'Valid path to data file is needed!')
+
+    def get_number_of_signals(self):
+        return read_number_of_signals(self.filepath)
+
+    def get_number_of_samples(self, channel):
+        return read_number_of_samples(self.filepath, channel)
 
     def get_samplerate(self, channel):
         # Same samplerate for all channels:

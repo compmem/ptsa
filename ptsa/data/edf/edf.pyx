@@ -9,6 +9,7 @@ ctypedef np.float64_t dtype_f64_t
 cdef extern from "edflib.h":
     struct edf_hdr_struct:
         int       handle
+        int       edfsignals
         long long annotations_in_file
 
     # Dummy enums for variables defined by macros in the header
@@ -42,6 +43,39 @@ cdef extern from "edfwrap.h":
                                long long offset,
                                int n, 
                                double *buf)
+
+def read_number_of_signals(char *filepath):
+    """
+    read_number_of_signals(filepath)
+
+    Read in number of signals in the EDF/BDF file.
+
+    Parameters
+    ----------
+    filepath : {str}
+        The path and name of the EDF/BDF file.
+
+    Returns
+    -------
+    num_signals : {int}
+        Number of signals in the EDF/BDF file.
+    
+    """
+    # get a header
+    cdef edf_hdr_struct hdr
+
+    # open the file
+    if open_file_readonly(filepath, &hdr, EDFLIB_READ_ALL_ANNOTATIONS) < 0:
+        print "Error opening file."
+        return None
+
+    # get the signals
+    cdef int num_signals = hdr.edfsignals
+
+    # close the file
+    edfclose_file(hdr.handle)
+
+    return num_signals
 
 def read_annotations(char *filepath):
     """
