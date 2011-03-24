@@ -82,7 +82,7 @@ def read_annotations(char *filepath):
     read_annotations(filepath)
 
     Read in all the annotations from an EDF/BDF file into a record
-    array. Note that the onset times converted to seconds.
+    array. Note that the onset times are converted to seconds.
 
     Parameters
     ----------
