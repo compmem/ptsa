@@ -37,6 +37,12 @@ int open_file_readonly(const char *filepath,
   return 0;
 }
 
+long long get_samples_in_file(struct edf_hdr_struct *hdr,
+			      int edfsignal)
+{
+  return hdr->signalparam[edfsignal].smp_in_file;
+}
+
 double get_samplerate(struct edf_hdr_struct *hdr,
 		      int edfsignal)
 {

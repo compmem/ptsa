@@ -33,6 +33,8 @@ cdef extern from "edfwrap.h":
     int open_file_readonly(char *filepath,
                            edf_hdr_struct *hdr,
                            int read_annot)
+    long long get_samples_in_file(edf_hdr_struct *hdr,
+                                  int edfsignal)
     float get_samplerate(edf_hdr_struct *hdr,
                          int edfsignal)
     int read_samples_from_file(edf_hdr_struct *hdr,
@@ -96,6 +98,43 @@ def read_annotations(char *filepath):
         #[onsets,durations,annotations],
         names='onsets,durations,annotations')
         
+def read_number_of_samples(char *filepath, int edfsignal):
+    """
+    read_number_of_samples(filepath, edfsignal)
+
+    Read the number of samples of a signal in an EDF/BDF file.  Note
+    that different signals can have different numbers of samples.
+
+    Parameters
+    ----------
+    filepath : {str}
+        The path and name of the EDF/BDF file.
+    edfsignal : {int}
+        The signal whose samplerate to retrieve.
+        
+    Returns
+    -------
+    num_samples : {long}
+        The number of samples for that signal.
+
+    """
+    # get a header
+    cdef edf_hdr_struct hdr
+
+    # open the file
+    if open_file_readonly(filepath, &hdr, EDFLIB_DO_NOT_READ_ANNOTATIONS) < 0:
+        print "Error opening file."
+        return None
+
+    # get the number of samples
+    cdef long long num_samples = get_samples_in_file(&hdr,
+                                                     edfsignal)
+
+    # close the file
+    edfclose_file(hdr.handle)
+
+    return num_samples
+
 def read_samplerate(char *filepath, int edfsignal):
     """
     read_samplerate(filepath, edfsignal)
