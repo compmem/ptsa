@@ -40,7 +40,8 @@ def find_needle_in_haystack(needle, haystack, maxdiff):
 
 def align_edf_pyepl(edffile, eeglog, events, annot_id='S255', 
                     channel_for_sr=0, 
-                    window=100, thresh_ms=10):
+                    window=100, thresh_ms=10,
+                    event_time_id='event_time'):
     """
     """
     # create the edf wrapper
@@ -57,7 +58,8 @@ def align_edf_pyepl(edffile, eeglog, events, annot_id='S255',
 
     # pick beginning and end (needle in haystack)
     for i in xrange(len(annot_ms)-window):
-        s_ind = find_needle_in_haystack(np.diff(annot_ms[i:i+window]),np.diff(pulse_ms),thresh_ms)
+        s_ind = find_needle_in_haystack(np.diff(annot_ms[i:i+window]),
+                                        np.diff(pulse_ms),thresh_ms)
         if not s_ind is None:
             break
     if s_ind is None:
@@ -66,7 +68,8 @@ def align_edf_pyepl(edffile, eeglog, events, annot_id='S255',
     start_pulse_vals = pulse_ms[s_ind:s_ind+window]
 
     for i in xrange(len(annot_ms)-window):
-        e_ind = find_needle_in_haystack(np.diff(annot_ms[::-1][i:i+window]),np.diff(pulse_ms[::-1]),thresh_ms)
+        e_ind = find_needle_in_haystack(np.diff(annot_ms[::-1][i:i+window]),
+                                        np.diff(pulse_ms[::-1]),thresh_ms)
         if not e_ind is None:
             break
     if e_ind is None:
@@ -85,7 +88,13 @@ def align_edf_pyepl(edffile, eeglog, events, annot_id='S255',
     m,c = np.linalg.lstsq(np.vstack([x-x[0],np.ones(len(x))]).T, y)[0]
     c = c - x[0]*m
 
+    # calc the event time in offsets
+    offsets = m*events[event_time_id] + c
+    
     # add esrc and eoffset to the Events instance
+    events = events.add_fields(esrc=np.repeat(ew,len(events)),
+                               eoffset=offsets)
 
-    pass
+    # return the updated events
+    return events
 
