@@ -89,7 +89,7 @@ def align_edf_pyepl(edffile, eeglog, events, annot_id='S255',
     c = c - x[0]*m
 
     # calc the event time in offsets
-    samplerate = ew.get_samplerate(channel)
+    samplerate = ew.get_samplerate(channel_for_sr)
     offsets = long(np.round((m*events[event_time_id] + c)*samplerate/1000.))
     
     # add esrc and eoffset to the Events instance
