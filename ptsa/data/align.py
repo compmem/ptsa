@@ -17,6 +17,11 @@ import numpy as np
 from edfwrapper import EdfWrapper
 
 def load_pyepl_eeg_pulses(logfile):
+    """
+    Load and process the default eeg log file from PyEPL.  This will
+    extract only when the pulses turned on (not off), which is what is
+    usually saved by EEG systems.
+    """
     # open and read each line
     reader = csv.reader(open(logfile,'rU'),dialect=csv.excel_tab)
     pulses = []
@@ -27,6 +32,7 @@ def load_pyepl_eeg_pulses(logfile):
 
 def find_needle_in_haystack(needle, haystack, maxdiff):
     """
+    Look for a matching subsequence in a long sequence.
     """
     nlen = len(needle)
     found = False
@@ -43,6 +49,12 @@ def align_edf_pyepl(edffile, eeglog, events, annot_id='S255',
                     window=100, thresh_ms=10,
                     event_time_id='event_time'):
     """
+    Take an Events instance and add esrc and eoffset, aligning the
+    events to the data in the supplied EDF file.  This extracts the
+    pulse information from the EDF file annotations and matches it up
+    with the pyepl eeg.eeglog file passed in.
+
+    It returns the updated Events.
     """
     # create the edf wrapper
     ew = EdfWrapper(edffile)
