@@ -1,7 +1,7 @@
 /*
 *****************************************************************************
 *
-* Copyright (c) 2009, 2010 Teunis van Beelen
+* Copyright (c) 2009, 2010, 2011 Teunis van Beelen
 * All rights reserved.
 *
 * email: teuniz@gmail.com
