@@ -91,7 +91,6 @@ class Dim(AttrArray):
         # convert to Dim and return:
         return dim.view(cls)
 
-
 class DimArray(AttrArray):
     """
     DimArray(data, dims=None, dtype=None, copy=False, **kwargs)
