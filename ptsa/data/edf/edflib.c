@@ -1,7 +1,7 @@
 /*
 *****************************************************************************
 *
-* Copyright (c) 2009, 2010 Teunis van Beelen
+* Copyright (c) 2009, 2010, 2011 Teunis van Beelen
 * All rights reserved.
 *
 * email: teuniz@gmail.com
@@ -39,14 +39,12 @@
 #include "edflib.h"
 
 
-#define EDFLIB_VERSION 108
+#define EDFLIB_VERSION 109
 #define EDFLIB_MAXFILES 64
 
 
 #if defined(__APPLE__) || defined(__MACH__) || defined(__APPLE_CC__)
 
-#define fseeko fseek
-#define ftello ftell
 #define fopeno fopen
 
 #else
@@ -1720,7 +1718,7 @@ struct edfhdrblock * edflib_check_edf_file(FILE *inputfile, int *edf_error)
   }
 
   edfhdr->data_record_duration = edflib_atof_nonlocalized(scratchpad);
-  if(edfhdr->data_record_duration<-0.000001)
+  if(edfhdr->data_record_duration < -0.000001)
   {
     *edf_error = EDFLIB_FILE_CONTAINS_FORMAT_ERRORS;
     free(edf_hdr);
@@ -1816,7 +1814,7 @@ struct edfhdrblock * edflib_check_edf_file(FILE *inputfile, int *edf_error)
   }
   if((edfhdr->edfsignals!=edfhdr->nr_annot_chns)||((!edfhdr->edfplus)&&(!edfhdr->bdfplus)))
   {
-    if(edfhdr->data_record_duration<0.000001)
+    if(edfhdr->data_record_duration<0.0000001)
     {
       *edf_error = EDFLIB_FILE_CONTAINS_FORMAT_ERRORS;
       free(edf_hdr);
@@ -1845,24 +1843,7 @@ struct edfhdrblock * edflib_check_edf_file(FILE *inputfile, int *edf_error)
     strncpy(edfhdr->edfparam[i].transducer, edf_hdr + 256 + (edfhdr->edfsignals * 16) + (i * 80), 80);
     edfhdr->edfparam[i].transducer[80] = 0;
 
-    if(edfhdr->edfplus)
-    {
-      if(edfhdr->edfparam[i].annotation)
-      {
-        for(j=0; j<80; j++)
-        {
-          if(edfhdr->edfparam[i].transducer[j]!=' ')
-          {
-            *edf_error = EDFLIB_FILE_CONTAINS_FORMAT_ERRORS;
-            free(edf_hdr);
-            free(edfhdr->edfparam);
-            free(edfhdr);
-            return(NULL);
-          }
-        }
-      }
-    }
-    if(edfhdr->bdfplus)
+    if((edfhdr->edfplus) || (edfhdr->bdfplus))
     {
       if(edfhdr->edfparam[i].annotation)
       {
@@ -2162,30 +2143,13 @@ struct edfhdrblock * edflib_check_edf_file(FILE *inputfile, int *edf_error)
     strncpy(edfhdr->edfparam[i].prefilter, edf_hdr + 256 + (edfhdr->edfsignals * 136) + (i * 80), 80);
     edfhdr->edfparam[i].prefilter[80] = 0;
 
-    if(edfhdr->edfplus)
+    if((edfhdr->edfplus) || (edfhdr->bdfplus))
     {
       if(edfhdr->edfparam[i].annotation)
       {
         for(j=0; j<80; j++)
         {
-          if(edfhdr->edfparam[i].transducer[j]!=' ')
-          {
-            *edf_error = EDFLIB_FILE_CONTAINS_FORMAT_ERRORS;
-            free(edf_hdr);
-            free(edfhdr->edfparam);
-            free(edfhdr);
-            return(NULL);
-          }
-        }
-      }
-    }
-    if(edfhdr->bdfplus)
-    {
-      if(edfhdr->edfparam[i].annotation)
-      {
-        for(j=0; j<80; j++)
-        {
-          if(edfhdr->edfparam[i].transducer[j]!=' ')
+          if(edfhdr->edfparam[i].prefilter[j]!=' ')
           {
             *edf_error = EDFLIB_FILE_CONTAINS_FORMAT_ERRORS;
             free(edf_hdr);
@@ -2244,10 +2208,28 @@ struct edfhdrblock * edflib_check_edf_file(FILE *inputfile, int *edf_error)
   if(edfhdr->bdf)
   {
     edfhdr->recordsize *= 3;
+
+    if(edfhdr->recordsize > 15728640)
+    {
+      *edf_error = EDFLIB_FILE_CONTAINS_FORMAT_ERRORS;
+      free(edf_hdr);
+      free(edfhdr->edfparam);
+      free(edfhdr);
+      return(NULL);
+    }
   }
   else
   {
     edfhdr->recordsize *= 2;
+
+    if(edfhdr->recordsize > 10485760)
+    {
+      *edf_error = EDFLIB_FILE_CONTAINS_FORMAT_ERRORS;
+      free(edf_hdr);
+      free(edfhdr->edfparam);
+      free(edfhdr);
+      return(NULL);
+    }
   }
 
 /**************************** RESERVED FIELDS *************************************/
@@ -3133,7 +3115,7 @@ int edflib_get_annotations(struct edfhdrblock *edfhdr, int hdl, int read_annotat
           {
             if(r||annots_in_record)
             {
-              if(n)
+              if(n >= 0)
               {
                 new_annotation = (struct edf_annotationblock *)calloc(1, sizeof(struct edf_annotationblock));
                 if(new_annotation==NULL)
