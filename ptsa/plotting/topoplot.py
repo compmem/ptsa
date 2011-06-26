@@ -77,7 +77,7 @@ def topoplot(values=None, axes=None, center=(0,0), nose_dir=0., radius=0.5,
         cmap = plt.get_cmap()
 
     if axes is not None: # axes are given
-        a=splot
+        a=axes
     else: # a new subplot is created
         a=plt.subplot(1,1,1, aspect='equal')
 

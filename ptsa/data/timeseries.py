@@ -247,3 +247,38 @@ class TimeSeries(DimArray):
         return TimeSeries(newdat, self.tdim, resampled_rate,
                           dims=newdims, **attrs)
 
+    def baseline_corrected(self, base_range):
+        """
+
+        Return a baseline corrected timeseries by subtracting the
+        average value in the baseline range from all other time points
+        for each dimension.
+
+        Parameters
+        ----------
+        base_range: {tuple}
+            Tuple specifying the start and end time range (inclusive) 
+            for the baseline.
+
+        Returns
+        -------
+        ts : {TimeSeries}
+            A TimeSeries instance with the baseline corrected data.
+
+        """
+        # get the average of baseline range
+        baseline = self['time >= %f'%base_range[0],'time <= %f'%base_range[1]].mean('time')
+
+        # replicate over the time dimension
+        baseline = baseline.add_dim(self['time']).transpose(self.dim_names)
+
+        # subtract the baseline
+        new_dat = self - baseline
+
+        # return a new timeseries
+        attrs = self._attrs.copy()
+        for k in self._required_attrs.keys():
+            attrs.pop(k,None)
+        return TimeSeries(new_dat,self.tdim, self.samplerate,
+                          dims=self.dims.copy(), **attrs)
+        
