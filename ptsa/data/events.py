@@ -148,10 +148,11 @@ class Events(np.recarray):
         keep_buffer: {boolean},optional
             Whether to keep the buffer when returning the data.
         esrc : {string},optional
-            Name for the field containing the event source.
+            Name for the field containing the source for the time
+            series data corresponding to the event.
         eoffset: {string},optional
-            Name for the field containing the event offset within the
-            specified source.
+            Name for the field containing the offset (in samples) for
+            the event within the specified source.
         
         Returns
         -------

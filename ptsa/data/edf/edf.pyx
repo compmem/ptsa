@@ -249,7 +249,8 @@ def read_samples(char *filepath, int edfsignal, long offset, int n):
 
     if nread < 0:
         # we had an error, so return none
-        nread = 0
+        print "Error reading samples. Duration may have been misspecified."
+        return None
 
     # close the file
     edfclose_file(hdr.handle)

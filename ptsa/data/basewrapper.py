@@ -52,14 +52,38 @@ class BaseWrapper(object):
         dur_samp : {int}
             Duration in samples of each event.
         offset_samp : {int}
-            Offset from the event onset from where to extract the
-            duration of the event.
+            Offset (in samples) from the event onset from where to
+            extract the duration of the event.
 
         Returns
         -------
         data : {ndarray}
             Array of data for the specified channel in the form
             [events, duration].
+        """
+        raise NotImplementedError
+    
+    def _load_all_data(self,channel,dur_chunk=7372800):
+        """
+        Method for loading all data in a given channel that each child
+        wrapper class must implement.
+
+        Parameters
+        ----------
+        channel : {int,str}
+            Channel to load. Either integer number or (if appropriate
+            for a given data format) a string label.
+        dur_chunk: {int},optional
+            Size of data chunks to read in in samples. This
+            can be any positive integer up to the maximum value
+            allowed for an int. Down the line a buffer array of this
+            size gets allocated.
+
+        Returns
+        -------
+        data : {ndarray}
+            Array of all data for the specified channel in the form
+            [duration].
         """
         raise NotImplementedError
     
@@ -100,6 +124,14 @@ class BaseWrapper(object):
         keep_buffer: {boolean},optional
             Whether to keep the buffer when returning the data.
         """
+
+        # Sanity checks:
+        if(dur<0):
+            raise ValueError('Duration must not be negative! '+
+                             'Specified duration: '+str(dur))
+        if(np.min(event_offsets)<0):
+            raise ValueError('Event offsets must not be negative!')
+
         
         # set event durations from rate
         # get the samplesize
@@ -111,31 +143,38 @@ class BaseWrapper(object):
                           np.sign(offset))
 
         # finally get the duration necessary to cover the desired span
-        dur_samp = (int(np.ceil((dur+offset - samplesize*.5)/samplesize)) -
-                    offset_samp + 1)
+        dur_samp = int(np.ceil((dur - samplesize*.5)/samplesize))
         
         # add in the buffer
         dur_samp += 2*buf_samp
         offset_samp -= buf_samp
+
+        # check that we have all the data we need before every event:
+        if(np.min(event_offsets+offset_samp)<0):
+            bad_evs = ((event_offsets+offset_samp)<0)
+            raise ValueError('The specified values for offset and buffer '+
+                             'require more data than is available before '+
+                             str(np.sum(bad_evs))+' of all '+
+                             str(len(bad_evs))+' events.')
 
         # load the timeseries (this must be implemented by subclasses)
         eventdata = self._load_data(channel,event_offsets,dur_samp,offset_samp)
 
         # calc the time range
         # get the samplesize
-        sampStart = offset_samp*samplesize
-        sampEnd = sampStart + (dur_samp-1)*samplesize
-        timeRange = np.linspace(sampStart,sampEnd,dur_samp)
+        samp_start = offset_samp*samplesize
+        samp_end = samp_start + (dur_samp-1)*samplesize
+        time_range = np.linspace(samp_start,samp_end,dur_samp)
 
 	# make it a timeseries
         # if isinstance(eventInfo,TsEvents):
         #     dims = [Dim('event', eventInfo.data, 'event'),
-        #             Dim('time',timeRange)]
+        #             Dim('time',time_range)]
         # else:
         #     dims = [Dim('event_offsets', event_offsets, 'samples'),
-        #             Dim('time',timeRange)]            
+        #             Dim('time',time_range)]            
         dims = [Dim(event_offsets,'event_offsets'),
-                Dim(timeRange,'time')]
+                Dim(time_range,'time')]
         eventdata = TimeSeries(np.asarray(eventdata),
                                'time',
                                self.get_samplerate(channel),dims=dims)

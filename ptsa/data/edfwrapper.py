@@ -61,9 +61,9 @@ class EdfWrapper(BaseWrapper):
 
 	# loop over events
         # PBS: eventually move this to the cython file
-	for e,evOffset in enumerate(event_offsets):
+	for e,ev_offset in enumerate(event_offsets):
             # set the range
-            ssamp = offset_samp+evOffset
+            ssamp = offset_samp+ev_offset
 
             # read the data
             dat = read_samples(self.filepath,
@@ -72,12 +72,32 @@ class EdfWrapper(BaseWrapper):
             
             # check the ranges
             if len(dat) < dur_samp:
-                raise IOError('Event with offset '+str(evOffset)+
+                raise IOError('Event with offset '+str(ev_offset)+
                               ' is outside the bounds of the data.')
             eventdata[e,:] = dat
 
 
         return eventdata
+    
+    def _load_all_data(self,channel,dur_chunk=7372800):
+        """
+        """
+        dat = None # the data array
+        offset = 0 # we start from the very beginning
+        end_reached = False
+        while not(end_reached):
+            tmp_dat = read_samples(self.filepath,channel,offset,dur_chunk)
+            if(len(tmp_dat)<dur_chunk):
+                end_reached = True
+            else:
+                offset += dur_chunk
+                
+            if dat is None:
+                dat = tmp_dat
+            else:
+                dat = np.r_[dat,tmp_dat]
+                
+        return dat
     
 
 
