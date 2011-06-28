@@ -136,6 +136,38 @@ class RawBinWrapper(BaseWrapper):
 	
         return eventdata
 
+    def _load_all_data(self,channel):
+        """
+        """
+        # determine the file
+	eegfname = '%s.%03i' % (self.dataroot,channel)
+	if os.path.isfile(eegfname):
+	    efile = open(eegfname,'rb')
+	else:
+	    # try unpadded lead
+	    eegfname = '%s.%i' % (self.dataroot,channel)
+	    if os.path.isfile(eegfname):
+		efile = open(eegfname,'rb')
+	    else:
+		raise IOError(
+                    'EEG file not found for channel %i and file root %s\n' 
+                    % (channel,self.dataroot))
+
+        # read the all the data
+        efile.seek(0,0)
+        data = efile.read()
+
+        # convert from string to array based on the format
+        # hard codes little endian
+        data = np.array(struct.unpack('<'+str(len(data)/self.nBytes)+
+                                      self.fmtStr,data))
+
+        # apply the gain
+        data *= self.gain
+
+        # return it
+        return data
+
 
 def createEventsFromMatFile(matfile):
     """Create an events data array with data wrapper information from

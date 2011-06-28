@@ -79,25 +79,14 @@ class EdfWrapper(BaseWrapper):
 
         return eventdata
     
-    def _load_all_data(self,channel,dur_chunk=7372800):
+    def _load_all_data(self,channel):
         """
         """
-        dat = None # the data array
         offset = 0 # we start from the very beginning
-        end_reached = False
-        while not(end_reached):
-            tmp_dat = read_samples(self.filepath,channel,offset,dur_chunk)
-            if(len(tmp_dat)<dur_chunk):
-                end_reached = True
-            else:
-                offset += dur_chunk
-                
-            if dat is None:
-                dat = tmp_dat
-            else:
-                dat = np.r_[dat,tmp_dat]
-                
-        return dat
+        return read_samples(self.filepath,
+                            channel,
+                            offset,
+                            self.get_number_of_samples(channel))
     
 
 

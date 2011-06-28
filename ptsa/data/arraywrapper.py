@@ -63,5 +63,8 @@ class ArrayWrapper(BaseWrapper):
 
         return eventdata
     
-
+    def _load_all_data(self,channel):
+        """
+        """
+        return self.data[channel,:]
 

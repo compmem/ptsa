@@ -63,7 +63,7 @@ class BaseWrapper(object):
         """
         raise NotImplementedError
     
-    def _load_all_data(self,channel,dur_chunk=7372800):
+    def _load_all_data(self,channel):
         """
         Method for loading all data in a given channel that each child
         wrapper class must implement.
@@ -73,11 +73,6 @@ class BaseWrapper(object):
         channel : {int,str}
             Channel to load. Either integer number or (if appropriate
             for a given data format) a string label.
-        dur_chunk: {int},optional
-            Size of data chunks to read in in samples. This
-            can be any positive integer up to the maximum value
-            allowed for an int. Down the line a buffer array of this
-            size gets allocated.
 
         Returns
         -------
