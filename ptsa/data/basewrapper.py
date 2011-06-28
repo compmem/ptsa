@@ -132,18 +132,21 @@ class BaseWrapper(object):
         if(np.min(event_offsets)<0):
             raise ValueError('Event offsets must not be negative!')
 
-        
         # set event durations from rate
         # get the samplesize
         samplesize = 1./self.get_samplerate(channel)
+
         # get the number of buffer samples
         buf_samp = int(np.ceil(buf/samplesize))
-        # calculate the offset samples that contains the desired offsetMS
+
+        # calculate the offset samples that contains the desired offset
         offset_samp = int(np.ceil((np.abs(offset)-samplesize*.5)/samplesize)*
                           np.sign(offset))
 
         # finally get the duration necessary to cover the desired span
-        dur_samp = int(np.ceil((dur - samplesize*.5)/samplesize))
+        #dur_samp = int(np.ceil((dur - samplesize*.5)/samplesize))
+        dur_samp = (int(np.ceil((dur+offset - samplesize*.5)/samplesize)) -
+                    offset_samp + 1)
         
         # add in the buffer
         dur_samp += 2*buf_samp
@@ -167,12 +170,6 @@ class BaseWrapper(object):
         time_range = np.linspace(samp_start,samp_end,dur_samp)
 
 	# make it a timeseries
-        # if isinstance(eventInfo,TsEvents):
-        #     dims = [Dim('event', eventInfo.data, 'event'),
-        #             Dim('time',time_range)]
-        # else:
-        #     dims = [Dim('event_offsets', event_offsets, 'samples'),
-        #             Dim('time',time_range)]            
         dims = [Dim(event_offsets,'event_offsets'),
                 Dim(time_range,'time')]
         eventdata = TimeSeries(np.asarray(eventdata),
