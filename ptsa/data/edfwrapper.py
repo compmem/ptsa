@@ -32,7 +32,6 @@ class EdfWrapper(BaseWrapper):
             applicable).
         """
         # set up the basic params of the data
-
         if os.path.exists(filepath):
             self.filepath = filepath
         else:
