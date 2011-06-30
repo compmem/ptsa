@@ -127,6 +127,9 @@ class BaseWrapper(object):
         if(np.min(event_offsets)<0):
             raise ValueError('Event offsets must not be negative!')
 
+        # make sure the events are an actual array
+        event_offsets = np.asarray(event_offsets)
+        
         # set event durations from rate
         # get the samplesize
         samplesize = 1./self.get_samplerate(channel)

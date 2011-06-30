@@ -38,14 +38,14 @@ class HDF5Wrapper(BaseWrapper):
     def _load_data(self,channel,event_offsets,dur_samp,offset_samp):
         """        
         """
-        # allocate for data
-	eventdata = np.empty((len(event_offsets),dur_samp),
-                             dtype=self.data.dtype)*np.nan
-
         # connect to the file and get the dataset
         f = h5py.File(self.filepath,'r')
         data = f[self.dataset_name]
         
+        # allocate for data
+	eventdata = np.empty((len(event_offsets),dur_samp),
+                             dtype=data.dtype)*np.nan
+
 	# loop over events
 	for e,evOffset in enumerate(event_offsets):
             # set the range
@@ -53,7 +53,7 @@ class HDF5Wrapper(BaseWrapper):
             esamp = ssamp + dur_samp
             
             # check the ranges
-            if ssamp < 0 or esamp > self.data.shape[1]:
+            if ssamp < 0 or esamp > data.shape[1]:
                 raise IOError('Event with offset '+str(evOffset)+
                               ' is outside the bounds of the data.')
             eventdata[e,:] = data[channel,ssamp:esamp]
