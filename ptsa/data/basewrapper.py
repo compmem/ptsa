@@ -107,6 +107,16 @@ class BaseWrapper(object):
             [events, duration].
         """
         raise NotImplementedError
+
+    def append_data(self, data):
+        """
+        """
+        raise NotImplementedError
+        
+    def set_channel_data(self, channel, data):
+        """
+        """
+        raise NotImplementedError
     
     def get_event_data(self,channels,event_offsets,
                        start_time,end_time,buffer_time=0.0,
