@@ -18,16 +18,18 @@ class HDF5Wrapper(BaseWrapper):
     """
     Interface to data stored in an HDF5 file.
     """
-    def __init__(self, filepath, dataset_name='data'):
+    def __init__(self, filepath, dataset_name='data',
+                 annotations_name='annotations'):
         """
         Initialize the interface to the data.
         """
         # set up the basic params of the data
         self.filepath = filepath
         self.dataset_name = dataset_name
-
-    def get_samplerate(self, channel):
-        # Same samplerate for all channels:
+        self.annotations_name = annotations_name
+        
+    def _get_samplerate(self, channel=None):
+        # Same samplerate for all channels.
         # get the samplerate property of the dataset
         f = h5py.File(self.filepath,'r')
         data = f[self.dataset_name]
@@ -35,7 +37,33 @@ class HDF5Wrapper(BaseWrapper):
         f.close()
         return samplerate
 
-    def _load_data(self,channel,event_offsets,dur_samp,offset_samp):
+    def _get_nsamples(self,channel=None):
+        # get the dimensions of the data
+        f = h5py.File(self.filepath,'r')
+        data = f[self.dataset_name]
+        nsamples = data.shape[1]
+        f.close()
+        return nsamples
+
+    def _get_nchannels(self):
+        # get the dimensions of the data
+        f = h5py.File(self.filepath,'r')
+        data = f[self.dataset_name]
+        nchannels = data.shape[0]
+        f.close()
+        return nchannels
+
+    def _get_annotations(self):
+        # get the dimensions of the data
+        f = h5py.File(self.filepath,'r')
+        if self.annotations_name in f:
+            annot = f[self.annotations_name][:]
+        else:
+            annot = None
+        f.close()
+        return annot
+
+    def _load_data(self,channels,event_offsets,dur_samp,offset_samp):
         """        
         """
         # connect to the file and get the dataset
@@ -43,7 +71,7 @@ class HDF5Wrapper(BaseWrapper):
         data = f[self.dataset_name]
         
         # allocate for data
-	eventdata = np.empty((len(event_offsets),dur_samp),
+	eventdata = np.empty((len(channels),len(event_offsets),dur_samp),
                              dtype=data.dtype)*np.nan
 
 	# loop over events
@@ -56,25 +84,11 @@ class HDF5Wrapper(BaseWrapper):
             if ssamp < 0 or esamp > data.shape[1]:
                 raise IOError('Event with offset '+str(evOffset)+
                               ' is outside the bounds of the data.')
-            eventdata[e,:] = data[channel,ssamp:esamp]
+            eventdata[:,e,:] = data[channels,ssamp:esamp]
 
         # close the file
         f.close()
         
         return eventdata
     
-    def _load_all_data(self,channel):
-        """
-        """
-        # connect to the file and get the dataset
-        f = h5py.File(self.filepath,'r')
-        data = f[self.dataset_name]
-
-        # select the data to return
-        toreturn = data[channel,:]
-
-        # close the file
-        f.close()
-        
-        return toreturn
 

@@ -118,7 +118,8 @@ class Events(np.recarray):
         # return the new Events
         return np.rec.fromarrays(arrays,names=names).view(self.__class__)
 
-    def get_data(self,channel,dur,offset,buf,resampled_rate=None,
+    ############  XXX MUST FIX THIS FOR NEW INTERFACE XXX #############
+    def get_data(self,channels,dur,offset,buf,resampled_rate=None,
                  filt_freq=None,filt_type='stop',filt_order=4,
                  keep_buffer=False,esrc='esrc',eoffset='eoffset'):
         """
@@ -127,7 +128,7 @@ class Events(np.recarray):
 
         Parameters
         ----------
-        channel: {int}
+        channels: {list,int}
             Channel from which to load data.
         dur: {float}
             Duration of the data to return (in time-unit of the data).
@@ -156,7 +157,7 @@ class Events(np.recarray):
         
         Returns
         -------
-        A TimeSeries instance with dimensions (events,time).
+        A TimeSeries instance with dimensions (channels,events,time).
         """
         
         # check for necessary fields

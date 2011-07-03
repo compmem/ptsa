@@ -38,54 +38,49 @@ class EdfWrapper(BaseWrapper):
             raise IOError(str(filepath)+'\n does not exist!'+
                           'Valid path to data file is needed!')
 
-    def get_number_of_signals(self):
+    def _get_nchannels(self):
         return read_number_of_signals(self.filepath)
 
-    def get_number_of_samples(self, channel):
+    def _get_nsamples(self, channel=None):
+        if channel is None:
+            # pick first channel
+            channel = 0
         return read_number_of_samples(self.filepath, channel)
 
-    def get_samplerate(self, channel):
-        # Same samplerate for all channels:
+    def _get_samplerate(self, channel=None):
+        if channel is None:
+            # pick first channel
+            channel = 0
         return read_samplerate(self.filepath, channel)
 
-    def get_annotations(self):
+    def _get_annotations(self):
         return read_annotations(self.filepath)
 
-    def _load_data(self,channel,event_offsets,dur_samp,offset_samp):
+    def _load_data(self,channels,event_offsets,dur_samp,offset_samp):
         """        
         """
         # allocate for data
-	eventdata = np.empty((len(event_offsets),dur_samp),
+	eventdata = np.empty((len(channels),len(event_offsets),dur_samp),
                              dtype=np.float64)*np.nan
 
 	# loop over events
         # PBS: eventually move this to the cython file
-	for e,ev_offset in enumerate(event_offsets):
-            # set the range
-            ssamp = offset_samp+ev_offset
+        for c,channel in enumerate(channels):
+            for e,ev_offset in enumerate(event_offsets):
+                # set the range
+                ssamp = offset_samp+ev_offset
 
-            # read the data
-            dat = read_samples(self.filepath,
-                               channel,
-                               ssamp, dur_samp)
-            
-            # check the ranges
-            if len(dat) < dur_samp:
-                raise IOError('Event with offset '+str(ev_offset)+
-                              ' is outside the bounds of the data.')
-            eventdata[e,:] = dat
+                # read the data
+                dat = read_samples(self.filepath,
+                                   channel,
+                                   ssamp, dur_samp)
 
+                # check the ranges
+                if len(dat) < dur_samp:
+                    raise IOError('Event with offset '+str(ev_offset)+
+                                  ' is outside the bounds of the data.')
+                eventdata[c,e,:] = dat
 
-        return eventdata
-    
-    def _load_all_data(self,channel):
-        """
-        """
-        offset = 0 # we start from the very beginning
-        return read_samples(self.filepath,
-                            channel,
-                            offset,
-                            self.get_number_of_samples(channel))
-    
+        return eventdata    
 
 

@@ -18,15 +18,21 @@ class BaseWrapper(object):
     """
     Base class to provide interface to data.  
     """
+    # properties
+    samplerate = property(_get_samplerate)
+    nsamples = property(_get_nsamples)
+    nchannels = property(_get_nchannels)
+    annotations = property(_get_annotations)
+    
     # required methods that the child class must define.
-    def get_samplerate(self,channel):
+    def _get_samplerate(self,channel=None):
         """
-        Returns sample rate for a given channel.
+        Returns sample rate for a dataset or given channel.
 
         Parameters
         ----------
-        channel : {int,str}
-            Either integer or (if appropriate for a given data format)
+        channel : {None,int,str}
+            If specified, an integer or (if appropriate for a given data format)
             a string label specifying the channel.
         
         Returns
@@ -36,14 +42,53 @@ class BaseWrapper(object):
         """
         raise NotImplementedError
     
-    def _load_data(self,channel,event_offsets,dur_samp,offset_samp):
+    def _get_nsamples(self,channel=None):
+        """
+        Returns the number of samples for a dataset or given channel.
+
+        Parameters
+        ----------
+        channel : {None,int,str}
+            If specified, an integer or (if appropriate for a given data format)
+            a string label specifying the channel.
+        
+        Returns
+        -------
+        nsamples : {float}
+            Samplerate for the dataset or specified channel.
+        """
+        raise NotImplementedError
+    
+    def _get_nchannels(self):
+        """
+        Returns the number of channels in a dataset.
+        
+        Returns
+        -------
+        nchannels : {int}
+            Number of channels.
+        """
+        raise NotImplementedError
+    
+    def _get_annotations(self):
+        """
+        Returns the annotations associated with the dataset.
+
+        Returns
+        -------
+        annotations : {array-like}
+            Annotations
+        """
+        raise NotImplementedError
+        
+    def _load_data(self,channels,event_offsets,dur_samp,offset_samp):
         """
         Method for loading data that each child wrapper class must
         implement.
 
         Parameters
         ----------
-        channel : {int,str}
+        channels : {list,int,str}
             Channel to load. Either integer number or (if appropriate
             for a given data format) a string label.
         event_offsets : {array_like}
@@ -63,27 +108,8 @@ class BaseWrapper(object):
         """
         raise NotImplementedError
     
-    def _load_all_data(self,channel):
-        """
-        Method for loading all data in a given channel that each child
-        wrapper class must implement.
-
-        Parameters
-        ----------
-        channel : {int,str}
-            Channel to load. Either integer number or (if appropriate
-            for a given data format) a string label.
-
-        Returns
-        -------
-        data : {ndarray}
-            Array of all data for the specified channel in the form
-            [duration].
-        """
-        raise NotImplementedError
-    
-    def get_event_data(self,channel,event_offsets,
-                       dur,offset,buf,
+    def get_event_data(self,channels,event_offsets,
+                       start_time,end_time,buffer_time=0.0,
                        resampled_rate=None,
                        filt_freq=None,filt_type='stop',filt_order=4,
                        keep_buffer=False):
@@ -93,17 +119,16 @@ class BaseWrapper(object):
 
         Parameters
         ----------
-        channel: {int}
-            Channel from which to load data.
+        channels: {int}
+            Channels from which to load data.
         event_offsets: {array_like}
             Array/list of event offsets (in samples) into the data,
             specifying each event onset time.
-        dur: {float}
-            Duration of the data to return (in time-unit of the data).
-        offset: {float}
-            Amount (in time-unit of data) to offset the data around
-            the event.
-        buf: {float}
+        start_time: {float}
+            Start of epoch to retrieve (in time-unit of the data).
+        end_time: {float}
+            End of epoch to retrieve (in time-unit of the data).
+        buffer_time: {float}
             Extra buffer to add on either side of the event in order
             to avoid edge effects when filtering (in time unit of the
             data).
@@ -120,6 +145,10 @@ class BaseWrapper(object):
             Whether to keep the buffer when returning the data.
         """
 
+        # translate back to dur and offset
+        dur = end_time - start_time
+        offset = start_time
+        
         # Sanity checks:
         if(dur<0):
             raise ValueError('Duration must not be negative! '+
@@ -158,8 +187,13 @@ class BaseWrapper(object):
                              str(np.sum(bad_evs))+' of all '+
                              str(len(bad_evs))+' events.')
 
+        # process the channels
+        if channels is None:
+            channels = np.arange(self.nchannels)
+        channels = np.atleast_1d(channels)
+
         # load the timeseries (this must be implemented by subclasses)
-        eventdata = self._load_data(channel,event_offsets,dur_samp,offset_samp)
+        eventdata = self._load_data(channels,event_offsets,dur_samp,offset_samp)
 
         # calc the time range
         # get the samplesize
@@ -168,11 +202,12 @@ class BaseWrapper(object):
         time_range = np.linspace(samp_start,samp_end,dur_samp)
 
 	# make it a timeseries
-        dims = [Dim(event_offsets,'event_offsets'),
+        dims = [Dim(channels,'channels'),
+                Dim(event_offsets,'event_offsets'),
                 Dim(time_range,'time')]
         eventdata = TimeSeries(np.asarray(eventdata),
                                'time',
-                               self.get_samplerate(channel),dims=dims)
+                               self.samplerate,dims=dims)
 
 	# filter if desired
 	if not(filt_freq is None):
@@ -194,3 +229,33 @@ class BaseWrapper(object):
 
         # return the timeseries
         return eventdata
+
+    def get_all_data(self,channels,
+                     resampled_rate=None,
+                     filt_freq=None,filt_type='stop',filt_order=4):
+        """
+        Return an TimeSeries containing data for the specified channel
+        in the form [events,duration].
+
+        Parameters
+        ----------
+        channels: {list,int}
+            Channels from which to load data.
+        resampled_rate: {float},optional
+            New samplerate to resample the data to after loading.
+        filt_freq: {array_like},optional
+            The range of frequencies to filter (depends on the filter
+            type.)
+        filt_type = {scipy.signal.band_dict.keys()},optional
+            Filter type.
+        filt_order = {int},optional
+            The order of the filter.
+        """
+
+        return get_event_data(self,channels,[0],
+                              0.0,self.nsamples/self.samplerate,0.0,
+                              resampled_rate=resampled_rate,
+                              filt_freq=filt_freq,
+                              filt_type=filt_type,
+                              filt_order=filt_order,
+                              keep_buffer=True)

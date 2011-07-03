@@ -18,22 +18,32 @@ class ArrayWrapper(BaseWrapper):
     Interface to data stored in a numpy ndarray where the first
     dimension is the channel and the second dimension is samples.
     """
-    def __init__(self,data,samplerate):
+    def __init__(self,data,samplerate,annotations=None):
         """Initialize the interface to the data.  You must specify the
         data and the samplerate."""
         # set up the basic params of the data
         self.data = data
         self._samplerate = samplerate
+        self._annotations = annotations
 
-    def get_samplerate(self, channel):
+    def _get_nchannels(self):
+        return self.data.shape[0]
+
+    def _get_nsamples(self, channel=None):
+        return self.data.shape[1]
+
+    def _get_samplerate(self, channel=None):
         # Same samplerate for all channels:
         return self._samplerate
 
-    def _load_data(self,channel,event_offsets,dur_samp,offset_samp):
+    def _get_annotations(self):
+        return self._annotations
+
+    def _load_data(self,channels,event_offsets,dur_samp,offset_samp):
         """        
         """
         # allocate for data
-	eventdata = np.empty((len(event_offsets),dur_samp),
+	eventdata = np.empty((len(channels),len(event_offsets),dur_samp),
                              dtype=self.data.dtype)*np.nan
 
 	# loop over events
@@ -41,30 +51,11 @@ class ArrayWrapper(BaseWrapper):
             # set the range
             ssamp = offset_samp+evOffset
             esamp = ssamp + dur_samp
-
-            # # set the indices
-            # sind = 0
-            # eind = dur_samp
-
-            # if ssamp < 0
-            #     sind -= ssamp
-            #     ssamp = 0
-            # if esamp > self.data.shape[1]:
-            #     eind -= (esamp-self.data.shape[1])
-            #     esamp = self.data.shape[1]
-            # eventdata[e,sind:eind] = self.data[channel,ssamp:esamp]
             
             # check the ranges
             if ssamp < 0 or esamp > self.data.shape[1]:
                 raise IOError('Event with offset '+str(evOffset)+
                               ' is outside the bounds of the data.')
-            eventdata[e,:] = self.data[channel,ssamp:esamp]
-
+            eventdata[:,e,:] = self.data[channels,ssamp:esamp]
 
         return eventdata
-    
-    def _load_all_data(self,channel):
-        """
-        """
-        return self.data[channel,:]
-
