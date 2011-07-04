@@ -57,10 +57,26 @@ class RawBinWrapper(BaseWrapper):
             self.nBytes = 8
             self.fmtStr = 'd'
 
-    def get_samplerate(*args):
+    def _get_samplerate(self, channel=None):
         # Same samplerate for all channels:
         return self._samplerate
 
+    def _get_nsamples(self,channel=None):
+        # get the dimensions of the data
+        # must open a valid channel and seek to the end
+        nsamples = None
+        return nsamples
+
+    def _get_nchannels(self):
+        # get the dimensions of the data
+        # must loop through directory identifying valid channels
+        nchannels = None
+        return nchannels
+
+    def _get_annotations(self):
+        # no annotations for raw data
+        annot = None
+        return annot
 
     def _get_params(self,dataroot):
         """Get parameters of the data from the dataroot."""
@@ -87,86 +103,56 @@ class RawBinWrapper(BaseWrapper):
         return params
         
 
-    def _load_data(self,channel,event_offsets,dur_samp,offset_samp):
+    def _load_data(self,channels,event_offsets,dur_samp,offset_samp):
         """
         """
 
-        # determine the file
-	eegfname = '%s.%03i' % (self.dataroot,channel)
-	if os.path.isfile(eegfname):
-	    efile = open(eegfname,'rb')
-	else:
-	    # try unpadded lead
-	    eegfname = '%s.%i' % (self.dataroot,channel)
-	    if os.path.isfile(eegfname):
-		efile = open(eegfname,'rb')
-	    else:
-		raise IOError(
-                    'EEG file not found for channel %i and file root %s\n' 
-                    % (channel,self.dataroot))
-                
         # allocate for data
-	eventdata = np.empty((len(event_offsets),dur_samp),
+        eventdata = np.empty((len(channels),len(event_offsets),dur_samp),
                              dtype=np.float)*np.nan
 
-	# loop over events
-	for e,evOffset in enumerate(event_offsets):
-	    # seek to the position in the file
-	    thetime = offset_samp+evOffset
-	    efile.seek(self.nBytes*thetime,0)
+        # loop over channels
+        for c,channel in enumerate(channels):
+            # determine the file
+            eegfname = '%s.%03i' % (self.dataroot,channel)
+            if os.path.isfile(eegfname):
+                efile = open(eegfname,'rb')
+            else:
+                # try unpadded lead
+                eegfname = '%s.%i' % (self.dataroot,channel)
+                if os.path.isfile(eegfname):
+                    efile = open(eegfname,'rb')
+                else:
+                    raise IOError(
+                        'EEG file not found for channel %i and file root %s\n' 
+                        % (channel,self.dataroot))
 
-	    # read the data
-	    data = efile.read(int(self.nBytes*dur_samp))
+            # loop over events
+            for e,evOffset in enumerate(event_offsets):
+                # seek to the position in the file
+                thetime = offset_samp+evOffset
+                efile.seek(self.nBytes*thetime,0)
 
-	    # convert from string to array based on the format
-	    # hard codes little endian
-	    data = np.array(struct.unpack('<'+str(len(data)/self.nBytes)+
-                                          self.fmtStr,data))
+                # read the data
+                data = efile.read(int(self.nBytes*dur_samp))
 
-	    # make sure we got some data
-	    if len(data) < dur_samp:
-		raise IOError('Event with offset '+str(evOffset)+
-                              ' is outside the bounds of file '+str(eegfname))
+                # convert from string to array based on the format
+                # hard codes little endian
+                data = np.array(struct.unpack('<'+str(len(data)/self.nBytes)+
+                                              self.fmtStr,data))
 
-	    # append it to the events
-            eventdata[e,:] = data
+                # make sure we got some data
+                if len(data) < dur_samp:
+                    raise IOError('Event with offset '+str(evOffset)+
+                                  ' is outside the bounds of file '+str(eegfname))
+
+                # append it to the events
+                eventdata[c,e,:] = data
 
         # multiply by the gain
 	eventdata *= self.gain
 	
         return eventdata
-
-    def _load_all_data(self,channel):
-        """
-        """
-        # determine the file
-	eegfname = '%s.%03i' % (self.dataroot,channel)
-	if os.path.isfile(eegfname):
-	    efile = open(eegfname,'rb')
-	else:
-	    # try unpadded lead
-	    eegfname = '%s.%i' % (self.dataroot,channel)
-	    if os.path.isfile(eegfname):
-		efile = open(eegfname,'rb')
-	    else:
-		raise IOError(
-                    'EEG file not found for channel %i and file root %s\n' 
-                    % (channel,self.dataroot))
-
-        # read the all the data
-        efile.seek(0,0)
-        data = efile.read()
-
-        # convert from string to array based on the format
-        # hard codes little endian
-        data = np.array(struct.unpack('<'+str(len(data)/self.nBytes)+
-                                      self.fmtStr,data))
-
-        # apply the gain
-        data *= self.gain
-
-        # return it
-        return data
 
 
 def createEventsFromMatFile(matfile):
