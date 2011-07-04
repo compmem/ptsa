@@ -23,8 +23,8 @@ def buttfilt(dat,freq_range,sample_rate,filt_type,order,axis=-1):
     dat = asarray(dat)
 
     # reshape the data to 2D with time on the 2nd dimension
-    origshape = dat.shape
-    dat = reshape_to_2d(dat,axis)
+    #origshape = dat.shape
+    #dat = reshape_to_2d(dat,axis)
 
     # set up the filter
     freq_range = asarray(freq_range)
@@ -36,12 +36,12 @@ def buttfilt(dat,freq_range,sample_rate,filt_type,order,axis=-1):
     [b,a]=butter(order,freq_range/nyq,filt_type)
 
     # loop over final dimension
-    for i in xrange(dat.shape[0]):
-        dat[i] = filtfilt(b,a,dat[i])
-    #dat = filtfilt2(b,a,dat)
+    #for i in xrange(dat.shape[0]):
+    #    dat[i] = filtfilt(b,a,dat[i])
+    dat = filtfilt2(b,a,dat,axis=axis)
 
     # reshape the data back
-    dat = reshape_from_2d(dat,axis,origshape)
+    #dat = reshape_from_2d(dat,axis,origshape)
     return dat
 
 ######
