@@ -115,7 +115,7 @@ class HDF5Wrapper(BaseWrapper):
         f = h5py.File(self.filepath,'a')
         if self.annotations_name in f:
             del f[self.annotations_name]
-        f.create_dataset()
+
         a = f.create_dataset(self.annotations_name,
                              data=annotations, **self.hdf5opts)
         f.close()
