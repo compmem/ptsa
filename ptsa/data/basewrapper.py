@@ -18,12 +18,7 @@ class BaseWrapper(object):
     """
     Base class to provide interface to data.  
     """
-    # properties
-    samplerate = property(_get_samplerate)
-    nsamples = property(_get_nsamples)
-    nchannels = property(_get_nchannels)
-    annotations = property(_get_annotations)
-    
+
     # required methods that the child class must define.
     def _get_samplerate(self,channel=None):
         """
@@ -81,6 +76,13 @@ class BaseWrapper(object):
         """
         raise NotImplementedError
         
+    def _set_annotations(self, annotations):
+        """
+        Set the annotations associated with the dataset.
+
+        """
+        raise NotImplementedError
+        
     def _load_data(self,channels,event_offsets,dur_samp,offset_samp):
         """
         Method for loading data that each child wrapper class must
@@ -117,7 +119,7 @@ class BaseWrapper(object):
         """
         """
         raise NotImplementedError
-    
+            
     def get_event_data(self,channels,event_offsets,
                        start_time,end_time,buffer_time=0.0,
                        resampled_rate=None,
@@ -158,6 +160,7 @@ class BaseWrapper(object):
         # translate back to dur and offset
         dur = end_time - start_time
         offset = start_time
+        buf = buffer_time
         
         # Sanity checks:
         if(dur<0):
@@ -171,7 +174,7 @@ class BaseWrapper(object):
         
         # set event durations from rate
         # get the samplesize
-        samplesize = 1./self.get_samplerate(channel)
+        samplesize = 1./self.samplerate
 
         # get the number of buffer samples
         buf_samp = int(np.ceil(buf/samplesize))
@@ -198,7 +201,7 @@ class BaseWrapper(object):
                              str(len(bad_evs))+' events.')
 
         # process the channels
-        if channels is None:
+        if channels is None or len(channels)==0:
             channels = np.arange(self.nchannels)
         channels = np.atleast_1d(channels)
 
@@ -240,32 +243,38 @@ class BaseWrapper(object):
         # return the timeseries
         return eventdata
 
-    def get_all_data(self,channels,
-                     resampled_rate=None,
-                     filt_freq=None,filt_type='stop',filt_order=4):
+    def get_all_data(self):
         """
-        Return an TimeSeries containing data for the specified channel
-        in the form [events,duration].
-
-        Parameters
-        ----------
-        channels: {list,int}
-            Channels from which to load data.
-        resampled_rate: {float},optional
-            New samplerate to resample the data to after loading.
-        filt_freq: {array_like},optional
-            The range of frequencies to filter (depends on the filter
-            type.)
-        filt_type = {scipy.signal.band_dict.keys()},optional
-            Filter type.
-        filt_order = {int},optional
-            The order of the filter.
+        Return a TimeSeries containing all the data.
         """
+        channels = np.arange(self.nchannels)
+        dur_samp = self.nsamples
+        data = self._load_data(channels,[0],dur_samp,0)
+        # remove events dimension
+        data = data[:,0,:]
 
-        return get_event_data(self,channels,[0],
-                              0.0,self.nsamples/self.samplerate,0.0,
-                              resampled_rate=resampled_rate,
-                              filt_freq=filt_freq,
-                              filt_type=filt_type,
-                              filt_order=filt_order,
-                              keep_buffer=True)
+        # turn it into a TimeSeries
+        # get the samplesize
+        samplesize = 1./self.samplerate
+
+        # set timerange
+        samp_start = 0*samplesize
+        samp_end = samp_start + (dur_samp-1)*samplesize
+        time_range = np.linspace(samp_start,samp_end,dur_samp)
+
+	# make it a timeseries
+        dims = [Dim(channels,'channels'),
+                Dim(time_range,'time')]
+        data = TimeSeries(np.asarray(data),
+                          'time',
+                          self.samplerate,dims=dims)
+
+        return data
+    
+    # class properties
+    samplerate = property(lambda self: self._get_samplerate())
+    nsamples = property(lambda self: self._get_nsamples())
+    nchannels = property(lambda self: self._get_nchannels())
+    annotations = property(lambda self: self._get_annotations(),
+                           lambda self,annot: self._set_annotations(annot))
+    data = property(lambda self: self.get_all_data())

@@ -30,7 +30,8 @@ class HDF5Wrapper(BaseWrapper):
         self.filepath = filepath
         self.dataset_name = dataset_name
         self.annotations_name = annotations_name
-
+        self.hdf5opts = hdf5opts
+        
         # see if create dataset
         if create_dataset:
             # must provide samplerate, nchannels, and data (or dtype)
@@ -108,6 +109,16 @@ class HDF5Wrapper(BaseWrapper):
             annot = None
         f.close()
         return annot
+
+    def _set_annotations(self, annotations):
+        # get the dimensions of the data
+        f = h5py.File(self.filepath,'a')
+        if self.annotations_name in f:
+            del f[self.annotations_name]
+        f.create_dataset()
+        a = f.create_dataset(self.annotations_name,
+                             data=annotations, **self.hdf5opts)
+        f.close()
 
     def _load_data(self,channels,event_offsets,dur_samp,offset_samp):
         """        
