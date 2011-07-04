@@ -140,7 +140,7 @@ class BaseWrapper(object):
             Start of epoch to retrieve (in time-unit of the data).
         end_time: {float}
             End of epoch to retrieve (in time-unit of the data).
-        buffer_time: {float}
+        buffer_time: {float},optional
             Extra buffer to add on either side of the event in order
             to avoid edge effects when filtering (in time unit of the
             data).

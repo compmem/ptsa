@@ -118,8 +118,8 @@ class Events(np.recarray):
         # return the new Events
         return np.rec.fromarrays(arrays,names=names).view(self.__class__)
 
-    ############  XXX MUST FIX THIS FOR NEW INTERFACE XXX #############
-    def get_data(self,channels,dur,offset,buf,resampled_rate=None,
+    def get_data(self,channels,start_time,end_time,buffer_time=0.0,
+                 resampled_rate=None,
                  filt_freq=None,filt_type='stop',filt_order=4,
                  keep_buffer=False,esrc='esrc',eoffset='eoffset'):
         """
@@ -128,15 +128,16 @@ class Events(np.recarray):
 
         Parameters
         ----------
-        channels: {list,int}
-            Channel from which to load data.
-        dur: {float}
-            Duration of the data to return (in time-unit of the data).
-        offset: {float}
-            Amount (in time-unit of data) to offset the data around the event.
-        buf: {float}
+        channels: {list,int,None}
+            Channels from which to load data.
+        start_time: {float}
+            Start of epoch to retrieve (in time-unit of the data).
+        end_time: {float}
+            End of epoch to retrieve (in time-unit of the data).
+        buffer_time: {float},optional
             Extra buffer to add on either side of the event in order
-            to avoid edge effects when filtering (in time unit of the data).
+            to avoid edge effects when filtering (in time unit of the
+            data).
         resampled_rate: {float},optional
             New samplerate to resample the data to after loading.
         filt_freq: {array_like},optional
@@ -187,11 +188,11 @@ class Events(np.recarray):
 
             #print "Loading %d events from %s" % (ind.sum(),src)
             # get the timeseries for those events            
-            eventdata.append(src.get_event_data(channel,
+            eventdata.append(src.get_event_data(channels,
                                                 event_offsets,
-                                                dur,
-                                                offset,
-                                                buf,
+                                                start_time,
+                                                end_time,
+                                                buffer_time,
                                                 resampled_rate,
                                                 filt_freq,
                                                 filt_type,
@@ -200,11 +201,12 @@ class Events(np.recarray):
             
         # concatenate (must eventually check that dims match)
         tdim = eventdata[0]['time']
+        cdim = eventdata[0]['channels']
         srate = eventdata[0].samplerate
         events = np.concatenate(events).view(self.__class__)
-        eventdata = TimeSeries(np.concatenate(eventdata),
+        eventdata = TimeSeries(np.concatenate(eventdata,axis=1),
                                'time', srate,
-                               dims=[Dim(events,'events'),tdim])
+                               dims=[cdim,Dim(events,'events'),tdim])
         
         return eventdata
 
