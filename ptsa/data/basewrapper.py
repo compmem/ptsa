@@ -16,7 +16,10 @@ import numpy as np
 
 class BaseWrapper(object):
     """
-    Base class to provide interface to data.  
+    Base class to provide interface to data.  Child classes will
+    provide methods to return data, samplerate, nsamples, nchannels,
+    annotations, and channel information.  The annotations and channel
+    information will typically be recarrays.
     """
 
     # required methods that the child class must define.

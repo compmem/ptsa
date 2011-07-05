@@ -7,12 +7,13 @@
 #
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ##
 
-# local imports
-from basewrapper import BaseWrapper
-
 # global imports
 import numpy as np
 import h5py
+
+# local imports
+from basewrapper import BaseWrapper
+from timeseries import TimeSeries
 
 class HDF5Wrapper(BaseWrapper):
     """
@@ -20,11 +21,20 @@ class HDF5Wrapper(BaseWrapper):
     """
     def __init__(self, filepath, dataset_name='data',
                  annotations_name='annotations',
-                 create_dataset=False,
+                 data=None, dtype=None, 
                  samplerate=None, nchannels=None, nsamples=None,
-                 data=None, dtype=np.float32, annotations=None, **hdf5opts):
+                 annotations=None, **hdf5opts):
         """
         Initialize the interface to the data.
+
+        Much documentation is needed here.
+
+        For example, here is one way to create an HDF5 dataset from a
+        TimeSeries instance:
+        
+        HDF5Wrapper('data.hdf5', data=data, compression='gzip')
+        
+        
         """
         # set up the basic params of the data
         self.filepath = filepath
@@ -33,9 +43,9 @@ class HDF5Wrapper(BaseWrapper):
         self.hdf5opts = hdf5opts
         
         # see if create dataset
-        if create_dataset:
+        self._replace_data = False
+        if (not data is None) or (not dtype is None):
             # must provide samplerate, nchannels, and data (or dtype)
-            # XXX eventually put in sanity checks for them
             # connect to the file and get the dataset
             f = h5py.File(self.filepath,'a')
 
@@ -46,17 +56,23 @@ class HDF5Wrapper(BaseWrapper):
                 # must provide either data or dtype/nchannels
                 if data is None:
                     # use dtype and nchannels
+                    # eventually add sanity check for them
                     if nsamples is None:
                         nsamples = 1
                     d = f.create_dataset(self.dataset_name,
                                          (nchannels,nsamples),
                                          dtype=dtype,**hdf5opts)
+                    self._replace_data = True
                 else:
                     # use the data
                     d = f.create_dataset(self.dataset_name,
-                                         data=data, **hdf5opts)
+                                         data=np.asarray(data),
+                                         **hdf5opts)
             if not 'samplerate' in d.attrs:
                 # must have provided samplerate
+                if isinstance(data, TimeSeries):
+                    # get the samplerate from the TimeSeries
+                    samplerate = data.samplerate
                 if samplerate is None:
                     raise ValueError("You must specify a samplerate " +
                                      "if the dataset does not already exist.")
@@ -164,7 +180,10 @@ class HDF5Wrapper(BaseWrapper):
                              d.shape[0])
 
         # reshape to hold new data
-        cursamp = d.shape[1]
+        if self._replace_data:
+            cursamp = 0
+        else:
+            cursamp = d.shape[1]
         newsamp = data.shape[1]
         d.shape = (d.shape[0], cursamp+newsamp)
 
@@ -177,7 +196,7 @@ class HDF5Wrapper(BaseWrapper):
     def set_channel_data(self, channel, data):
         """
         Set the data for an entire channel.  Will reshape the nsamples
-        of the entire dataset to match.
+        of the entire dataset to match, throwing out data if smaller.
         """
         # connect to the file and get the dataset
         f = h5py.File(self.filepath,'a')
