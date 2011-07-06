@@ -198,7 +198,7 @@ class Events(np.recarray):
                                         filt_freq,
                                         filt_type,
                                         filt_order,
-                                        keep_buffer))
+                                        keep_buffer)
             if eventdata is None:
                 eventdata = newdat
             else:
