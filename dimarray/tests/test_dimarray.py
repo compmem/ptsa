@@ -490,9 +490,152 @@ class test_DimArray(TestCase):
         assert_array_equal(ndat.dims[0],d)
         assert_array_equal(ndat.dims[1],dat.dims[0])
 
+    def test_extend(self):
+        """Test the extend method"""
+        # make ndarrays and DimArrays with identical data
+        arr1 = np.arange(256).reshape((4,4,4,4))
+        dat1 = DimArray(arr1,dims=[Dim(np.arange(100,500,100),name='one'),
+                                   Dim(np.arange(30,70,10),name='two'),
+                                   Dim(np.arange(4),name='three'),
+                                   Dim(np.arange(1000,1200,50),name='four')],
+                        test='tst')
+        arr2 = np.arange(256,512).reshape((4,4,4,4))
+        dat2 = DimArray(arr2,dims=[Dim(np.arange(100,500,100),name='one'),
+                                   Dim(np.arange(30,70,10),name='two'),
+                                   Dim(np.arange(4,8),name='three'),
+                                   Dim(np.arange(1000,1200,50),name='four')],
+                        test='tst')
+        # extend
+        dat1dat2 = dat1.extend(dat2,'three')
+        arr1arr2 = np.concatenate([arr1,arr2],2)
+        assert_array_equal(dat1dat2,arr1arr2)
+        
+        # # test making bins on all dimensions:
+        # test1a = dat.make_bins('one',2,np.mean)
+        # assert_array_equal(test1a.dims[0],np.array([150,350]))
+        # test1b = dat.make_bins(0,2,np.mean,bin_labels='sequential')
+        # assert_array_equal(test1b.dims[0],np.array([0,1]))
+        # assert_array_equal(test1a,test1b)
+        # test2a = dat.make_bins('two',2,np.mean)
+        # assert_array_equal(test2a.dims[1],np.array([35,55]))
+        # test2b = dat.make_bins(1,2,np.mean,bin_labels=['a','b'])
+        # assert_array_equal(test2b.dims[1],np.array(['a','b']))
+        # assert_array_equal(test2a,test2b)
+        # test3a = dat.make_bins('three',2,np.mean,bin_labels='function')
+        # assert_array_equal(test3a.dims[2],np.array([0.5,2.5]))
+        # test3b = dat.make_bins(2,2,np.mean)
+        # assert_array_equal(test3b.dims[2],np.array([0.5,2.5]))
+        # assert_array_equal(test3a,test3b)
+        # test4a = dat.make_bins('four',2,np.mean)
+        # assert_array_equal(test4a.dims[3],np.array([1025,1125]))
+        # test4b = dat.make_bins(3,2,np.mean)
+        # assert_array_equal(test4b.dims[3],np.array([1025,1125]))
+        # assert_array_equal(test4a,test4b)
+        # # test specifiying bins:
+        # test4c = dat.make_bins('four',[[1000,1100],[1100,2000]],np.mean)
+        # test4d = dat.make_bins(3,[[1000,1100],[1100,2000]],np.mean)
+        # assert_array_equal(test4c,test4d)
+        # assert_array_equal(test4a,test4d)
+
+        # split = np.split
+        # # compare output to reproduced output for ndarray:
+        # test1c = np.array(split(arr,2,axis=0)).mean(1)
+        # assert_array_equal(test1a,test1c)
+        # test2c = np.array(split(arr,2,axis=1)).mean(2).transpose([1,0,2,3])
+        # assert_array_equal(test2a,test2c)
+        # test3c = np.array(split(arr,2,axis=2)).mean(3).transpose([1,2,0,3])
+        # assert_array_equal(test3a,test3c)
+        # test4e = np.array(split(arr,2,axis=3)).mean(4).transpose([1,2,3,0])
+        # assert_array_equal(test4a,test4e)
+
+        # # compare sequential applications of make_bins to desired output:
+        # test12a = test1a.make_bins('two',2,np.mean)
+        # assert_array_equal(test1a.dims[0],test12a.dims[0])
+        # assert_array_equal(test2a.dims[1],test12a.dims[1])
+        # test21a = test2a.make_bins('one',2,np.mean)
+        # assert_array_equal(test1a.dims[0],test21a.dims[0])
+        # assert_array_equal(test2a.dims[1],test21a.dims[1])
+        # assert_array_equal(test12a,test21a)
+        # test12b = test1a.make_bins(1,2,np.mean)
+        # assert_array_equal(test1a.dims[0],test12b.dims[0])
+        # assert_array_equal(test2a.dims[1],test12b.dims[1])
+        # test21b = test2a.make_bins(0,2,np.mean)
+        # assert_array_equal(test1a.dims[0],test21b.dims[0])
+        # assert_array_equal(test2a.dims[1],test21b.dims[1])
+        # assert_array_equal(test12b,test21b)
+
+        # # check that attributes are preserved:
+        # for a in dat._attrs:
+        #     if a == 'dims': continue
+        #     self.assertEqual(dat.__getattribute__(a),
+        #                      test1a.__getattribute__(a))
+        #     self.assertEqual(dat.__getattribute__(a),
+        #                      test1b.__getattribute__(a))
+        #     self.assertEqual(dat.__getattribute__(a),
+        #                      test2a.__getattribute__(a))
+        #     self.assertEqual(dat.__getattribute__(a),
+        #                      test2b.__getattribute__(a))
+        #     self.assertEqual(dat.__getattribute__(a),
+        #                      test3a.__getattribute__(a))
+        #     self.assertEqual(dat.__getattribute__(a),
+        #                      test3b.__getattribute__(a))
+        #     self.assertEqual(dat.__getattribute__(a),
+        #                      test4a.__getattribute__(a))
+        #     self.assertEqual(dat.__getattribute__(a),
+        #                      test4b.__getattribute__(a))
+        #     self.assertEqual(dat.__getattribute__(a),
+        #                      test4d.__getattribute__(a))
+        #     self.assertEqual(dat.__getattribute__(a),
+        #                      test12a.__getattribute__(a))
+        #     self.assertEqual(dat.__getattribute__(a),
+        #                      test12b.__getattribute__(a))
+        #     self.assertEqual(dat.__getattribute__(a),
+        #                      test21a.__getattribute__(a))
+        #     self.assertEqual(dat.__getattribute__(a),
+        #                      test21b.__getattribute__(a))
+        # for d,dn in enumerate(dat.dim_names):
+        #     self.assertEquals(test1a.dim_names[d],dn)
+        #     self.assertEquals(test1b.dim_names[d],dn)
+        #     self.assertEquals(test2a.dim_names[d],dn)
+        #     self.assertEquals(test2b.dim_names[d],dn)
+        #     self.assertEquals(test3a.dim_names[d],dn)
+        #     self.assertEquals(test3b.dim_names[d],dn)
+        #     self.assertEquals(test4a.dim_names[d],dn)
+        #     self.assertEquals(test4b.dim_names[d],dn)
+        #     self.assertEquals(test12a.dim_names[d],dn)
+        #     self.assertEquals(test12b.dim_names[d],dn)
+        #     self.assertEquals(test21a.dim_names[d],dn)
+        #     self.assertEquals(test21b.dim_names[d],dn)
+
+        # # test unequal bins:
+        # arr = np.arange(256).reshape((4,16,4))
+        # dat = DimArray(arr,dims=[Dim(np.arange(4),name='one'),
+        #                          Dim(np.arange(16),name='two'),
+        #                          Dim(np.arange(4),name='three')],test='tst')
+        
+        # self.assertRaises(ValueError,dat.make_bins,'two',3,np.mean)
+        # test5a = dat.make_bins('two',3,np.mean,bin_labels=['1st','2nd','3rd'],
+        #                        error_on_nonexact=False)
+        # test5b = dat.make_bins(1,[[0,6,'1st'],[6,11,'2nd'],[11,16,'3rd']],
+        #                        np.mean)
+        # assert_array_equal(test5a,test5b)
+        # assert_array_equal(test5a.dims[1],np.array(['1st','2nd','3rd']))
+        # assert_array_equal(test5a.dims[1],test5b.dims[1])
+        # # check that attributes are preserved:
+        # for a in dat._attrs:
+        #     if a == 'dims': continue
+        #     self.assertEqual(dat.__getattribute__(a),
+        #                      test5a.__getattribute__(a))
+        #     self.assertEqual(dat.__getattribute__(a),
+        #                      test5b.__getattribute__(a))
+        # for d,dn in enumerate(dat.dim_names):
+        #     self.assertEquals(test5a.dim_names[d],dn)
+        #     self.assertEquals(test5b.dim_names[d],dn)
+        
+            
     def test_make_bins(self):
         """Test the make_bins method"""
-        # make ndarray an Dimaray with identical data
+        # make ndarray and DimArray with identical data
         arr = np.arange(256).reshape((4,4,4,4))
         dat = DimArray(arr,dims=[Dim(np.arange(100,500,100),name='one'),
                                  Dim(np.arange(30,70,10),name='two'),

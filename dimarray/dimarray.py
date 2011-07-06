@@ -841,15 +841,67 @@ class DimArray(AttrArray):
                              "container of min and max values and (optionally)" +
                              " a label for each bin. Provided bins: "+str(bins))
 
-    
-    def extend(self, data, axis):
+    def extend(self, data, axis=0):
         """
-        Extend a DimArray along a specified axis with another
-        DimArray.  The non-extended axis dimensions must all match
-        exactly.
+        Extend a DimArray along a specified axis.
+
+        Parameters
+        ----------
+        data : sequence of {DimArray} objects or single {DimArray}
+            The DimArrays must have the same dimensions as the current
+            DimArray, except for the dimension corresponding to `axis`
+            (the first, by default).
+        axis : {int,str},optional
+            The axis along which the DimArray objects will be joined.
+
+        Returns
+        -------
+        result : DimArray
+            A new DimArray instance extended as specified and of the
+            same class as the current object.
+
+        Notes
+        -----
+        Only the attributes of the current object are preserved (with
+        the exception of the updated dimension).
         """
-        raise NotImplementedError("Coming soon!")
+        # make sure we have a list
+        if isinstance(data,DimArray):
+            data = [data]
+        else:
+            data = list(data)
+
+        # make sure we have an axis number:
+        axis = self.get_axis(axis)
+
+        # make sure all dim_names match:
+        dim_names_deviations = [np.sum(d.dim_names!=self.dim_names) for d in data]
+        if np.sum(dim_names_deviations)>0:
+            raise ValueError('Names of the dimensions do not match!')
+                
+        # make sure all dims except for the extended one match:
+        dim_deviations = [np.sum(d.dims!=self.dims) for d in data]
+        if np.sum(dim_deviations)>1:
+            raise ValueError('Dimensions do not match!')
+                
+        # add the current DimArray to the beginning of list:
+        data.insert(0,self)
+        # convert all items to AttrArray view (necessary for call to
+        # np.concatenate which transposes the arrays using the numpy
+        # functions rather than the DimArray functions):
+        data = [d.view(AttrArray) for d in data]
+        dim_names = [d.name for dat in data for d in dat.dims]
         
+        # list of dims to be concatenated:
+        conc_dims = [d.dims[axis] for d in data]
+
+        # create new array:
+        result = np.concatenate(data,axis=axis).view(AttrArray)
+        result._attrs = self._attrs
+        result.__array_finalize__(self)
+        # update dims & return:
+        result.dims[axis] = Dim(np.concatenate(conc_dims),self.dim_names[axis])
+        return result.view(self.__class__)        
 
     def add_dim(self, dim):
         """
@@ -1086,15 +1138,17 @@ class DimArray(AttrArray):
     def transpose(self, *axes):
         axes = np.squeeze(axes)
         # PBS (I think this was wrong):if len(axes.shape)==len(self):
-        if len(axes) == self.ndim:
-            axes = [self.get_axis(a) for a in axes]
-            ret = self.view(AttrArray).transpose(*axes)
-            #ret.dims = [ret.dims[a] for a in axes]
-            ret.dims = ret.dims[axes]
-        else:
-            ret = self.view(AttrArray).transpose()
-            #ret.dims.reverse()
-            ret.dims = ret.dims[-1::-1]
+        if(len(np.shape(axes))>0): # needs to be evaluated separately
+                                   # b/c len(axes) won't work on None
+            if(len(axes) == self.ndim):
+                axes = [self.get_axis(a) for a in axes]
+                ret = self.view(AttrArray).transpose(*axes)
+                # ret.dims = [ret.dims[a] for a in axes]
+                ret.dims = ret.dims[axes]
+                return ret.view(self.__class__)     
+        ret = self.view(AttrArray).transpose()
+        # ret.dims.reverse()
+        ret.dims = ret.dims[-1::-1]
         return ret.view(self.__class__)
 
     def var(self, axis=None, dtype=None, out=None, ddof=0):
@@ -1102,7 +1156,6 @@ class DimArray(AttrArray):
         ret = self.view(AttrArray).var(axis=axis, dtype=dtype,
                                        out=out, ddof=ddof)
         return self._ret_func(ret,axis)
-
 
 # set the doc strings
 
