@@ -175,6 +175,7 @@ class Events(np.recarray):
         usources = np.unique1d(self[esrc])
 
         # loop over unique sources
+        eventdata = None
         for src in usources:
             # get the eventOffsets from that source
             ind = np.atleast_1d(self[esrc]==src)
@@ -187,24 +188,28 @@ class Events(np.recarray):
                 events.append(self[ind])
 
             #print "Loading %d events from %s" % (ind.sum(),src)
-            # get the timeseries for those events            
-            eventdata.append(src.get_event_data(channels,
-                                                event_offsets,
-                                                start_time,
-                                                end_time,
-                                                buffer_time,
-                                                resampled_rate,
-                                                filt_freq,
-                                                filt_type,
-                                                filt_order,
-                                                keep_buffer))
+            # get the timeseries for those events
+            newdat = src.get_event_data(channels,
+                                        event_offsets,
+                                        start_time,
+                                        end_time,
+                                        buffer_time,
+                                        resampled_rate,
+                                        filt_freq,
+                                        filt_type,
+                                        filt_order,
+                                        keep_buffer))
+            if eventdata is None:
+                eventdata = newdat
+            else:
+                eventdata.extend(newdat,axis=1)
             
         # concatenate (must eventually check that dims match)
-        tdim = eventdata[0]['time']
-        cdim = eventdata[0]['channels']
-        srate = eventdata[0].samplerate
+        tdim = eventdata['time']
+        cdim = eventdata['channels']
+        srate = eventdata.samplerate
         events = np.concatenate(events).view(self.__class__)
-        eventdata = TimeSeries(np.concatenate(eventdata,axis=1),
+        eventdata = TimeSeries(eventdata,
                                'time', srate,
                                dims=[cdim,Dim(events,'events'),tdim])
         
