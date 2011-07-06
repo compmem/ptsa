@@ -21,9 +21,10 @@ class HDF5Wrapper(BaseWrapper):
     """
     def __init__(self, filepath, dataset_name='data',
                  annotations_name='annotations',
+                 channel_info_name='channel_info',
                  data=None, dtype=None, 
                  samplerate=None, nchannels=None, nsamples=None,
-                 annotations=None, **hdf5opts):
+                 annotations=None, channel_info=None, **hdf5opts):
         """
         Initialize the interface to the data.
 
@@ -87,7 +88,16 @@ class HDF5Wrapper(BaseWrapper):
                                      self.annotations_name)
                 a = f.create_dataset(self.annotations_name,
                                      data=annotations, **hdf5opts)
-            
+
+            # create channel_info if necessary
+            if not channel_info is None:
+                if self.channel_info_name in f:
+                    raise ValueError("Told to create dataset channel_info, " +
+                                     "but %s already exists." %
+                                     self.channel_info_name)
+                a = f.create_dataset(self.channel_info_name,
+                                     data=channel_info, **hdf5opts)
+
             # close the hdf5 file
             f.close()
             
@@ -134,6 +144,26 @@ class HDF5Wrapper(BaseWrapper):
 
         a = f.create_dataset(self.annotations_name,
                              data=annotations, **self.hdf5opts)
+        f.close()
+
+    def _get_channel_info(self):
+        # get the dimensions of the data
+        f = h5py.File(self.filepath,'r')
+        if self.channel_info_name in f:
+            chan_info = f[self.channel_info_name][:]
+        else:
+            chan_info = None
+        f.close()
+        return chan_info
+
+    def _set_channel_info(self, channel_info):
+        # get the dimensions of the data
+        f = h5py.File(self.filepath,'a')
+        if self.channel_info_name in f:
+            del f[self.channel_info_name]
+
+        a = f.create_dataset(self.channel_info_name,
+                             data=channel_info, **self.hdf5opts)
         f.close()
 
     def _load_data(self,channels,event_offsets,dur_samp,offset_samp):

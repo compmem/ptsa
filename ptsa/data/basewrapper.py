@@ -86,6 +86,24 @@ class BaseWrapper(object):
         """
         raise NotImplementedError
         
+    def _get_channel_info(self):
+        """
+        Returns the channel info associated with the dataset.
+
+        Returns
+        -------
+        channel_info : {array-like}
+            Channel_info
+        """
+        raise NotImplementedError
+        
+    def _set_channel_info(self, channel_info):
+        """
+        Set the channel info associated with the dataset.
+
+        """
+        raise NotImplementedError
+        
     def _load_data(self,channels,event_offsets,dur_samp,offset_samp):
         """
         Method for loading data that each child wrapper class must
@@ -280,4 +298,6 @@ class BaseWrapper(object):
     nchannels = property(lambda self: self._get_nchannels())
     annotations = property(lambda self: self._get_annotations(),
                            lambda self,annot: self._set_annotations(annot))
+    channel_info = property(lambda self: self._get_channel_info(),
+                            lambda self,chan_info: self._set_channel_info(chan_info))
     data = property(lambda self: self.get_all_data())
