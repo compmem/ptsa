@@ -222,7 +222,7 @@ class BaseWrapper(object):
                              str(len(bad_evs))+' events.')
 
         # process the channels
-        if channels is None or len(channels)==0:
+        if channels is None or len(np.atleast_1d(channels))==0:
             channels = np.arange(self.nchannels)
         channels = np.atleast_1d(channels)
 

@@ -13,6 +13,7 @@
 import os
 import csv
 import numpy as np
+from basewrapper import BaseWrapper
 
 def load_pyepl_eeg_pulses(logfile):
     """
@@ -55,6 +56,10 @@ def align_pyepl(wrappedfile, eeglog, events, annot_id='S255',
 
     It returns the updated Events.
     """
+
+    if(not isinstance(wrappedfile,BaseWrapper)):
+        raise ValueError('BaseWrapper instance required!')
+    
     # point to wrapper
     w = wrappedfile
 
