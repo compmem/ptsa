@@ -1,17 +1,30 @@
-What do we want in ptsa?
+Short-term goals
+----------------
 
-1) Finish unit tests.
-   a) make sure all code is tested
-   b) clean up existing unit tests.
+1) Rereferencing code (may not be immediately necessary)
+
+2) WICA eyeblink correction code (and also simple eyeblink id code).
+
+3) Save DimArray to HDF5 files (and back with fancy indexing).
+
+4) Redo DimArray and Dim to have Pythonic indexing:
+   
+   x[(x.time > 0)&(x.time < 1.0)&(x.channels == 'Cz')]
+
+   instead of
+
+   x['(time > 0)&(time < 1.0)', 'channels == "Cz"']
+
+5) Casting of HDF5Wrapper to int16 with scale factor to save space.
+
+6) Fix topoplot issues (look at PyMVPA for hints).
+
+7) Partial Least Squares
+
+8) 
 
 
 
-Testing of code.
-
-Save to files.  For right now we will just save to pickle files using
-the numpy.dump and numpy.save and load them with numpy.load.  The
-negative of this is that they are not very portable (sometimes you can
-not move them to different machines.)
 
 Redo fancy 3D scalp and intracranial plots using VTK (for
 publications and other fun stuph.)
@@ -28,9 +41,9 @@ Frequency flows analysis.
 
 Maybe add in multitaper at some point, but probably not.
 
-Methods for extracting sync pulses and aligning events.
+Methods for extracting sync pulses and aligning events. (DONE)
 
-Artifact removal (blink detection, ...)
+Artifact removal (blink detection, artifact correction)
 
 
 Basic workflow:
