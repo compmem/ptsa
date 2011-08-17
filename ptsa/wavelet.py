@@ -18,6 +18,111 @@ from ptsa.helper import reshape_to_2d,reshape_from_2d
 from ptsa.data import TimeSeries,Dim
 from ptsa.fixed_scipy import morlet as morlet_wavelet
 
+import pywt
+
+def swt(data, wavelet, level=None):
+    """
+    Stationary Wavelet Transform
+
+    This version is 2 orders of magnitude faster than the one in pywt
+    even though it uses pywt for all the calculations.
+    
+      Input parameters: 
+
+        data
+          One-dimensional data to transform
+        wavelet
+          Either the name of a wavelet or a Wavelet object
+        level
+          Number of levels
+
+    """
+    if level is None:
+        level = pywt.swt_max_level(len(data))
+    num_levels = level
+    idata = data.copy()
+    res = []
+    for j in range(1,num_levels+1): 
+        step_size = int(math.pow(2, j-1))
+        last_index = step_size
+        # allocate
+        cA = np.empty_like(data)
+        cD = np.empty_like(data)
+        for first in xrange(last_index): # 0 to last_index - 1
+            # Getting the indices that we will transform 
+            indices = np.arange(first, len(cD), step_size)
+
+            # select the even indices
+            even_indices = indices[0::2] 
+            # select the odd indices
+            odd_indices = indices[1::2] 
+            
+            # get the even
+            (cA1,cD1) = pywt.dwt(idata[indices], wavelet, 'per')
+            cA[even_indices] = cA1
+            cD[even_indices] = cD1
+
+            # then the odd
+            (cA1,cD1) = pywt.dwt(np.roll(idata[indices],-1), wavelet, 'per')
+            cA[odd_indices] = cA1
+            cD[odd_indices] = cD1
+
+        # set the data for the next loop
+        idata = cA
+
+        # prepend the result
+        res.insert(0,(cA,cD))
+
+    return res
+
+
+def iswt(coefficients, wavelet):
+    """
+    Inverse Stationary Wavelet Transform
+    
+      Input parameters: 
+
+        coefficients
+          approx and detail coefficients, arranged in level value 
+          exactly as output from swt:
+          e.g. [(cA1, cD1), (cA2, cD2), ..., (cAn, cDn)]
+
+        wavelet
+          Either the name of a wavelet or a Wavelet object
+
+    """
+    output = coefficients[0][0].copy() # Avoid modification of input data
+
+    #num_levels, equivalent to the decomposition level, n
+    num_levels = len(coefficients)
+    for j in range(num_levels,0,-1): 
+        step_size = int(math.pow(2, j-1))
+        last_index = step_size
+        _, cD = coefficients[num_levels - j]
+        for first in xrange(last_index): # 0 to last_index - 1
+
+            # Getting the indices that we will transform 
+            indices = np.arange(first, len(cD), step_size)
+
+            # select the even indices
+            even_indices = indices[0::2] 
+            # select the odd indices
+            odd_indices = indices[1::2] 
+
+            # perform the inverse dwt on the selected indices,
+            # making sure to use periodic boundary conditions
+            x1 = pywt.idwt(output[even_indices], cD[even_indices], wavelet, 'per') 
+            x2 = pywt.idwt(output[odd_indices], cD[odd_indices], wavelet, 'per') 
+
+            # perform a circular shift right
+            x2 = np.roll(x2, 1)
+
+            # average and insert into the correct indices
+            output[indices] = (x1 + x2)/2.  
+
+    return output
+
+
 def morlet_multi(freqs, widths, samplerates,
                  sampling_windows=7, complete=True):
     """
