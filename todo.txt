@@ -24,7 +24,29 @@ Short-term goals
 8) 
 
 
+Analysis steps:
+---------------
 
+ - Load all data with wrapper
+ - Downsample to 256 Hz
+ - Rereference (likely to average to retain all channels)
+ - Highpass filter at ~.5Hz
+ - Identify range with clean eyeblinks
+ - Run WICA to clean eyeblinks
+ - Save processed file out to HDF5 (with annotations)
+
+ - Align preprocessed data to experiment with events
+ - Load events of interest and calculate wavelet power
+ - Save to file (ideally DimArray to HDF5, but it's not ready)
+
+ - Get means for the conditions for each participant and run PLS
+ - Plot results
+ - Write paper
+ - Profit!!!
+
+
+Other ToDos:
+------------
 
 Redo fancy 3D scalp and intracranial plots using VTK (for
 publications and other fun stuph.)
@@ -43,10 +65,11 @@ Maybe add in multitaper at some point, but probably not.
 
 Methods for extracting sync pulses and aligning events. (DONE)
 
-Artifact removal (blink detection, artifact correction)
+Artifact removal (artifact correction) (DONE)
 
 
-Basic workflow:
+
+Old basic workflow:
 
  - We have a bunch of subjects who performed some task.
  - Events for each subject, allow us to access the eeg data.

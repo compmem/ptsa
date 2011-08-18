@@ -207,8 +207,9 @@ def wica_clean(data, samplerate=None, pure_range=(None,None),
 
     # expand signals to span the entire dataset if necessary
     if (not pure_range[0] is None) or (not pure_range[1] is None):
-        Xmean=data[:,pure_range[0]:pure_range[1]].mean(1)
-        signals = np.add(np.dot(W,data).T,np.dot(W,Xmean)).T
+        #Xmean=data[:,pure_range[0]:pure_range[1]].mean(1)
+        #signals = np.add(np.dot(W,data).T,np.dot(W,Xmean)).T
+        signals = np.dot(W,data)
 
     # pick which signals to clean (ones that weigh on EOG elecs)
     vals = np.sum(np.abs(A[EOG_elecs,:]),0)
@@ -216,7 +217,9 @@ def wica_clean(data, samplerate=None, pure_range=(None,None),
     ind = np.nonzero(vals>=std_thresh)[0]
     
     # remove strong artifacts
-    clean_signals,opt = remove_strong_artifacts(signals,ind,Kthr,samplerate)
+    clean_signals,opt = remove_strong_artifacts(signals,ind,Kthr,
+                                                samplerate,pure_range)
     
     # return cleaned data back in EEG space
     return np.dot(A,clean_signals).astype(data.dtype)
+
