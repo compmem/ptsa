@@ -19,7 +19,7 @@ class IWASOBI():
     AR sources in a fast way, allowing separation up to 100 sources
     in the running time of the order of tens of seconds.
 
-    Ported from MATLAB code by Jakub Petkov / Petr Tichavský
+    Ported from MATLAB code by Jakub Petkov / Petr Tichavsky
     """
     def __init__(self, ar_max=10, rmax=0.99, eps0=5.0e-7):
         """

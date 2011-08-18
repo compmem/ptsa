@@ -8,7 +8,6 @@
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ##
 
 import numpy as np
-import math
 import pywt
 import sys
 
@@ -27,7 +26,7 @@ def remove_strong_artifacts(data, Comp, Kthr=1.25, F=256,
     
     N.P. Castellanos, and V.A. Makarov (2006). 'Recovering EEG brain signals: Artifact 
     suppression with wavelet enhanced independent component analysis'
-    J. Neurosci. Methods, 158, 300–312.
+    J. Neurosci. Methods, 158, 300--312.
     
     % INPUT:
     %
@@ -168,7 +167,7 @@ def wica_clean(data, samplerate=None, pure_range=(None,None),
 
     N.P. Castellanos, and V.A. Makarov (2006). 'Recovering EEG brain signals: Artifact 
     suppression with wavelet enhanced independent component analysis'
-    J. Neurosci. Methods, 158, 300–312.
+    J. Neurosci. Methods, 158, 300--312.
 
     Instead of using the Infomax ICA algorithm, we use the (much much
     faster) IWASOBI algorithm.
@@ -198,7 +197,7 @@ def wica_clean(data, samplerate=None, pure_range=(None,None),
     # Run iwasobi
     sys.stdout.write("Running IWASOBI ICA...")
     sys.stdout.flush()
-    (W,Winit,ISR,signals) = iwasobi.iwasobi(data[:,pure_range[0]:pure_range[1]])
+    (W,Winit,ISR,signals) = iwasobi(data[:,pure_range[0]:pure_range[1]])
     #W = np.dot(W,Wpca)
     #A = np.linalg.pinv(W)
     A = np.linalg.inv(W)

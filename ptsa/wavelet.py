@@ -19,6 +19,7 @@ from ptsa.data import TimeSeries,Dim
 from ptsa.fixed_scipy import morlet as morlet_wavelet
 
 import pywt
+import math
 
 def swt(data, wavelet, level=None):
     """
