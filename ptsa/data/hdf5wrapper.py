@@ -58,7 +58,7 @@ class HDF5Wrapper(BaseWrapper):
             # use the data to create a dataset
             self.data_dtype = data.dtype
             d = f.create_dataset(self.dataset_name,
-                                 data=self._data_to_file(data,d),
+                                 data=self._data_to_file(data),
                                  **hdf5opts)
             d.attrs['data_dtype'] = data.dtype.char
             d.attrs['gain'] = self.gain
@@ -98,9 +98,9 @@ class HDF5Wrapper(BaseWrapper):
             # connect to the file and get info
             f = h5py.File(self.filepath,'r')
             d = f[self.dataset_name]
-            self.data_dtype = np.dtype(d.attrs['data_type'])
+            self.data_dtype = np.dtype(d.attrs['data_dtype'])
             self.file_dtype = d.dtype
-            self.gain = data.attrs['gain']
+            self.gain = d.attrs['gain']
             
     def _data_to_file(self, data):
         # process the datatypes
@@ -124,7 +124,7 @@ class HDF5Wrapper(BaseWrapper):
         else:
             return np.asarray(data,dtype=self.file_dtype)
 
-    def _data_from_file(self, data, h5data):
+    def _data_from_file(self, data):
         # see if apply gain we've already calculated
         if self.apply_gain and self.gain != 1.0:
             return np.asarray(data*self.gain, dtype=self.data_dtype)
@@ -217,7 +217,7 @@ class HDF5Wrapper(BaseWrapper):
             if ssamp < 0 or esamp > data.shape[1]:
                 raise IOError('Event with offset '+str(evOffset)+
                               ' is outside the bounds of the data.')
-            eventdata[:,e,:] = self._data_from_file([channels,ssamp:esamp])
+            eventdata[:,e,:] = self._data_from_file(data[channels,ssamp:esamp])
 
         # close the file
         f.close()
