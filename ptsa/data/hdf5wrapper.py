@@ -22,7 +22,7 @@ class HDF5Wrapper(BaseWrapper):
     def __init__(self, filepath, dataset_name='data',
                  annotations_name='annotations',
                  channel_info_name='channel_info',
-                 data=None, dtype=None, 
+                 data=None, file_dtype=None, apply_gain=True, gain_buffer=.005,
                  samplerate=None, nchannels=None, nsamples=None,
                  annotations=None, channel_info=None, **hdf5opts):
         """
@@ -41,34 +41,28 @@ class HDF5Wrapper(BaseWrapper):
         self.filepath = filepath
         self.dataset_name = dataset_name
         self.annotations_name = annotations_name
+        self.apply_gain = apply_gain
+        self.gain_buffer = gain_buffer
+        self.gain = None
         self.hdf5opts = hdf5opts
         
+        self.file_dtype = file_dtype
+        self.data_dtype = None
+        
         # see if create dataset
-        self._replace_data = False
-        if (not data is None) or (not dtype is None):
-            # must provide samplerate, nchannels, and data (or dtype)
+        if not data is None:
+            # must provide samplerate and data
             # connect to the file and get the dataset
             f = h5py.File(self.filepath,'a')
 
-            # create the dataset
-            if self.dataset_name in f:
-                d = f[self.dataset_name]
-            else:
-                # must provide either data or dtype/nchannels
-                if data is None:
-                    # use dtype and nchannels
-                    # eventually add sanity check for them
-                    if nsamples is None:
-                        nsamples = 1
-                    d = f.create_dataset(self.dataset_name,
-                                         (nchannels,nsamples),
-                                         dtype=dtype,**hdf5opts)
-                    self._replace_data = True
-                else:
-                    # use the data
-                    d = f.create_dataset(self.dataset_name,
-                                         data=np.asarray(data),
-                                         **hdf5opts)
+            # use the data to create a dataset
+            self.data_dtype = data.dtype
+            d = f.create_dataset(self.dataset_name,
+                                 data=self._data_to_file(data,d),
+                                 **hdf5opts)
+            d.attrs['data_dtype'] = data.dtype.char
+            d.attrs['gain'] = self.gain
+
             if not 'samplerate' in d.attrs:
                 # must have provided samplerate
                 if isinstance(data, TimeSeries):
@@ -95,12 +89,48 @@ class HDF5Wrapper(BaseWrapper):
                     raise ValueError("Told to create dataset channel_info, " +
                                      "but %s already exists." %
                                      self.channel_info_name)
-                a = f.create_dataset(self.channel_info_name,
+                c = f.create_dataset(self.channel_info_name,
                                      data=channel_info, **hdf5opts)
 
             # close the hdf5 file
             f.close()
+        else:
+            # connect to the file and get info
+            f = h5py.File(self.filepath,'r')
+            d = f[self.dataset_name]
+            self.data_dtype = np.dtype(d.attrs['data_type'])
+            self.file_dtype = d.dtype
+            self.gain = data.attrs['gain']
             
+    def _data_to_file(self, data):
+        # process the datatypes
+        if self.file_dtype is None:
+            # load from data
+            self.file_dtype = data.dtype
+
+        # process the gain
+        if self.gain is None:
+            # default to 1.0
+            self.gain = 1.0
+            # calc it if we are going from float to int
+            if (self.file_dtype.kind == 'i') and (self.data_dtype.kind == 'f'):
+                fr = np.iinfo(self.file_dtype).max*2
+                dr = np.abs(data).max()*2 * (1.+self.gain_buffer)
+                self.gain = dr/fr
+                
+        # calc and apply gain if necessary
+        if self.apply_gain and self.gain != 1.0:
+            return np.asarray(data/self.gain,dtype=self.file_dtype)
+        else:
+            return np.asarray(data,dtype=self.file_dtype)
+
+    def _data_from_file(self, data, h5data):
+        # see if apply gain we've already calculated
+        if self.apply_gain and self.gain != 1.0:
+            return np.asarray(data*self.gain, dtype=self.data_dtype)
+        else:
+            return np.asarray(data, dtype=self.data_dtype)
+
     def _get_samplerate(self, channel=None):
         # Same samplerate for all channels.
         # get the samplerate property of the dataset
@@ -175,7 +205,7 @@ class HDF5Wrapper(BaseWrapper):
         
         # allocate for data
 	eventdata = np.empty((len(channels),len(event_offsets),dur_samp),
-                             dtype=data.dtype)*np.nan
+                             dtype=self.data_dtype)*np.nan
 
 	# loop over events
 	for e,evOffset in enumerate(event_offsets):
@@ -187,7 +217,7 @@ class HDF5Wrapper(BaseWrapper):
             if ssamp < 0 or esamp > data.shape[1]:
                 raise IOError('Event with offset '+str(evOffset)+
                               ' is outside the bounds of the data.')
-            eventdata[:,e,:] = data[channels,ssamp:esamp]
+            eventdata[:,e,:] = self._data_from_file([channels,ssamp:esamp])
 
         # close the file
         f.close()
@@ -210,15 +240,12 @@ class HDF5Wrapper(BaseWrapper):
                              d.shape[0])
 
         # reshape to hold new data
-        if self._replace_data:
-            cursamp = 0
-        else:
-            cursamp = d.shape[1]
+        cursamp = d.shape[1]
         newsamp = data.shape[1]
         d.shape = (d.shape[0], cursamp+newsamp)
 
         # append the data
-        d[:,cursamp:cursamp+newsamp] = data
+        d[:,cursamp:cursamp+newsamp] = self._data_to_file(data)
 
         # close the file
         f.close()
@@ -240,7 +267,7 @@ class HDF5Wrapper(BaseWrapper):
         d.shape = (d.shape[0], newsamp)
 
         # set the data
-        d[channel,:] = data
+        d[channel,:] = self._data_to_file(data)
 
         # close the file
         f.close()
