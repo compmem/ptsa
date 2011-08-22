@@ -34,7 +34,14 @@ class HDF5Wrapper(BaseWrapper):
         TimeSeries instance:
         
         HDF5Wrapper('data.hdf5', data=data, compression='gzip')
-        
+
+        Now let's say the TimeSeries is float64, but you want to save
+        space (and lose significant digits), you can specify a
+        file_dtype, which will apply a gain factor to ensure you
+        retain as much data accuracy as possible.  Here's how you can
+        save the data in int16:
+
+        HDF5Wrapper('data.hdf5', data=data, file_dtype=np.int16, compression='gzip')
         
         """
         # set up the basic params of the data

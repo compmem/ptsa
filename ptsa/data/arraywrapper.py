@@ -22,15 +22,15 @@ class ArrayWrapper(BaseWrapper):
         """Initialize the interface to the data.  You must specify the
         data and the samplerate."""
         # set up the basic params of the data
-        self.data = data
+        self._data = data
         self._samplerate = samplerate
         self._annotations = annotations
 
     def _get_nchannels(self):
-        return self.data.shape[0]
+        return self._data.shape[0]
 
     def _get_nsamples(self, channel=None):
-        return self.data.shape[1]
+        return self._data.shape[1]
 
     def _get_samplerate(self, channel=None):
         # Same samplerate for all channels:
@@ -44,7 +44,7 @@ class ArrayWrapper(BaseWrapper):
         """
         # allocate for data
 	eventdata = np.empty((len(channels),len(event_offsets),dur_samp),
-                             dtype=self.data.dtype)*np.nan
+                             dtype=self._data.dtype)*np.nan
 
 	# loop over events
 	for e,evOffset in enumerate(event_offsets):
@@ -53,9 +53,9 @@ class ArrayWrapper(BaseWrapper):
             esamp = ssamp + dur_samp
             
             # check the ranges
-            if ssamp < 0 or esamp > self.data.shape[1]:
+            if ssamp < 0 or esamp > self._data.shape[1]:
                 raise IOError('Event with offset '+str(evOffset)+
                               ' is outside the bounds of the data.')
-            eventdata[:,e,:] = self.data[channels,ssamp:esamp]
+            eventdata[:,e,:] = self._data[channels,ssamp:esamp]
 
         return eventdata

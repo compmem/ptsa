@@ -104,7 +104,7 @@ def remove_strong_artifacts(data, Comp, Kthr=1.25, F=256,
             continue
         # thld = 3.6;
         # not sure where this number came from
-        thld = 3.6
+        thld = .6 #3.6
         # KK = 100;
         KK = 100.
         # LL = floor(log2(length(Y)));
