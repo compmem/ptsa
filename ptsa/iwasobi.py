@@ -37,9 +37,9 @@ class IWASOBI():
         d,N = x.shape
 
         # get mean and remove it
-        Xmean=x.mean(1)
+        Xmean=x.astype(np.float64).mean(1)
         # x=x-Xmean*ones(1,N);  %%%%%%%%%  removing the sample mean
-        x = np.subtract(x.T,Xmean).T
+        x = np.subtract(x.astype(np.float64).T,Xmean).T
         
         # T=length(x(1,:))-AR_order;
         T = N-self.ar_max
