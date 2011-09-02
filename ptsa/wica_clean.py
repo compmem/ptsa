@@ -11,7 +11,7 @@ import numpy as np
 import pywt
 import sys
 
-#from ptsa.pca import pca
+from ptsa.pca import pca
 from ptsa.iwasobi import iwasobi
 from ptsa.wavelet import iswt,swt
 
@@ -67,7 +67,13 @@ def remove_strong_artifacts(data, Comp, Kthr=1.25, F=256,
     # h = daubcqf(6);
     wavelet = pywt.Wavelet('db3')
     h = wavelet.rec_lo
-    
+
+    # eventually make the artifact identification and determination of
+    # the filter threshold thld based on only the range provided, then
+    # apply it to the entire component.  This will make the algorithm
+    # faster (and possibly more accurate) by not having to repeatedly
+    # run the wavelet transform on the entire dataset.
+
     # opt = zeros(1,length(Comp));
     opt = np.zeros(len(Comp), dtype=icaEEG.dtype)
     # for c=1:length(Comp),
@@ -103,7 +109,7 @@ def remove_strong_artifacts(data, Comp, Kthr=1.25, F=256,
             sys.stdout.flush()
             continue
         # thld = 3.6;
-        # not sure where this number came from
+        # not sure where this 3.6 number came from, so I'm dropping it down
         thld = .6 #3.6
         # KK = 100;
         KK = 100.
@@ -191,16 +197,17 @@ def wica_clean(data, samplerate=None, pure_range=(None,None),
     """
 
     # run pca
-    #sys.stdout.write("Running PCA...")
-    #Wpca,data = pca.pca(data[:,ica_range[0]:ica_range[1]], ncomps, eigratio)
+    sys.stdout.write("Running PCA...")
+    Wpca,pca_data = pca(data[:,pure_range[0]:pure_range[1]]) #, ncomps, eigratio)
     
     # Run iwasobi
     sys.stdout.write("Running IWASOBI ICA...")
     sys.stdout.flush()
-    (W,Winit,ISR,signals) = iwasobi(data[:,pure_range[0]:pure_range[1]])
-    #W = np.dot(W,Wpca)
-    #A = np.linalg.pinv(W)
-    A = np.linalg.inv(W)
+    #(W,Winit,ISR,signals) = iwasobi(data[:,pure_range[0]:pure_range[1]])
+    (W,Winit,ISR,signals) = iwasobi(pca_data)
+    W = np.dot(W,Wpca)
+    A = np.linalg.pinv(W)
+    #A = np.linalg.inv(W)
     sys.stdout.write("DONE!\n")
     sys.stdout.flush()
 
@@ -211,12 +218,20 @@ def wica_clean(data, samplerate=None, pure_range=(None,None),
         signals = np.dot(W,data)
 
     # pick which signals to clean (ones that weigh on EOG elecs)
-    vals = np.sum(np.abs(A[EOG_elecs,:]),0)
-    std_thresh = std_fact*np.std(vals)
-    ind = np.nonzero(vals>=std_thresh)[0]
+    # vals = np.sum(np.abs(A[EOG_elecs,:]),0)
+    # std_thresh = std_fact*np.std(vals)
+    # comp_ind = np.nonzero(vals>=std_thresh)[0]
+    comp_ind = []
+    for e in EOG_elecs:
+        vals = np.abs(A[e,:])
+        std_thresh = std_fact*np.std(vals)
+        comp_ind.extend(np.nonzero(vals>=std_thresh)[0].tolist())
+    comp_ind = np.unique(comp_ind)
+    sys.stdout.write("Cleaning these components: " + str(comp_ind) + '\n')
+    sys.stdout.flush()
     
     # remove strong artifacts
-    clean_signals,opt = remove_strong_artifacts(signals,ind,Kthr,
+    clean_signals,opt = remove_strong_artifacts(signals,comp_ind,Kthr,
                                                 samplerate,pure_range)
     
     # return cleaned data back in EEG space

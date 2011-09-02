@@ -12,6 +12,7 @@ import numpy as np
 from scipy.linalg import toeplitz,hankel
 
 #import pdb
+from IPython.Debugger import Tracer; debug_here = Tracer()
 
 class IWASOBI():
     """
@@ -195,7 +196,7 @@ class IWASOBI():
         M,d = R.shape
 
         # AR = zeros(M,d);
-        AR = np.zeros((M,d), dtype=R.dtype)
+        AR = np.zeros((M,d))
         
         # for id=1:d
         for id in xrange(d):
@@ -250,7 +251,7 @@ class IWASOBI():
         #   alfa = a;
         alfa = a.copy()
         #   K=zeros(p,m);
-        K = np.zeros((p,m), dtype=a.dtype)
+        K = np.zeros((p,m))
         #   p = p-1;
         p -= 1
         #   for n=p:-1:1
@@ -268,7 +269,7 @@ class IWASOBI():
             a = alfa.copy()
         # %  
         #   r = zeros(p+1,m);
-        r = np.zeros((p+1,m), dtype=a.dtype)
+        r = np.zeros((p+1,m))
         #   r(1,:) = 1./prod(1-K.^2);
         r[0,:] = 1/np.prod(1-K**2,0)
         #   f = r;
@@ -304,7 +305,7 @@ class IWASOBI():
         # NumOfSources = size(x,1);
         NumOfSources = x.shape[0]
         # R_est = zeros(NumOfSources,(q+1)*NumOfSources);
-        R_est = np.zeros((NumOfSources,(q+1)*NumOfSources), dtype=x.dtype)
+        R_est = np.zeros((NumOfSources,(q+1)*NumOfSources))
         # for index=1:q+1
         #     R_est(:,NumOfSources*(index-1) + (1:NumOfSources)) = 1/T*(x(:,1:T)*x(:,index:T+index-1)');
         # end
@@ -327,7 +328,7 @@ class IWASOBI():
         # d2=d*(d-1)/2;
         d2 = np.int32(d*(d-1)/2.)
         # R=zeros(L,d);
-        R = np.zeros((L,d), dtype=Ms.dtype)
+        R = np.zeros((L,d))
         # for index=1:L
         #     id=(index-1)*d;
         #     R(index,:)=diag(Ms(:,id+1:id+d)).';  %%% columns of R will contain 
@@ -341,7 +342,7 @@ class IWASOBI():
         ARC,sigmy = self.armodel(R,rmax)
         # %
         # AR3=zeros(2*L-1,d2);
-        AR3 = np.zeros((2*L-1,d2), dtype=Ms.dtype)
+        AR3 = np.zeros((2*L-1,d2))
         # ll = 1;
         # for i=2:d
         #   for k=1:i-1
@@ -396,7 +397,7 @@ class IWASOBI():
         Rs = self.ar2r(ARC)
         
         # sum_Rs_s=zeros(K,K);
-        sum_Rs_s = np.zeros((K,K), dtype=ARC.dtype)
+        sum_Rs_s = np.zeros((K,K))
         
         # for s=0:M-1
         #     for t=0:M-1
@@ -411,7 +412,7 @@ class IWASOBI():
         # denom=sum_Rs_s'.*sum_Rs_s+eye(K)-1;
         denom = sum_Rs_s.T*sum_Rs_s+np.eye(K)-1
         # ISR=sum_Rs_s'./denom.*(ones(K,1)*Rs(1,:))./(Rs(1,:)'*ones(1,K));
-        ISR = sum_Rs_s.T/denom*np.outer(np.ones((K,1),dtype=Rs.dtype),Rs[0,:])/np.outer(Rs[0,:].T,np.ones((1,K),dtype=Rs.dtype))
+        ISR = sum_Rs_s.T/denom*np.outer(np.ones((K,1)),Rs[0,:])/np.outer(Rs[0,:].T,np.ones((1,K)))
         # ISR(eye(K)==1)=0;
         ISR[np.eye(K)==1] = 0
         # end %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% of CRLB4
@@ -464,7 +465,7 @@ class IWASOBI():
         # Ms=M;
         Ms = M.copy()
         # Rs=zeros(d,L);
-        Rs = np.zeros((d,L), dtype=M.dtype)
+        Rs = np.zeros((d,L))
         # for k=1:L
         #       ini=(k-1)*d;
         #       M(:,ini+1:ini+d)=0.5*(M(:,ini+1:ini+d)+M(:,ini+1:ini+d)');
@@ -494,7 +495,7 @@ class IWASOBI():
             #   end
             for id in xrange(1,d):
                 Yim = Ms[0:id,id:Md:d]
-                b22.append(np.dot((Rs[id,:]**2).sum(0),np.ones((id,1),dtype=Rs.dtype)))
+                b22.append(np.dot((Rs[id,:]**2).sum(0),np.ones((id,1))))
                 b12.append(np.dot(Rs[id,:],Rs[:id,:].T).T)
                 b11.append((Rs[:id,:]**2).sum(1))
                 c2.append(np.dot(Rs[id,:],Yim.T).T)
@@ -606,7 +607,7 @@ class IWASOBI():
         # Ms=M;
         Ms = M.copy()
         # Rs=zeros(d,L);
-        Rs = np.zeros((d,L), dtype=M.dtype)
+        Rs = np.zeros((d,L))
         # for k=1:L
         #       ini=(k-1)*d;
         #       M(:,ini+1:ini+d)=0.5*(M(:,ini+1:ini+d)+M(:,ini+1:ini+d)');
@@ -622,11 +623,11 @@ class IWASOBI():
         # for iter=1:maxnumit
         for iter in xrange(maxnumit):
             #  b11=zeros(dd2,1); b12=b11; b22=b11; c1=b11; c2=c1;
-            b11 = np.zeros((dd2,1),dtype=M.dtype)
-            b12 = np.zeros((dd2,1),dtype=M.dtype)
-            b22 = np.zeros((dd2,1),dtype=M.dtype)
-            c1 = np.zeros((dd2,1),dtype=M.dtype)
-            c2 = np.zeros((dd2,1),dtype=M.dtype)
+            b11 = np.zeros((dd2,1))
+            b12 = np.zeros((dd2,1))
+            b22 = np.zeros((dd2,1))
+            c1 = np.zeros((dd2,1))
+            c2 = np.zeros((dd2,1))
             #  m=0;
             m=0
             #  for id=2:d        
