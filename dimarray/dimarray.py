@@ -941,7 +941,30 @@ class DimArray(AttrArray):
             # must convert to index dim
             axis = self.dim_names.index(axis)
         return axis
-             
+
+    def get_dim_name(self, axis):
+        """
+        Get the dim name for an axis.
+
+        Provides an convenient way to ensure a dim name from an axis
+        specification.  If a string is passed in, it is assumed to be
+        a dim name is returned.
+
+        Parameters
+        ----------
+        axis : int
+            The index of a dimension.
+
+        Returns
+        -------
+        The dim name for the specified axis.
+        """
+        if isinstance(axis, str):
+            dim_name = axis
+        else:
+            dim_name = self.dim_names[axis]
+        return dim_name
+    
     def _ret_func(self, ret, axis):
         """
         Return function output for functions that take an axis

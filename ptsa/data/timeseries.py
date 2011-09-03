@@ -13,6 +13,11 @@ from ptsa import filt
 from scipy.signal import resample
 import numpy as np
 
+try:
+    import multiprocessing as mp
+    has_mp = True
+except ImportError:
+    has_mp = False
 
 __docformat__ = 'restructuredtext'
 
@@ -203,7 +208,8 @@ class TimeSeries(DimArray):
         return TimeSeries(filtered_array,self.tdim, self.samplerate,
                           dims=self.dims.copy(), **attrs)
 
-    def resampled(self,resampled_rate,window=None):
+    def resampled(self,resampled_rate,window=None,
+                  loop_axis=None,num_mp_procs=0):
         """
         Resample the data and reset all the time ranges.
 
@@ -216,6 +222,13 @@ class TimeSeries(DimArray):
             New sample rate to resample to.
         window : {None,str,float,tuple}, optional
             See scipy.signal.resample for details
+        loop_axis: {None,str,int}, optional
+            Sometimes it might be faster to loop over an axis.
+        num_mp_procs: int, optional
+            Whether to try and use multiprocessing to loop over axis.
+            0 means no multiprocessing
+            >0 specifies num procs to use
+            None means yes, and use all possible procs
 
         Returns
         -------
@@ -229,9 +242,47 @@ class TimeSeries(DimArray):
         # resample the data, getting new time range
         time_range = self[self.tdim]
         new_length = int(np.round(len(time_range)*resampled_rate/self.samplerate))
-        newdat,new_time_range = resample(self, new_length, t=time_range,
-                                         axis=self.taxis, window=window)
 
+        if loop_axis is None:
+            # just do standard method on all data at once
+            newdat,new_time_range = resample(self, new_length, t=time_range,
+                                             axis=self.taxis, window=window)
+        else:
+            # loop over specified axis
+            # get the loop axis name and length
+            loop_dim = self.get_dim_name(loop_axis)
+            loop_dim_len = len(self[loop_dim])
+            # specify empty boolean index
+            ind = np.zeros(loop_dim_len,dtype=np.bool)
+            newdat = []
+            if has_mp and num_mp_procs != 0:
+                po = mp.Pool(num_mp_procs)
+
+            for i in range(loop_dim_len):
+                ind[i] = True
+                dat = self.select(**{loop_dim:ind})
+                if has_mp and num_mp_procs != 0:
+                    # start async proc
+                    newdat.append(po.apply_async(resample,
+                                                 (dat, new_length, time_range,
+                                                  dat.taxis, window)))
+                else:
+                    # just call on that dataset
+                    ndat,new_time_range = resample(dat, new_length, t=time_range,
+                                                   axis=dat.taxis, window=window)
+                    newdat.append(ndat)
+                ind[i] = False
+            if has_mp and num_mp_procs != 0:
+                # aggregate mp results
+                po.close()
+                po.join()
+                out = [newdat[i].get() for i in range(len(newdat))]
+                newdat = [out[i][0] for i in range(len(out))]
+                new_time_range = out[i][1]
+
+            # concatenate the new data
+            newdat = np.concatenate(newdat,axis=self.get_axis(loop_axis))
+            
         # set the time dimension
         newdims = self.dims.copy()
         attrs = self.dims[self.taxis]._attrs.copy()

@@ -15,14 +15,134 @@ from ptsa.pca import pca
 from ptsa.iwasobi import iwasobi
 from ptsa.wavelet import iswt,swt
 
+try:
+    import multiprocessing as mp
+    has_mp = True
+except ImportError:
+    has_mp = False
+
+def _clean_find_thresh(Y,Kthr,wavelet,L):
+    # init
+    xn = None
+    thld = 0.0
+
+    N = len(Y)
+    
+    # Sig = median(abs(Y)/0.6745);
+    #Sig = np.median(np.abs(Y)/0.6745)
+    #Sig = np.median(np.abs(icaEEG[Comp[c],pure_range[0]:pure_range[1]])/0.6745)
+    Sig = np.median(np.abs(Y)/0.6745)
+    # Thr = 4*Sig;
+    Thr = 4*Sig
+    # idx = find(abs(Y) > Thr);
+    idx = np.nonzero(np.abs(Y) > Thr)[0]
+    # idx_ext = zeros(1,length(idx)*(2*L+1));
+    idx_ext = np.zeros(len(idx)*(2*L+1), dtype=np.int32)
+    # for k=1:length(idx),
+    #     idx_ext((2*L+1)*(k-1)+1:(2*L+1)*k) = [idx(k)-L:idx(k)+L];
+    # end
+    for k in xrange(len(idx)):
+        idx_ext[(2*L+1)*(k):(2*L+1)*(k+1)-1] = np.arange(idx[k]-L,idx[k]+L)
+    # id_noise=setdiff((1:N), idx_ext);
+    id_noise = np.setdiff1d(range(N), idx_ext)
+    # id_artef=setdiff((1:N), id_noise);
+    id_artef = np.setdiff1d(range(N), id_noise)
+    # if isempty(id_artef),
+    #     disp(['The component #' num2str(Comp(c)) ' has passed unchanged']);
+    #     continue;
+    # end
+    if len(id_artef) == 0:
+        #sys.stdout.write("passed unchanged\n")
+        #sys.stdout.flush()
+        return xn, thld
+    # thld = 3.6;
+    # not sure where this 3.6 number came from, so I'm dropping it down
+    thld = .1 #3.6
+    # KK = 100;
+    KK = 100.
+    # LL = floor(log2(length(Y)));
+    LL = np.int32(np.floor(np.log2(len(Y))))
+    # [xl, xh] = mrdwt(Y, h, LL);
+    wres = swt(Y,wavelet,level=LL)
+    # make it editable
+    wres = [list(wres[i]) for i in range(len(wres))]
+    # while KK > Kthr,
+    #     thld = thld + 0.5;
+    #     xh = HardTh(xh, thld); % x = (abs(y) > thld).*y;
+    #     xd = mirdwt(xl,xh,h,LL); 
+    #     xn = Y - xd;
+    #     cn=corrcoef(Y(id_noise),xn(id_noise));
+    #     ca=corrcoef(Y(id_artef),xd(id_artef));
+    #     KK = ca(1,2)/cn(1,2);   
+    # end
+    while KK > Kthr:
+        sys.stdout.write('.')
+        sys.stdout.flush()
+        for i in xrange(len(wres)):
+            wres[i][1] = (np.abs(wres[i][1]) > thld) * wres[i][1]
+        xd = iswt(wres, wavelet)
+        xn = Y-xd
+        cn = np.corrcoef(Y[id_noise],xn[id_noise])
+        ca = np.corrcoef(Y[id_artef],xd[id_artef])
+        KK = ca[0,1]/cn[0,1]
+        thld += 0.5
+    # return the cleaned data and the thresh
+    return xn, thld
+
+def _clean_use_thresh(Y,thld,wavelet):
+    LL = np.int32(np.floor(np.log2(len(Y))))
+    wres = swt(Y,wavelet,level=LL)
+    wres = [list(wres[i]) for i in range(len(wres))]
+    # xh = HardTh(xh, thld);
+    for i in xrange(len(wres)):
+        wres[i][1] = (np.abs(wres[i][1]) > thld) * wres[i][1]
+    # xd = mirdwt(xl,xh,h,LL);
+    xd = iswt(wres, wavelet)
+    # xn = Y - xd;
+    xn = Y - xd
+    # return the cleaned data
+    return xn
+
+def _clean_comp(comp, Kthr, L, thld=None):
+    wavelet = pywt.Wavelet('db3')
+    N = np.int32(2**np.floor(np.log2(len(comp))))
+
+    # Y = icaEEG(Comp(c),1:N);
+    Y = comp[:N]
+    if thld is None:
+        # opt(c) = thld;
+        xn,thld = _clean_find_thresh(Y,Kthr,wavelet,L)
+        if thld == 0.0:
+            return comp, thld
+    else:
+        # just apply the thresh
+        if thld == 0.0:
+            # it was skipped, so skip it
+            return comp, thld
+        xn = _clean_use_thresh(Y,thld,wavelet)
+
+    # icaEEG(Comp(c),1:N) = xn;
+    comp[:N] = xn
+    
+    # clean the second half
+    # Y = icaEEG(Comp(c),end-N+1:end);
+    Y = comp[-N:]
+    xn = _clean_use_thresh(Y,thld,wavelet)
+
+    # icaEEG(Comp(c),N+1:end) = xn(end-(Nobser-N)+1:end);
+    comp[N:] = xn[-(len(comp)-N):]
+
+    return comp, thld
+
+    
 def remove_strong_artifacts(data, Comp, Kthr=1.25, F=256,
-                            pure_range=(None,None), Cthr=None):
+                            Cthr=None,num_mp_procs=0):
     """
     % This function denoise high amplitude artifacts (e.g. ocular) and remove them from the
     % Independent Components (ICs).
     %
 
-    Ported from Matlab code distributed by the authors of:
+    Ported and enhanced from Matlab code distributed by the authors of:
     
     N.P. Castellanos, and V.A. Makarov (2006). 'Recovering EEG brain signals: Artifact 
     suppression with wavelet enhanced independent component analysis'
@@ -63,10 +183,10 @@ def remove_strong_artifacts(data, Comp, Kthr=1.25, F=256,
     #     error('Problem with data orientation, try to transpose the matrix!'); 
     # end
     # N = 2^floor(log2(Nobser));
-    N = np.int32(2**np.floor(np.log2(Nobser)))
+    #N = np.int32(2**np.floor(np.log2(Nobser)))
     # h = daubcqf(6);
-    wavelet = pywt.Wavelet('db3')
-    h = wavelet.rec_lo
+    #wavelet = pywt.Wavelet('db3')
+    #h = wavelet.rec_lo
 
     # eventually make the artifact identification and determination of
     # the filter threshold thld based on only the range provided, then
@@ -81,118 +201,63 @@ def remove_strong_artifacts(data, Comp, Kthr=1.25, F=256,
     else:
         opt = Cthr
         find_thresh = False
+
+
+    if has_mp and num_mp_procs != 0:
+        po = mp.Pool(num_mp_procs)
+        mp_res = []
         
     # for c=1:length(Comp),
     for c in xrange(len(Comp)):
-        sys.stdout.write("Component #%d: "%(Comp[c]))
-        sys.stdout.flush()
-        # Y = icaEEG(Comp(c),1:N);
-        Y = icaEEG[Comp[c],:N]
         if find_thresh:
-            # Sig = median(abs(Y)/0.6745);
-            #Sig = np.median(np.abs(Y)/0.6745)
-            Sig = np.median(np.abs(icaEEG[Comp[c],pure_range[0]:pure_range[1]])/0.6745)
-            # Thr = 4*Sig;
-            Thr = 4*Sig
-            # idx = find(abs(Y) > Thr);
-            idx = np.nonzero(np.abs(Y) > Thr)[0]
-            # idx_ext = zeros(1,length(idx)*(2*L+1));
-            idx_ext = np.zeros(len(idx)*(2*L+1), dtype=np.int32)
-            # for k=1:length(idx),
-            #     idx_ext((2*L+1)*(k-1)+1:(2*L+1)*k) = [idx(k)-L:idx(k)+L];
-            # end
-            for k in xrange(len(idx)):
-                idx_ext[(2*L+1)*(k):(2*L+1)*(k+1)-1] = np.arange(idx[k]-L,idx[k]+L)
-            # id_noise=setdiff((1:N), idx_ext);
-            id_noise = np.setdiff1d(range(N), idx_ext)
-            # id_artef=setdiff((1:N), id_noise);
-            id_artef = np.setdiff1d(range(N), id_noise)
-            # if isempty(id_artef),
-            #     disp(['The component #' num2str(Comp(c)) ' has passed unchanged']);
-            #     continue;
-            # end
-            if len(id_artef) == 0:
-                sys.stdout.write("passed unchanged\n"%(Comp[c]))
-                sys.stdout.flush()
-                continue
-            # thld = 3.6;
-            # not sure where this 3.6 number came from, so I'm dropping it down
-            thld = .1 #3.6
-            # KK = 100;
-            KK = 100.
-            # LL = floor(log2(length(Y)));
-            LL = np.int32(np.floor(np.log2(len(Y))))
-            # [xl, xh] = mrdwt(Y, h, LL);
-            wres = swt(Y,wavelet,level=LL)
-            # make it editable
-            wres = [list(wres[i]) for i in range(len(wres))]
-            # while KK > Kthr,
-            #     thld = thld + 0.5;
-            #     xh = HardTh(xh, thld); % x = (abs(y) > thld).*y;
-            #     xd = mirdwt(xl,xh,h,LL); 
-            #     xn = Y - xd;
-            #     cn=corrcoef(Y(id_noise),xn(id_noise));
-            #     ca=corrcoef(Y(id_artef),xd(id_artef));
-            #     KK = ca(1,2)/cn(1,2);   
-            # end
-            while KK > Kthr:
-                sys.stdout.write('.')
-                sys.stdout.flush()
-                thld += 0.5
-                for i in xrange(len(wres)):
-                    wres[i][1] = (np.abs(wres[i][1]) > thld) * wres[i][1]
-                xd = iswt(wres, wavelet)
-                xn = Y-xd
-                cn = np.corrcoef(Y[id_noise],xn[id_noise])
-                ca = np.corrcoef(Y[id_artef],xd[id_artef])
-                KK = ca[0,1]/cn[0,1]
-            # opt(c) = thld;
-            opt[c] = thld
+            thld = None
         else:
-            # just apply the thresh
-            if opt[c] == 0.0:
-                # it was skipped, so skip it
-                sys.stdout.write("passed unchanged\n"%(Comp[c]))
+            thld = opt[c]
+        if has_mp and num_mp_procs != 0:
+            # call with mp
+            mp_res.append(po.apply_async(_clean_comp,
+                                         (icaEEG[Comp[c]], Kthr,
+                                          L, thld)))
+        else:
+            sys.stdout.write("Component #%d: "%(Comp[c]))
+            sys.stdout.flush()
+            comp,thld = _clean_comp(icaEEG[Comp[c]], Kthr, L, thld=thld)
+            icaEEG[Comp[c]] = comp
+            if find_thresh:
+                opt[c] = thld
+            if opt[c] > 0.0:
+                # disp(['The component #' num2str(Comp(c)) ' has been filtered']);
+                sys.stdout.write("was filtered\n"%(Comp[c]))
                 sys.stdout.flush()
-                continue
-            LL = np.int32(np.floor(np.log2(len(Y))))
-            wres = swt(Y,wavelet,level=LL)
-            wres = [list(wres[i]) for i in range(len(wres))]
-            # xh = HardTh(xh, thld);
-            for i in xrange(len(wres)):
-                wres[i][1] = (np.abs(wres[i][1]) > opt[c]) * wres[i][1]
-            # xd = mirdwt(xl,xh,h,LL);
-            xd = iswt(wres, wavelet)
-            # xn = Y - xd;
-            xn = Y - xd
-            
-        # icaEEG(Comp(c),1:N) = xn;
-        icaEEG[Comp[c],:N] = xn
-        # Y = icaEEG(Comp(c),end-N+1:end);
-        Y = icaEEG[Comp[c],-N:]
-        # LL = floor(log2(length(Y)));
-        LL = np.int32(np.floor(np.log2(len(Y))))
-        # [xl, xh] = mrdwt(Y, h, LL);
-        wres = swt(Y,wavelet,level=LL)
-        wres = [list(wres[i]) for i in range(len(wres))]
-        # xh = HardTh(xh, thld);
-        for i in xrange(len(wres)):
-            wres[i][1] = (np.abs(wres[i][1]) > opt[c]) * wres[i][1]
-        # xd = mirdwt(xl,xh,h,LL);
-        xd = iswt(wres, wavelet)
-        # xn = Y - xd;
-        xn = Y - xd
-        # icaEEG(Comp(c),N+1:end) = xn(end-(Nobser-N)+1:end);
-        icaEEG[Comp[c],N:] = xn[-(Nobser-N):]
-        # disp(['The component #' num2str(Comp(c)) ' has been filtered']);
-        sys.stdout.write("was filtered\n"%(Comp[c]))
-        sys.stdout.flush()
+            else:
+                sys.stdout.write("passed unchanged\n")
+                sys.stdout.flush()
+
+    if has_mp and num_mp_procs != 0:
+        # collect results
+        po.close()
+        po.join()
+        for c in xrange(len(Comp)):
+            sys.stdout.write("Component #%d: "%(Comp[c]))
+            sys.stdout.flush()
+            comp,thld = mp_res[c].get()
+            icaEEG[Comp[c]] = comp
+            if find_thresh:
+                opt[c] = thld
+            if opt[c] > 0.0:
+                # disp(['The component #' num2str(Comp(c)) ' has been filtered']);
+                sys.stdout.write("was filtered\n"%(Comp[c]))
+                sys.stdout.flush()
+            else:
+                sys.stdout.write("passed unchanged\n")
+                sys.stdout.flush()
+
     # end
     return icaEEG, opt
 
 
 def wica_clean(data, samplerate=None, pure_range=(None,None),
-               EOG_elecs=[0,1], std_fact=1.5, Kthr=2.5):
+               EOG_elecs=[0,1], std_fact=1.5, Kthr=2.5,num_mp_procs=0):
     """
     Clean data with the Wavelet-ICA method described here:
 
@@ -259,11 +324,13 @@ def wica_clean(data, samplerate=None, pure_range=(None,None),
         # figure out the thresh for the range
         clean_signals,Cthr = remove_strong_artifacts(signals[:,pure_range[0]:pure_range[1]],
                                                      comp_ind,Kthr,
-                                                     samplerate)
+                                                     samplerate,
+                                                     num_mp_procs=num_mp_procs)
     else:
         Cthr = None
     clean_signals,Cthr = remove_strong_artifacts(signals,comp_ind,Kthr,
-                                                 samplerate,pure_range,Cthr)
+                                                 samplerate,Cthr,
+                                                 num_mp_procs=num_mp_procs)
         
     
     # return cleaned data back in EEG space
