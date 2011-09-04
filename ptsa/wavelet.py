@@ -21,6 +21,13 @@ from ptsa.fixed_scipy import morlet as morlet_wavelet
 import pywt
 import math
 
+try:
+    import multiprocessing as mp
+    has_mp = True
+except ImportError:
+    has_mp = False
+
+
 def swt(data, wavelet, level=None):
     """
     Stationary Wavelet Transform
@@ -249,7 +256,7 @@ def morlet_multi(freqs, widths, samplerates,
 def phase_pow_multi(freqs, dat,  samplerates=None, widths=5,
                     to_return='both', time_axis=-1,
                     conv_dtype=np.complex64, freq_name='freqs',
-                    **kwargs):
+                    num_mp_procs=0,**kwargs):
     """
     Calculate phase and power with wavelets across multiple events.
 
@@ -348,11 +355,25 @@ def phase_pow_multi(freqs, dat,  samplerates=None, widths=5,
                          eegdat.shape[time_axis]),dtype=conv_dtype)
     
     # populate this array with the convolutions:
-    i=0
-    for wav in wavelets:
-        for ev_dat in eegdat:
-            wav_coef[i]=np.convolve(wav,ev_dat,'same')
-            i+=1
+    if has_mp and num_mp_procs != 0:
+        # process each convolution with multiprocessing
+        wav_res = []
+        po = mp.Pool(num_mp_procs)
+        for wav in wavelets:
+            for ev_dat in eegdat:
+                wav_res.append(po.apply_async(np.convolve,
+                                              (wav,ev_dat,'same')))
+        # collect the results
+        po.close()
+        po.join()
+        for i in xrange(len(wav_res)):
+            wav_coef[i] = wav_res[i].get()
+    else:
+        i=0
+        for wav in wavelets:
+            for ev_dat in eegdat:
+                wav_coef[i]=np.convolve(wav,ev_dat,'same')
+                i+=1
     
     # Determine shape for ouput arrays with added frequency dimension:
     newshape = list(origshape)
