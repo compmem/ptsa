@@ -12,6 +12,7 @@ from ptsa import filt
 
 from scipy.signal import resample
 import numpy as np
+import sys
 
 try:
     import multiprocessing as mp
@@ -268,6 +269,8 @@ class TimeSeries(DimArray):
                                                   dat.taxis, window)))
                 else:
                     # just call on that dataset
+                    sys.stdout.write('%d '%i)
+                    sys.stdout.flush()
                     ndat,new_time_range = resample(dat, new_length, t=time_range,
                                                    axis=dat.taxis, window=window)
                     newdat.append(ndat)
@@ -275,13 +278,21 @@ class TimeSeries(DimArray):
             if has_mp and num_mp_procs != 0:
                 # aggregate mp results
                 po.close()
-                po.join()
-                out = [newdat[i].get() for i in range(len(newdat))]
+                #po.join()
+                out = []
+                for i in range(len(newdat)):
+                    sys.stdout.write('%d '%i)
+                    sys.stdout.flush()
+                    out.append(newdat[i].get())
+                #out = [newdat[i].get() for i in range(len(newdat))]
                 newdat = [out[i][0] for i in range(len(out))]
                 new_time_range = out[i][1]
 
             # concatenate the new data
             newdat = np.concatenate(newdat,axis=self.get_axis(loop_axis))
+
+        sys.stdout.write('\n')
+        sys.stdout.flush()
             
         # set the time dimension
         newdims = self.dims.copy()
