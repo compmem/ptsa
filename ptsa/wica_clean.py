@@ -246,7 +246,7 @@ def remove_strong_artifacts(data, Comp, Kthr=1.25, F=256,
                 opt[c] = thld
             if opt[c] > 0.0:
                 # disp(['The component #' num2str(Comp(c)) ' has been filtered']);
-                sys.stdout.write("was filtered\n"%(Comp[c]))
+                sys.stdout.write("was filtered\n")
                 sys.stdout.flush()
             else:
                 sys.stdout.write("passed unchanged\n")
@@ -314,11 +314,19 @@ def wica_clean(data, samplerate=None, pure_range=(None,None),
     for e in EOG_elecs:
         vals = np.abs(A[e,:])
         std_thresh = std_fact*np.std(vals)
-        comp_ind.extend(np.nonzero(vals>=std_thresh)[0].tolist())
+        #comp_ind.extend(np.nonzero(vals>=std_thresh)[0].tolist())
+        for s in np.nonzero(vals>=std_thresh)[0].tolist():
+            sweights = np.abs(A[:,s])
+            sthresh2 = std_fact*sweights.std()
+            if np.abs(A[e,s]) >= sthresh2:
+                comp_ind.append(s)
+
+        
     comp_ind = np.unique(comp_ind)
+
     sys.stdout.write("Cleaning these components: " + str(comp_ind) + '\n')
     sys.stdout.flush()
-    
+
     # remove strong artifacts
     if (not pure_range[0] is None) or (not pure_range[1] is None):
         # figure out the thresh for the range
