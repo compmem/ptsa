@@ -114,6 +114,13 @@ class HDF5Wrapper(BaseWrapper):
         if self.file_dtype is None:
             # load from data
             self.file_dtype = data.dtype
+        else:
+            # make sure it's a dtype
+            if not isinstance(self.file_dtype, np.dtype):
+                try:
+                    self.file_dtype = np.dtype(self.file_dtype)
+                except:
+                    ValueError("file_dtype should be a numpy dtype.")
 
         # process the gain
         if self.gain is None:
