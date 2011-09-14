@@ -15,8 +15,6 @@ import numpy as np
 import scipy.interpolate
 import scipy.signal
 
-#import pdb
-
 def emd(data,max_modes=10):
     """Calculate the Emprical Mode Decomposition of a signal."""
     # initialize modes
@@ -42,6 +40,50 @@ def emd(data,max_modes=10):
     # return an array of modes
     return np.asarray(modes)
 
+def eemd(data, noise_std=0.2, num_ensembles=100, num_sifts=10):
+    """
+    Ensemble Empirical Mode Decomposition (EEMD)
+
+    *** Must still add in post-processing with EMD ***
+    """
+    # get modes to generate
+    num_samples = len(data)
+    num_modes = int(np.fix(np.log2(num_samples)))-1
+
+    # normalize incomming data
+    dstd = data.std()
+    y = data/dstd
+    
+    # allocate for starting value
+    all_modes = np.zeros((num_modes+2,num_samples))
+    
+    # loop over num_ensembles
+    for e in range(num_ensembles):
+        # perturb starting data
+        x0 = y + np.random.randn(num_samples)*noise_std
+
+        # save the starting value
+        all_modes[0] += x0
+        
+        # loop over modes
+        for m in range(num_modes):
+            # do the sifts
+            imf = x0
+            for s in range(num_sifts):
+                imf = _do_one_sift(imf)
+
+            # save the imf
+            all_modes[m+1] += imf
+            
+            # set the residual
+            x0 = x0 - imf
+
+        # save the final residual
+        all_modes[-1] += x0
+                
+    # average everything out and renormalize
+    return all_modes*dstd/np.float64(num_ensembles)
+    
 def _done_sifting(d):
     """We are done sifting is there a monotonic function."""
     return np.sum(_localmax(d))+np.sum(_localmax(-d))<=2
