@@ -253,10 +253,16 @@ def morlet_multi(freqs, widths, samplerates,
     return norm_wavelets
 
 
+def convolve_wave(wav,eegdat):
+    wave_coef = []
+    for ev_dat in eegdat:
+        wav_coef.append(np.convolve(wav,ev_dat,'same'))
+    return wave_coef
+
 def phase_pow_multi(freqs, dat,  samplerates=None, widths=5,
                     to_return='both', time_axis=-1,
                     conv_dtype=np.complex64, freq_name='freqs',
-                    num_mp_procs=0,**kwargs):
+                    **kwargs):
     """
     Calculate phase and power with wavelets across multiple events.
 
@@ -299,11 +305,6 @@ def phase_pow_multi(freqs, dat,  samplerates=None, widths=5,
     freq_name : {string},optional
         Name of frequency dimension of the returned TimeSeries object
         (only used if dat is a TimeSeries instance).
-    num_mp_procs: int, optional
-        Whether to try and use multiprocessing to loop over axis.
-        0 means no multiprocessing
-        >0 specifies num procs to use
-        None means yes, and use all possible procs
     **kwargs : {**kwargs},optional
         Additional key word arguments to be passed on to morlet_multi().
     
@@ -360,27 +361,11 @@ def phase_pow_multi(freqs, dat,  samplerates=None, widths=5,
                          eegdat.shape[time_axis]),dtype=conv_dtype)
     
     # populate this array with the convolutions:
-    if has_mp and num_mp_procs != 0:
-        # process each convolution with multiprocessing
-        wav_res = []
-        po = mp.Pool(num_mp_procs)
-        for wav in wavelets:
-            for ev_dat in eegdat:
-                wav_res.append(po.apply_async(np.convolve,
-                                              (wav,ev_dat,'same')))
-        # collect the results
-        po.close()
-        #po.join()
-        for i in xrange(len(wav_res)):
-            sys.stdout.write('%d '%i)
-            sys.stdout.flush()
-            wav_coef[i] = wav_res[i].get()
-    else:
-        i=0
-        for wav in wavelets:
-            for ev_dat in eegdat:
-                wav_coef[i]=np.convolve(wav,ev_dat,'same')
-                i+=1
+    i=0
+    for wav in wavelets:
+        for ev_dat in eegdat:
+            wav_coef[i]=np.convolve(wav,ev_dat,'same')
+            i+=1
     
     # Determine shape for ouput arrays with added frequency dimension:
     newshape = list(origshape)
