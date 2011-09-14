@@ -299,6 +299,11 @@ def phase_pow_multi(freqs, dat,  samplerates=None, widths=5,
     freq_name : {string},optional
         Name of frequency dimension of the returned TimeSeries object
         (only used if dat is a TimeSeries instance).
+    num_mp_procs: int, optional
+        Whether to try and use multiprocessing to loop over axis.
+        0 means no multiprocessing
+        >0 specifies num procs to use
+        None means yes, and use all possible procs
     **kwargs : {**kwargs},optional
         Additional key word arguments to be passed on to morlet_multi().
     
@@ -365,8 +370,10 @@ def phase_pow_multi(freqs, dat,  samplerates=None, widths=5,
                                               (wav,ev_dat,'same')))
         # collect the results
         po.close()
-        po.join()
+        #po.join()
         for i in xrange(len(wav_res)):
+            sys.stdout.write('%d '%i)
+            sys.stdout.flush()
             wav_coef[i] = wav_res[i].get()
     else:
         i=0
