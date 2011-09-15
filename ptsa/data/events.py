@@ -172,7 +172,7 @@ class Events(np.recarray):
         events = []
         
         # speed up by getting unique event sources first
-        usources = np.unique1d(self[esrc])
+        usources = np.unique(self[esrc])
 
         # loop over unique sources
         eventdata = None
