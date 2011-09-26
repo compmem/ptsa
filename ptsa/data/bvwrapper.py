@@ -60,6 +60,11 @@ class BVWrapper(BaseWrapper):
         self._samplerate = float(10e5)/int(cp.get('Common Infos','samplinginterval'))
         self._markerfile = cp.get('Common Infos','markerfile')
 
+        # read in scale factors for each channel
+        self._channel_scale = np.zeros(self._nchannels)
+        for i in range(self._nchannels):
+            self._channel_scale[i] = float(cp.get('Channel Infos','Ch%d'%(i+1)).split(',')[2])
+            
         # process the binary format
         if self._binaryformat == 'INT_16':
             self._samplesize = 2
@@ -74,6 +79,7 @@ class BVWrapper(BaseWrapper):
         mm = np.memmap(self._data_file,dtype=self._dtype,
                        mode='r')
         self._nsamples = mm.shape[0]/self._nchannels
+
 
     def _get_nchannels(self):
         return self._nchannels
@@ -142,8 +148,10 @@ class BVWrapper(BaseWrapper):
                 raise IOError('Event with offset '+str(ev_offset)+
                               ' is outside the bounds of the data.')
 
-            # only pick the channels of interest
-            eventdata[:,e,:] = mm[ssamp:ssamp+dur_samp,channels].T
+            # only pick the channels of interest and scale
+            dat = np.multiply(mm[ssamp:ssamp+dur_samp,channels],
+                              self._channel_scale[channels])
+            eventdata[:,e,:] = dat.T
 
         return eventdata    
 
