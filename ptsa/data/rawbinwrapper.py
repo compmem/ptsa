@@ -18,6 +18,8 @@ import struct
 import os
 from scipy.io import loadmat
 
+from glob import glob
+
 class RawBinWrapper(BaseWrapper):
     """
     Interface to data stored in binary format with a separate file for
@@ -38,7 +40,7 @@ class RawBinWrapper(BaseWrapper):
 
         # set what we can from the params 
         if self.params.has_key('samplerate'):
-            self.samplerate = self.params['samplerate']
+            self._samplerate = self.params['samplerate']
         if self.params.has_key('format'):
             self.format = self.params['format']
         if self.params.has_key('dataformat'):
@@ -64,14 +66,20 @@ class RawBinWrapper(BaseWrapper):
     def _get_nsamples(self,channel=None):
         # get the dimensions of the data
         # must open a valid channel and seek to the end
-        nsamples = None
+        eegfiles = glob(self.dataroot+'.*[0-9]')
+        efile = open(eegfiles[0],'rb')
+        efile.seek(0,2)
+        nsamples = efile.tell()/self.nBytes
+        if (efile.tell()%self.nBytes) != 0:
+            raise ValueError('File length does not correspond to data format!')
         return nsamples
 
-    def _get_nchannels(self):
+    def _get_channels(self):
         # get the dimensions of the data
         # must loop through directory identifying valid channels
-        nchannels = None
-        return nchannels
+        channel_files = glob(self.dataroot+'.*[0-9]')
+        channels = [cf.split('.')[-1] for cf in channel_files]
+        return channels
 
     def _get_annotations(self):
         # no annotations for raw data
@@ -106,7 +114,7 @@ class RawBinWrapper(BaseWrapper):
     def _load_data(self,channels,event_offsets,dur_samp,offset_samp):
         """
         """
-
+        
         # allocate for data
         eventdata = np.empty((len(channels),len(event_offsets),dur_samp),
                              dtype=np.float)*np.nan
@@ -114,18 +122,20 @@ class RawBinWrapper(BaseWrapper):
         # loop over channels
         for c,channel in enumerate(channels):
             # determine the file
-            eegfname = '%s.%03i' % (self.dataroot,channel)
+            # eegfname = '%s.%03i' % (self.dataroot,channel)
+            if isinstance(channel,str):
+                eegfname = self.dataroot+'.'+channel
+            elif int(channel)==channel: # isinstance distinguished
+                                        # between np.int and np.int32
+                eegfname = self.dataroot+'.'+self.channel[channel]
+            else:
+                raise ValueError('Channel must be int or string, received '+
+                                 str(type(channel))+'; value: '+str(channel))
             if os.path.isfile(eegfname):
                 efile = open(eegfname,'rb')
             else:
-                # try unpadded lead
-                eegfname = '%s.%i' % (self.dataroot,channel)
-                if os.path.isfile(eegfname):
-                    efile = open(eegfname,'rb')
-                else:
-                    raise IOError(
-                        'EEG file not found for channel %i and file root %s\n' 
-                        % (channel,self.dataroot))
+                raise IOError('EEG file not found for channel '+str(channel)+
+                              ' and file root '+self.dataroot)
 
             # loop over events
             for e,evOffset in enumerate(event_offsets):

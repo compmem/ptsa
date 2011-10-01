@@ -366,33 +366,42 @@ class test_Events(TestCase):
         
     def test_get_data(self):
         # get data directly from the wrapper
-        ed = self.aw.get_event_data(3,self.eoffsets,.5,-.1,.25)
-
+        # ed = self.aw.get_event_data(3,self.eoffsets,.5,-.1,.25)
+        # ed = self.aw.get_event_data(3,self.eoffsets,.15,.375,.25)
+        ed = self.aw.get_event_data(3,self.eoffsets,1.25,1.75,.25)
+        
         # create same array by hand:
-        ed2 = np.array([self.dat[3,60:161],self.dat[3,120:221],
-                        self.dat[3,250:351]])
+        # ed2 = np.array([[self.dat[3,60:161],self.dat[3,120:221],
+        #                 self.dat[3,250:351]]])
+        ed2 = np.array([[self.dat[3,330:431],self.dat[3,390:491],
+                        self.dat[3,520:621]]])
         assert_array_equal(ed,ed2)
         # get data from a events
         # make some events
         events = np.rec.fromarrays(([self.aw]*len(self.eoffsets),self.eoffsets),
                                    names='esrc,eoffset').view(Events)
-        ed3 = events.get_data(3,.5,-.1,.25)
+        # ed3 = events.get_data(3,.5,-.1,.25)
+        ed3 = events.get_data(3,1.25,1.75,.25)
 
-        assert_array_almost_equal(ed[:],ed3[:],decimal=6)
+        # assert_array_almost_equal(ed[:],ed3[:],decimal=6)
+        assert_array_equal(ed,ed3)
 
         # get data directly from the wrapper
-        ed = self.aw.get_event_data(3,self.eoffsets,.5,.1,.25)
+        # ed = self.aw.get_event_data(3,self.eoffsets,.5,.1,.25)
+        ed = self.aw.get_event_data(3,self.eoffsets,1.25,1.75,.25)
 
         # create same array by hand:
-        ed2 = np.array([self.dat[3,100:201],self.dat[3,160:261],
-                        self.dat[3,290:391]])
+        # ed2 = np.array([self.dat[3,100:201],self.dat[3,160:261],
+        #                 self.dat[3,290:391]])
         assert_array_equal(ed,ed2)
         # get data from a events
         # make some events
         events = np.rec.fromarrays(([self.aw]*len(self.eoffsets),self.eoffsets),
                                    names='esrc,eoffset').view(Events)
-        ed3 = events.get_data(3,.5,.1,.25)
+        # ed3 = events.get_data(3,.5,.1,.25)
+        ed3 = events.get_data(3,1.25,1.75,.25)
 
-        assert_array_almost_equal(ed[:],ed3[:],decimal=6)
+        # assert_array_almost_equal(ed[:],ed3[:],decimal=6)
+        assert_array_equal(ed,ed3)
 
 

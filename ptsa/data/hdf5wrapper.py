@@ -162,13 +162,21 @@ class HDF5Wrapper(BaseWrapper):
         f.close()
         return nsamples
 
-    def _get_nchannels(self):
+    # def _get_nchannels(self):
+    #     # get the dimensions of the data
+    #     f = h5py.File(self.filepath,'r')
+    #     data = f[self.dataset_name]
+    #     nchannels = data.shape[0]
+    #     f.close()
+    #     return nchannels
+
+    def _get_channels(self):
         # get the dimensions of the data
         f = h5py.File(self.filepath,'r')
         data = f[self.dataset_name]
         nchannels = data.shape[0]
         f.close()
-        return nchannels
+        return [str(channel) for channel in range(channels)]
 
     def _get_annotations(self):
         # get the dimensions of the data

@@ -26,8 +26,11 @@ class ArrayWrapper(BaseWrapper):
         self._samplerate = samplerate
         self._annotations = annotations
 
-    def _get_nchannels(self):
-        return self._data.shape[0]
+    # def _get_nchannels(self):
+    #     return self._data.shape[0]
+
+    def _get_channels(self):
+        return [str(channel) for channel in range(self._data.shape[0])]
 
     def _get_nsamples(self, channel=None):
         return self._data.shape[1]

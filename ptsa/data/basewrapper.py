@@ -57,14 +57,25 @@ class BaseWrapper(object):
         """
         raise NotImplementedError
     
-    def _get_nchannels(self):
+    # def _get_nchannels(self):
+    #     """
+    #     Returns the number of channels in a dataset.
+        
+    #     Returns
+    #     -------
+    #     nchannels : {int}
+    #         Number of channels.
+    #     """
+    #     raise NotImplementedError
+    
+    def _get_channels(self):
         """
-        Returns the number of channels in a dataset.
+        Returns the channel labels in a dataset.
         
         Returns
         -------
-        nchannels : {int}
-            Number of channels.
+        channels : {list}
+            List of channels.
         """
         raise NotImplementedError
     
@@ -268,9 +279,9 @@ class BaseWrapper(object):
         """
         Return a TimeSeries containing all the data.
         """
-        channels = np.arange(self.nchannels)
+        # channels = np.arange(self.nchannels)
         dur_samp = self.nsamples
-        data = self._load_data(channels,[0],dur_samp,0)
+        data = self._load_data(self.channels,[0],dur_samp,0)
         # remove events dimension
         data = data[:,0,:]
 
@@ -284,7 +295,7 @@ class BaseWrapper(object):
         time_range = np.linspace(samp_start,samp_end,dur_samp)
 
 	# make it a timeseries
-        dims = [Dim(channels,'channels'),
+        dims = [Dim(self.channels,'channels'),
                 Dim(time_range,'time')]
         data = TimeSeries(np.asarray(data),
                           'time',
@@ -295,7 +306,9 @@ class BaseWrapper(object):
     # class properties
     samplerate = property(lambda self: self._get_samplerate())
     nsamples = property(lambda self: self._get_nsamples())
-    nchannels = property(lambda self: self._get_nchannels())
+    # nchannels = property(lambda self: self._get_nchannels())
+    nchannels = property(lambda self: len(self._get_channels()))
+    channels = property(lambda self: self._get_channels())
     annotations = property(lambda self: self._get_annotations(),
                            lambda self,annot: self._set_annotations(annot))
     channel_info = property(lambda self: self._get_channel_info(),

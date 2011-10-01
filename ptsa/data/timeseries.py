@@ -242,7 +242,8 @@ class TimeSeries(DimArray):
         """
         # resample the data, getting new time range
         time_range = self[self.tdim]
-        new_length = int(np.round(len(time_range)*resampled_rate/self.samplerate))
+        new_length = int(np.round(len(time_range)*
+                                  resampled_rate/self.samplerate))
 
         if loop_axis is None:
             # just do standard method on all data at once
@@ -278,7 +279,7 @@ class TimeSeries(DimArray):
             if has_mp and num_mp_procs != 0:
                 # aggregate mp results
                 po.close()
-                #po.join()
+                #po.join()  
                 out = []
                 for i in range(len(newdat)):
                     sys.stdout.write('%d '%i)
@@ -309,6 +310,7 @@ class TimeSeries(DimArray):
         return TimeSeries(newdat, self.tdim, resampled_rate,
                           dims=newdims, **attrs)
 
+    
     def baseline_corrected(self, base_range):
         """
 

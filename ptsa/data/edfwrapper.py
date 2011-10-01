@@ -38,8 +38,13 @@ class EdfWrapper(BaseWrapper):
             raise IOError(str(filepath)+'\n does not exist!'+
                           'Valid path to data file is needed!')
 
-    def _get_nchannels(self):
-        return read_number_of_signals(self.filepath)
+    # def _get_nchannels(self):
+    #     return read_number_of_signals(self.filepath)
+
+    def _get_channels(self):
+        # this needs to be replaced by a list of the propper channel labels!
+        return [str(channel)
+                for channel in range(read_number_of_signals(self.filepath))]
 
     def _get_nsamples(self, channel=None):
         if channel is None:
