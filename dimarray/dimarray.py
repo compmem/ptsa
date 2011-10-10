@@ -741,7 +741,7 @@ class DimArray(AttrArray):
                         
         Parameters
         ----------
-        axis : int
+        axis : {int,str}
             The dimension to be binned. Can be name or number.
         bins : {int,list,tuple}
             Specifies how the data should be binned. Acceptable values
