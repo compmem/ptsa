@@ -104,6 +104,27 @@ def find_clusters(x, threshold, tail=0, connectivity=None):
         sums = np.array(sums)
     return clusters, sums
 
+def pval_from_histogram(T, H0, tail):
+    """Get p-values from stats values given an H0 distribution
+
+    For each stat compute a p-value as percentile of its statistics
+    within all statistics in surrogate data
+    """
+    if not tail in [-1, 0, 1]:
+        raise ValueError('invalid tail parameter')
+
+    # from pct to fraction
+    if tail == -1:  # up tail
+        pval = np.array([np.sum(H0 <= t) for t in T])
+    elif tail == 1:  # low tail
+        pval = np.array([np.sum(H0 >= t) for t in T])
+    elif tail == 0:  # both tails
+        pval = np.array([np.sum(H0 >= abs(t)) for t in T])
+        pval += np.array([np.sum(H0 <= -abs(t)) for t in T])
+
+    pval = (pval + 1.0) / (H0.size + 1.0)  # the init data is one resampling
+    return pval
+
 
 def sparse_dim_connectivity(dim_con):
     """

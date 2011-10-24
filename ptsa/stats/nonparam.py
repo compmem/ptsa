@@ -10,7 +10,7 @@
 # global imports
 import numpy as np
 from scipy.stats import ttest_ind, ttest_1samp, norm
-
+import sys
 
 def ttest_ind_z_one_sided(X,Y):
     # do the test
@@ -18,7 +18,7 @@ def ttest_ind_z_one_sided(X,Y):
 
     # convert the pvals to one-sided tests based on the t
     p = p/2.
-    p[t>0] = 1-p[t<0]
+    p[t>0] = 1-p[t>0]
 
     # convert the p to a z
     z = norm.ppf(p)
@@ -60,10 +60,15 @@ def permutation_test(X, Y=None, parametric=True, iterations=1000):
         z = ttest_ind_z_one_sided(data[:nX],data[nX:])
 
         # now on random shuffles
+        sys.stdout.write('%d: '%iterations)
         for i in xrange(iterations):
             # shuffle it
+            sys.stdout.write('%d '%i)
+            sys.stdout.flush()
             np.random.shuffle(data)
             z_boot.append(ttest_ind_z_one_sided(data[:nX],data[nX:]))
+        sys.stdout.write('\n')
+        sys.stdout.flush()
 
     # convert z_boot to array
     z_boot = np.asarray(z_boot)
