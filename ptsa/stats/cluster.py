@@ -207,6 +207,9 @@ def sensor_neighbors(sensor_locs):
     for r in range(nsens):
         cn[r,n[r]] = 1
 
+    # only keep the upper
+    cn[np.tril_indices(nsens)] = 0
+
     # return it
     return cn
 
