@@ -127,7 +127,7 @@ class RawBinWrapper(BaseWrapper):
                 eegfname = self.dataroot+'.'+channel
             elif int(channel)==channel: # isinstance distinguished
                                         # between np.int and np.int32
-                eegfname = self.dataroot+'.'+self.channel[channel]
+                eegfname = self.dataroot+'.'+str(channel)
             else:
                 raise ValueError('Channel must be int or string, received '+
                                  str(type(channel))+'; value: '+str(channel))
