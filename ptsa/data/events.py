@@ -199,27 +199,14 @@ class Events(np.recarray):
                                         filt_type,
                                         filt_order,
                                         keep_buffer)
-            
-            # replace event_offset dimension with event_id dimension
-            # made up from from ordinal source number and event
-            # offsets (to avoid possibly duplicate dimension values
-            # when combining across sources):
-            newdat.dims[1] = Dim(
-                [str(s)+'_'+str(eo) for eo in newdat.dims[1]],'event_id')
+
+            # replace the event offset dimension with an events
+            # dimension:
+            newdat.dims[1] = Dim(self[ind],'events')
             if eventdata is None:
                 eventdata = newdat
             else:
                 eventdata = eventdata.extend(newdat,axis=1)
-            
-        # concatenate (must eventually check that dims match)
-        tdim = eventdata['time']
-        cdim = eventdata['channels']
-        srate = eventdata.samplerate
-        events = np.concatenate(events).view(self.__class__)
-        eventdata = TimeSeries(eventdata,
-                               'time', srate,
-                               dims=[cdim,Dim(events,'events'),tdim])
-        
         return eventdata
 
     
