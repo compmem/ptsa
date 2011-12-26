@@ -892,6 +892,7 @@ class DimArray(AttrArray):
         conc_dims = [d.dims[axis] for d in data]
 
         # create new array:
+        data = [d.view(AttrArray) for d in data]
         new_dat = np.concatenate(data,axis=axis)
         new_dims = copylib.deepcopy(self.dims)
         new_dims[axis] = Dim(np.concatenate(conc_dims),self.dim_names[axis])
