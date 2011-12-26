@@ -199,6 +199,11 @@ class Events(np.recarray):
                                         filt_type,
                                         filt_order,
                                         keep_buffer)
+            
+            # replace event_offset dimension with event_id dimension
+            # made up from from ordinal source number and event
+            # offsets (to avoid possibly duplicate dimension values
+            # when combining across sources):
             newdat.dims[1] = Dim(
                 [str(s)+'_'+str(eo) for eo in newdat.dims[1]],'event_id')
             if eventdata is None:
