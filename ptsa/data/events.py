@@ -176,7 +176,7 @@ class Events(np.recarray):
 
         # loop over unique sources
         eventdata = None
-        for src in usources:
+        for s,src in enumerate(usources):
             # get the eventOffsets from that source
             ind = np.atleast_1d(self[esrc]==src)
             
@@ -199,6 +199,8 @@ class Events(np.recarray):
                                         filt_type,
                                         filt_order,
                                         keep_buffer)
+            newdat.dims[1] = Dim(
+                [str(s)+'_'+str(eo) for eo in newdat.dims[1]],'event_id')
             if eventdata is None:
                 eventdata = newdat
             else:
