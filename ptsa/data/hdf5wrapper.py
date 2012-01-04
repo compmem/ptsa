@@ -176,7 +176,7 @@ class HDF5Wrapper(BaseWrapper):
         data = f[self.dataset_name]
         nchannels = data.shape[0]
         f.close()
-        return [str(channel) for channel in range(channels)]
+        return [str(channel) for channel in range(nchannels)]
 
     def _get_annotations(self):
         # get the dimensions of the data
