@@ -23,8 +23,8 @@ class HDF5Wrapper(BaseWrapper):
                  annotations_name='annotations',
                  channel_info_name='channel_info',
                  data=None, file_dtype=None, apply_gain=True, gain_buffer=.005,
-                 samplerate=None, nchannels=None, nsamples=None,
-                 annotations=None, channel_info=None, **hdf5opts):
+                 samplerate=None, nchannels=None, annotations=None,
+                 channel_info=None, **hdf5opts):
         """
         Initialize the interface to the data.
 
@@ -55,7 +55,7 @@ class HDF5Wrapper(BaseWrapper):
         
         self.file_dtype = file_dtype
         self.data_dtype = None
-        
+
         # see if create dataset
         if not data is None:
             # must provide samplerate and data
@@ -176,7 +176,7 @@ class HDF5Wrapper(BaseWrapper):
         data = f[self.dataset_name]
         nchannels = data.shape[0]
         f.close()
-        return [str(channel) for channel in range(nchannels)]
+        return [channel for channel in range(nchannels)]
 
     def _get_annotations(self):
         # get the dimensions of the data
