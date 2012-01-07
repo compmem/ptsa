@@ -88,17 +88,20 @@ class RawBinWrapper(BaseWrapper):
 
     def _get_params(self,dataroot):
         """Get parameters of the data from the dataroot."""
-        # set default params
-        params = {'samplerate':256.03,'gain':1.}
+        # # set default params
+        # params = {'samplerate':256.03,'gain':1.}
 
         # first look for dataroot.params file
-        paramFile = dataroot + '.params'
+        param_file = dataroot + '.params'
         if not os.path.isfile(paramFile):
             # see if it's params.txt
-            paramFile = os.path.join(os.path.dirname(dataroot),'params.txt')
+            param_file = os.path.join(os.path.dirname(dataroot),'params.txt')
             if not os.path.isfile(paramFile):
-                #raise "file not found"  # fix this
-                return params
+                raise IOError(
+                    'No params file found. Params files must be in the same '+
+                    'directory as the EEG data and must be named \".params\" '+
+                    'or \"params.txt\".')
+                # return params
         
         # we have a file, so open and process it
         for line in open(paramFile,'r').readlines():
@@ -106,7 +109,11 @@ class RawBinWrapper(BaseWrapper):
             cols = line.strip().split()
             # set the params
             params[cols[0]] = eval(string.join(cols[1:]))
-        
+
+        if (not params.has_key('samplerate')) or (not params.has_key('gain')):
+            raise ValueError('Params file must contain samplerate and gain!\n'+
+                             'The following fields were supplied:\n'+
+                             str(params.keys())
         # return the params dict
         return params
         
