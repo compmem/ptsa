@@ -93,10 +93,10 @@ class RawBinWrapper(BaseWrapper):
 
         # first look for dataroot.params file
         param_file = dataroot + '.params'
-        if not os.path.isfile(paramFile):
+        if not os.path.isfile(param_file):
             # see if it's params.txt
             param_file = os.path.join(os.path.dirname(dataroot),'params.txt')
-            if not os.path.isfile(paramFile):
+            if not os.path.isfile(param_file):
                 raise IOError(
                     'No params file found. Params files must be in the same '+
                     'directory as the EEG data and must be named \".params\" '+
@@ -104,7 +104,7 @@ class RawBinWrapper(BaseWrapper):
                 # return params
         
         # we have a file, so open and process it
-        for line in open(paramFile,'r').readlines():
+        for line in open(param_file,'r').readlines():
             # get the columns by splitting
             cols = line.strip().split()
             # set the params
