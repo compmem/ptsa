@@ -90,6 +90,7 @@ class RawBinWrapper(BaseWrapper):
         """Get parameters of the data from the dataroot."""
         # # set default params
         # params = {'samplerate':256.03,'gain':1.}
+        params = {}
 
         # first look for dataroot.params file
         param_file = dataroot + '.params'
@@ -98,8 +99,9 @@ class RawBinWrapper(BaseWrapper):
             param_file = os.path.join(os.path.dirname(dataroot),'params.txt')
             if not os.path.isfile(param_file):
                 raise IOError(
-                    'No params file found. Params files must be in the same '+
-                    'directory as the EEG data and must be named \".params\" '+
+                    'No params file found in '+str(dataroot)+
+                    '. Params files must be in the same directory '+
+                    'as the EEG data and must be named \".params\" '+
                     'or \"params.txt\".')
                 # return params
         
