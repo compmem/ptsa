@@ -113,7 +113,7 @@ class RawBinWrapper(BaseWrapper):
         if (not params.has_key('samplerate')) or (not params.has_key('gain')):
             raise ValueError('Params file must contain samplerate and gain!\n'+
                              'The following fields were supplied:\n'+
-                             str(params.keys())
+                             str(params.keys()))
         # return the params dict
         return params
         
