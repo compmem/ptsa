@@ -200,11 +200,11 @@ class Events(np.recarray):
                                         filt_order,
                                         keep_buffer)
 
-            # # Unfortunately the below does not work. The check in
-            # # Dim whether the dimension levels are unique fails.
-            # # replace the event offset dimension with an events
-            # # dimension:
-            # newdat.dims[1] = Dim(self[ind],'events')
+            # The below does not work if events include
+            # containers. In this case the check in Dim whether the
+            # dimension levels are unique fails.  replace the event
+            # offset dimension with an events dimension:
+            newdat.dims[1] = Dim(self[ind],'events')
             if eventdata is None:
                 eventdata = newdat
             else:
