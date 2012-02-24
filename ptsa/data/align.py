@@ -44,7 +44,6 @@ def find_needle_in_haystack(needle, haystack, maxdiff):
     return i
 
 def align_pyepl(wrappedfile, eeglog, events, annot_id='S255', 
-                channel_for_sr=0, 
                 window=100, thresh_ms=10,
                 event_time_id='event_time'):
     """
@@ -73,6 +72,7 @@ def align_pyepl(wrappedfile, eeglog, events, annot_id='S255',
     annot_ms = annot[annot['annotations']==annot_id]['onsets'] * 1000
 
     # pick beginning and end (needle in haystack)
+    s_ind = None
     for i in xrange(len(annot_ms)-window):
         s_ind = find_needle_in_haystack(np.diff(annot_ms[i:i+window]),
                                         np.diff(pulse_ms),thresh_ms)
