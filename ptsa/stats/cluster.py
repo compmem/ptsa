@@ -214,8 +214,47 @@ def sensor_neighbors(sensor_locs):
     return cn
 
 
-# locs = np.loadtxt('/home/per/Dropbox/64ch_besa.dat')
-# theta = -locs[0] + 90
-# radius = locs[1]
-# x,y = pol2cart(theta,radius,radians=False)
-# np.vstack((x,y)).T
+def tfce(x, dt=.1, E=0.5, H=2.0, tail=0, connectivity=None):
+    """
+    Threshold-Free Cluster Enhancement.
+    """
+    # test tail value
+    if not tail in [-1, 0, 1]:
+        raise ValueError('Invalid tail parameter.')
+
+    # make sure array
+    x = np.asanyarray(x)
+
+    # figure out thresh range based on tail and the data
+    if tail == -1:
+        sign = -1.0
+        trange = np.arange(-dt,x.min(),-dt)
+    elif tail == 1:
+        sign = 1.0
+        trange = np.arange(dt,x.max(),dt)
+    else:
+        sign = 1.0
+        trange = np.arange(dt,np.abs(x).max(),dt)
+
+    # get starting values for data (reshape it b/c needs to be 1d)
+    xt = np.zeros_like(x).reshape(np.prod(x.shape))
+    
+    # make own connectivity if not provided so that we have consistent return values
+    if connectivity is None:
+        connectivity = sparse_dim_connectivity([simple_neighbors_1d(n) for n in x.shape])
+
+    # integrate in steps of dt over the threshold
+    # do reshaping once
+    xr = x.reshape(np.prod(x.shape))
+    for thresh in trange:
+        # get the clusters (reshape as necessary)
+        clusts,sums = find_clusters(xr, thresh, 
+                                    tail=tail, connectivity=connectivity)        
+
+        # add to values in clusters
+        for c in clusts:
+            # take into account direction of test
+            xt[c] += sign * np.power(c.sum(),E) * np.power(sign*thresh,H) * dt
+
+    # return the enhanced data, reshaped back
+    return xt.reshape(*(x.shape))

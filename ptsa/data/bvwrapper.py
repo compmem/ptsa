@@ -33,8 +33,9 @@ class BVWrapper(BaseWrapper):
         # set up the basic params of the data
         if os.path.exists(filepath):
             self.filepath = filepath
+            self.filedir = os.path.split(filepath)[0]
         else:
-            raise IOError(str(filepath)+'\n does not exist!'+
+            raise IOError(str(filepath)+'\n does not exist!\n'+
                           'Valid path to data file is needed!')
 
         # read in the info about the data from the header
@@ -56,9 +57,9 @@ class BVWrapper(BaseWrapper):
         self._binaryformat = cp.get('Binary Infos','binaryformat')
         self._nchannels = int(cp.get('Common Infos','numberofchannels'))
         self._data_orient = cp.get('Common Infos','dataorientation')
-        self._data_file = cp.get('Common Infos','datafile')
+        self._data_file = os.path.join(self.filedir,cp.get('Common Infos','datafile'))
         self._samplerate = float(10e5)/int(cp.get('Common Infos','samplinginterval'))
-        self._markerfile = cp.get('Common Infos','markerfile')
+        self._markerfile = os.path.join(self.filedir,cp.get('Common Infos','markerfile'))
 
         # read in scale factors for each channel
         self._channel_scale = np.zeros(self._nchannels)

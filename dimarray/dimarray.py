@@ -343,7 +343,7 @@ class DimArray(AttrArray):
 
                     # see if we should remove the dim to emulate
                     # picking a specific index (e.g., x[10] same as
-                    # x[time==4])
+                    # x["time==4"])
                     # we normally require each value in a dim is unique,
                     # but a dim could be a list of events that you probe,
                     # which could have multiple values after an equality test,

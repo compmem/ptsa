@@ -17,7 +17,7 @@ def ttest_ind_z_one_sided(X,Y):
     t,p = ttest_ind(X,Y)
 
     # convert the pvals to one-sided tests based on the t
-    p = p/2.
+    p = (p/2.)+np.finfo(p.dtype).eps
     p[t>0] = 1-p[t>0]
 
     # convert the p to a z
