@@ -12,6 +12,8 @@ from numpy import asarray, vstack, hstack, eye, ones, zeros, linalg, newaxis, r_
 
 from helper import reshape_to_2d, reshape_from_2d, repeat_to_match_dims
 
+from filtfilt import filtfilt as filtfilt_future
+
 import pdb
 
 def buttfilt(dat,freq_range,sample_rate,filt_type,order,axis=-1):
@@ -38,7 +40,8 @@ def buttfilt(dat,freq_range,sample_rate,filt_type,order,axis=-1):
     # loop over final dimension
     #for i in xrange(dat.shape[0]):
     #    dat[i] = filtfilt(b,a,dat[i])
-    dat = filtfilt2(b,a,dat,axis=axis)
+    #dat = filtfilt2(b,a,dat,axis=axis)
+    dat = filtfilt_future(b,a,dat,axis=axis)
 
     # reshape the data back
     #dat = reshape_from_2d(dat,axis,origshape)
