@@ -11,17 +11,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from ptsa.helper import pol2cart, cart2pol, deg2rad
-try:
-    from griddata import griddata
-except:
-    print('Missing module: griddata.  No topoplots will be available.\n'+
-          'griddata-python may be obtained from: '+
-          'http://code.google.com/p/griddata-python/')
+from scipy.interpolate import griddata
 
 def topoplot(values=None, axes=None, center=(0,0), nose_dir=0., radius=0.5,
              sensors=None, colors=('black','black','black'),
-             linewidths=(3,2,2,0.5), contours_ls='-', contours=15, resolution=400,
-             cmap=None, axis_props='off', plot_mask='circular'):
+             linewidths=(3,2,2,0.5), contours_ls='-', contours=15,
+             resolution=400,method='cubic',fill_value=np.nan,
+             cmap=None, axis_props='off'):
     """
     Plot a topographic map of the scalp in a 2-D circular view
     (looking down at the top of the head).
@@ -60,16 +56,18 @@ def topoplot(values=None, axes=None, center=(0,0), nose_dir=0., radius=0.5,
         Resolution of the interpolated grid. Higher numbers give
         smoother edges of the plot, but increase memory and
         computational demands.
+    method : {'cubic','linear','nearest'}, optional
+        Method of interpolation. See scipy.interpolate.griddata for
+        details.
+    fill_value : float, optional
+        Value used to fill in for requested points outside of the
+        convex hull of the input points. See
+        scipy.interpolate.griddata for details.
     cmap : {None,matplotlib.colors.LinearSegmentedColormap}, optional
         Color map for the contour plot. If colMap==None, the default
         color map is used.
     axis_props : {str}, optional
         Axis properties.
-    plot_mask : {str}, optional
-        The mask around the plotted values. 'linear' conects the outer
-        electrodes with straight lines, 'circular' draws a circle
-        around the outer electrodes, and 'square' (or any other value)
-        draws a square around the electrodes.
     """
 
     # If no colormap is specified, use default colormap:
@@ -172,8 +170,6 @@ def topoplot(values=None, axes=None, center=(0,0), nose_dir=0., radius=0.5,
         return('Numer of values to plot is different from number of sensors!'+
                '\nNo values have been plotted!')
     
-    z = values
-    
     # resolution determines the number of interpolated points per unit
     nx = round(resolution*plot_radius)
     ny = round(resolution*plot_radius)
@@ -184,28 +180,9 @@ def topoplot(values=None, axes=None, center=(0,0), nose_dir=0., radius=0.5,
     xi = xi + center[0]
     yi = yi + center[1]
     # interploate points:
-    if plot_mask=='linear':
-        # masked = True means that no extrapolation outside the
-        # electrode boundaries is made this effectively creates a mask
-        # with a linear boundary (connecting the outer electrode
-        # locations)
-        #zi = griddata(x,y,z,xi,yi,masked=True)
-        zi = griddata(x,y,z,xi,yi)
-    else:
-        # we need a custom mask:
-        #zi = griddata(x,y,z,xi,yi,ext=1,masked=False)
-        zi = griddata(x,y,z,xi,yi)
-        if plot_mask=='circular':
-            # the interpolated array doesn't know about its position
-            # in space and hence we need to subtract head center from
-            # xi & xi to calculate the mask
-            mask = (np.sqrt(np.power(xi-center[0],2) +
-                            np.power(yi-center[1],2)) > plot_radius)
-            zi[mask] = 0
-        # other masks may be added here and can be defined as shown
-        # for the circular mask. All other plot_mask values result in
-        # no mask which results in showing interpolated values for the
-        # square surrounding the head.
+    points = np.array([x,y]).T
+    xyi = np.array([xi,yi]).T
+    zi = griddata(points,values,xyi,method).T
     
     # make contour lines:
     plt.contour(xi,yi,zi,contours,linewidths=linewidths[3],
