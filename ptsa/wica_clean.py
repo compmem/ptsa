@@ -57,7 +57,7 @@ def _clean_find_thresh(Y,Kthr,wavelet,L):
         return xn, thld
     # thld = 3.6;
     # not sure where this 3.6 number came from, so I'm dropping it down
-    thld = .1 #3.6
+    thld = 2.1 #3.6
     # KK = 100;
     KK = 100.
     # LL = floor(log2(length(Y)));
@@ -173,7 +173,9 @@ def remove_strong_artifacts(data, Comp, Kthr=1.25, F=256,
 
     """
     # make sure not to modify data
-    icaEEG = data.copy()
+    #icaEEG = data.copy()
+    # allow to modify to save memory
+    icaEEG = data
     
     # L = round(F*0.1);
     L = np.int32(np.round(F*0.1))
