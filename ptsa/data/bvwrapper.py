@@ -45,9 +45,12 @@ class BVWrapper(BaseWrapper):
         # must remove the first lines b/c they are not standard INI format
         # also remove everything after [Comment] b/c it doesn't parse either
         try:
-            ind = lines.index('[Comment]\r\n')
+            ind = lines.index('[Comment]\r\r\n')
         except ValueError:
-            ind = None
+            try:
+                ind = lines.index('[Comment]\r\n')
+            except ValueError:
+                ind = None
         hdr_string = ''.join(lines[1:ind])
 
         # now read it in
