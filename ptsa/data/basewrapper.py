@@ -145,7 +145,8 @@ class BaseWrapper(object):
                        start_time,end_time,buffer_time=0.0,
                        resampled_rate=None,
                        filt_freq=None,filt_type='stop',filt_order=4,
-                       keep_buffer=False):
+                       keep_buffer=False,
+                       loop_axis=None,num_mp_procs=0):
         """
         Return an TimeSeries containing data for the specified channel
         in the form [events,duration].
@@ -254,7 +255,9 @@ class BaseWrapper(object):
 	if (not(resampled_rate is None) and
             not(resampled_rate == eventdata.samplerate)):
 	    # resample the data
-            eventdata = eventdata.resampled(resampled_rate)
+            eventdata = eventdata.resampled(resampled_rate,
+                                            loop_axis=loop_axis,
+                                            num_mp_procs=num_mp_procs)
 
         # remove the buffer and set the time range
 	if buf > 0 and not(keep_buffer):
