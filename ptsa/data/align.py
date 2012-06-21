@@ -15,7 +15,7 @@ import csv
 import numpy as np
 from basewrapper import BaseWrapper
 
-def load_pyepl_eeg_pulses(logfile):
+def load_pyepl_eeg_pulses(logfile, event_label='UP'):
     """
     Load and process the default eeg log file from PyEPL.  This will
     extract only when the pulses turned on (not off), which is what is
@@ -25,7 +25,7 @@ def load_pyepl_eeg_pulses(logfile):
     reader = csv.reader(open(logfile,'rU'),dialect=csv.excel_tab)
     pulses = []
     for row in reader:
-        if row[2] == 'UP':
+        if row[2] == event_label:
             pulses.append(long(row[0]))
     return np.asarray(pulses)
 
@@ -46,7 +46,7 @@ def find_needle_in_haystack(needle, haystack, maxdiff):
 def align_pyepl(wrappedfile, eeglog, events, annot_id='S255', 
                 channel_for_sr=0, 
                 window=100, thresh_ms=10,
-                event_time_id='event_time'):
+                event_time_id='event_time', eeg_event_label='UP'):
     """
     Take an Events instance and add esrc and eoffset, aligning the
     events to the data in the supplied wrapped file (i.e., you must
@@ -64,7 +64,7 @@ def align_pyepl(wrappedfile, eeglog, events, annot_id='S255',
     w = wrappedfile
 
     # load clean pyepl eeg log
-    pulse_ms = load_pyepl_eeg_pulses(eeglog)
+    pulse_ms = load_pyepl_eeg_pulses(eeglog, event_label=eeg_event_label)
 
     # load annotations from edf
     annot = w.annotations
