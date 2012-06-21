@@ -12,7 +12,7 @@ import numpy as np
 from scipy import unwrap
 import scipy.stats as stats
 from scipy.fftpack import fft,ifft
-
+import scipy.signal
 from ptsa.filt import decimate
 from ptsa.helper import reshape_to_2d,reshape_from_2d
 from ptsa.data import TimeSeries,Dim
@@ -357,14 +357,15 @@ def phase_pow_multi(freqs, dat,  samplerates=None, widths=5,
     eegdat = reshape_to_2d(dat, time_axis) #.view(np.ndarray)
 
     # for efficiency pre-generate empty array for convolution:
-    wav_coef = np.empty((eegdat.shape[time_axis-1]*len(freqs),
-                         eegdat.shape[time_axis]),dtype=conv_dtype)
+    wav_coef = np.empty((eegdat.shape[0]*len(freqs),
+                         eegdat.shape[1]),dtype=conv_dtype)
     
     # populate this array with the convolutions:
     i=0
     for wav in wavelets:
         for ev_dat in eegdat:
             wav_coef[i]=np.convolve(wav,ev_dat,'same')
+            #wav_coef[i]=scipy.signal.fftconvolve(ev_dat,wav,'same')
             i+=1
     
     # Determine shape for ouput arrays with added frequency dimension:
