@@ -216,11 +216,12 @@ class DimSelect(Dim):
         ind = [np.ones(shape, dtype=np.bool) for shape in self._parent_dim_shapes]
 
         # do the comparison along the desired dimension
-        i = self._parent_dim_index
-        self_array = np.asarray(self)
-        ind[i] = False
-        for val in vals:
-            ind[i] = ind[i] | (self_array == val)
+        ind[self._parent_dim_index] = np.lib.arraysetops.in1d(np.asarray(self),vals)
+        # i = self._parent_dim_index
+        # self_array = np.asarray(self)
+        # ind[i] = False
+        # for val in vals:
+        #     ind[i] = ind[i] | (self_array == val)
 
         # create the final master index from the list of filtered indices
         return DimIndex(np.ix_(*ind),ind)
