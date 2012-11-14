@@ -17,7 +17,7 @@ def topoplot(values=None, axes=None, center=(0,0), nose_dir=0., radius=0.5,
              sensors=None, colors=('black','black','black'),
              linewidths=(3,2,2,0.5), contours_ls='-', contours=15,
              resolution=400,method='cubic',fill_value=np.nan,
-             cmap=None, axis_props='off'):
+             axis_props='off',**kwargs):
     """
     Plot a topographic map of the scalp in a 2-D circular view
     (looking down at the top of the head).
@@ -63,16 +63,16 @@ def topoplot(values=None, axes=None, center=(0,0), nose_dir=0., radius=0.5,
         Value used to fill in for requested points outside of the
         convex hull of the input points. See
         scipy.interpolate.griddata for details.
-    cmap : {None,matplotlib.colors.LinearSegmentedColormap}, optional
-        Color map for the contour plot. If colMap==None, the default
-        color map is used.
     axis_props : {str}, optional
         Axis properties.
+    **kwargs : **kwargs, optional
+        Key word arguments to be passed on to
+        matplotlib.pyplot.contour and matplotlib.pyplot.contourf.
     """
 
     # If no colormap is specified, use default colormap:
-    if cmap is None:
-        cmap = plt.get_cmap()
+    # if cmap is None:
+    #    cmap = plt.get_cmap()
 
     if axes is not None: # axes are given
         a=axes
@@ -186,7 +186,7 @@ def topoplot(values=None, axes=None, center=(0,0), nose_dir=0., radius=0.5,
     
     # make contour lines:
     plt.contour(xi,yi,zi,contours,linewidths=linewidths[3],
-                linestyle=contours_ls,colors=colors[2])
+                linestyle=contours_ls,colors=colors[2],**kwargs)
     # make countour color patches:
-    plt.contourf(xi,yi,zi,contours,cmap=cmap)
+    plt.contourf(xi,yi,zi,contours,**kwargs)
 

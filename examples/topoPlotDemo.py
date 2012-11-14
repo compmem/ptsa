@@ -50,14 +50,6 @@ fig+=1
 figure(fig)
 topoplot(sensors=els,values=toPlot,colors=[None,None,'black'])
 
-
-fig+=1
-figure(fig)
-topoplot(center=(0,0),sensors=els,values=toPlot,plot_mask='linear')
-topoplot(center=(2,0),sensors=els,values=toPlot,plot_mask='circular')
-topoplot(center=(4,0),sensors=els,values=toPlot,plot_mask='square')
-xlim(-1,5)
-
 grid=100
 fig+=1
 figure(fig)
