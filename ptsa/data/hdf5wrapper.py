@@ -128,9 +128,9 @@ class HDF5Wrapper(BaseWrapper):
             self.gain = 1.0
             # calc it if we are going from float to int
             if (self.file_dtype.kind == 'i') and (self.data_dtype.kind == 'f'):
-                fr = np.iinfo(self.file_dtype).max*2
-                dr = np.abs(data).max()*2 * (1.+self.gain_buffer)
-                self.gain = dr/fr
+                fr = np.float128(np.iinfo(self.file_dtype).max*2)
+                dr = np.float128(np.abs(data).max()*2 * (1.+self.gain_buffer))
+                self.gain = np.float64(dr/fr)
                 
         # calc and apply gain if necessary
         if self.apply_gain and self.gain != 1.0:

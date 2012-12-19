@@ -43,7 +43,9 @@ class EdfWrapper(BaseWrapper):
 
     def _get_channels(self):
         # this needs to be replaced by a list of the propper channel labels!
-        return [str(channel)
+        # return [str(channel)
+        #         for channel in range(read_number_of_signals(self.filepath))]
+        return [channel
                 for channel in range(read_number_of_signals(self.filepath))]
 
     def _get_nsamples(self, channel=None):
