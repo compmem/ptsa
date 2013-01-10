@@ -9,6 +9,9 @@
 
 from scipy.signal import butter, cheby1, firwin, lfilter
 from numpy import asarray, vstack, hstack, eye, ones, zeros, linalg, newaxis, r_, flipud, convolve, matrix, array,concatenate
+import numpy as np
+from scipy.special import sinc
+
 
 from helper import reshape_to_2d, reshape_from_2d, repeat_to_match_dims
 
@@ -249,3 +252,39 @@ def filtfilt2(b,a,x,axis=-1):
 #     legend(('original','noisy signal','lfilter - butter 3 order','filtfilt - butter 3 order'))
 #     hold(False)
 #     show()
+
+
+# from http://mail.scipy.org/pipermail/scipy-user/2009-November/023101.html
+def firls(N, f, D=None):
+    """Least-squares FIR filter.
+    N -- filter length, must be odd
+    f -- list of tuples of band edges
+       Units of band edges are Hz with 0.5 Hz == Nyquist
+       and assumed 1 Hz sampling frequency
+    D -- list of desired responses, one per band
+    """
+    if D is None:
+        D = [1, 0]
+    assert len(D) == len(f), "must have one desired response per band"
+    assert N%2 == 1, 'filter length must be odd'
+    L = (N-1)//2
+
+    k = np.arange(L+1)
+    k.shape = (1, L+1)
+    j = k.T
+
+    R = 0
+    r = 0
+    for i, (f0, f1) in enumerate(f):
+        R += np.pi*f1*sinc(2*(j-k)*f1) - np.pi*f0*sinc(2*(j-k)*f0) + \
+             np.pi*f1*sinc(2*(j+k)*f1) - np.pi*f0*sinc(2*(j+k)*f0)
+
+        r += D[i]*(2*np.pi*f1*sinc(2*j*f1) - 2*np.pi*f0*sinc(2*j*f0))
+
+    a = np.dot(np.linalg.inv(R), r)
+    a.shape = (-1,)
+    h = np.zeros(N)
+    h[:L] = a[:0:-1]/2.
+    h[L] = a[0]
+    h[L+1:] = a[1:]/2.
+    return h
