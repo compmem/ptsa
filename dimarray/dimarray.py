@@ -468,7 +468,7 @@ class DimArray(AttrArray):
 
                     # replace the string to access the dimension like:
                     # self['dim1']
-                    filterStr = re.sub(r'\b'+k+r'\b','self["'+k+'"]',filterStr)
+                    filterStr = re.sub(r'\b'+k+r'\b','np.asarray(self["'+k+'"])',filterStr)
 
                     # get the new index
                     newind = eval(filterStr)
