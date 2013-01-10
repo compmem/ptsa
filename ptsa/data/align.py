@@ -122,7 +122,7 @@ def align_pyepl(wrappedfile, eeglog, events, annot_id='S255',
 
     # get the offsets
     offsets = times_to_offsets(pulse_ms, annot_ms, events[event_time_id],
-                               window=window, thresh_ms=thresh_ms):
+                               window=window, thresh_ms=thresh_ms)
 
     # add esrc and eoffset to the Events instance
     events = events.add_fields(esrc=np.repeat(w,len(events)),
