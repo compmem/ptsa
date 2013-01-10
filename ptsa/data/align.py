@@ -44,7 +44,7 @@ def find_needle_in_haystack(needle, haystack, maxdiff):
     return i
 
 def times_to_offsets(eeg_times, eeg_offsets, beh_times,
-                     window=100, thresh_ms=10):
+                     samplerate, window=100, thresh_ms=10):
     """
     Fit a line to the eeg times to offsets conversion and then apply
     it to the provided behavioral event times.
@@ -85,7 +85,7 @@ def times_to_offsets(eeg_times, eeg_offsets, beh_times,
     c = c - x[0]*m
 
     # calc the event time in offsets
-    samplerate = w.samplerate
+    #samplerate = w.samplerate
     offsets = np.int64(np.round((m*beh_times + c)*samplerate/1000.))
 
     return offsets
@@ -122,7 +122,7 @@ def align_pyepl(wrappedfile, eeglog, events, annot_id='S255',
 
     # get the offsets
     offsets = times_to_offsets(pulse_ms, annot_ms, events[event_time_id],
-                               window=window, thresh_ms=thresh_ms)
+                               w.samplerate, window=window, thresh_ms=thresh_ms)
 
     # add esrc and eoffset to the Events instance
     events = events.add_fields(esrc=np.repeat(w,len(events)),
