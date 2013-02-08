@@ -53,7 +53,7 @@ class BaseWrapper(object):
         Returns
         -------
         nsamples : {float}
-            Samplerate for the dataset or specified channel.
+            Number of samples for the dataset or specified channel.
         """
         raise NotImplementedError
     
@@ -291,6 +291,49 @@ class BaseWrapper(object):
 
         # set timerange
         samp_start = 0*samplesize
+        samp_end = samp_start + (dur_samp-1)*samplesize
+        time_range = np.linspace(samp_start,samp_end,dur_samp)
+
+	# make it a timeseries
+        dims = [Dim(self.channels,'channels'),
+                Dim(time_range,'time')]
+        data = TimeSeries(np.asarray(data),
+                          'time',
+                          self.samplerate,dims=dims)
+
+        return data
+    
+    def get_some_data(self,channels,data_offset,dur_samp):
+        """
+        Return a TimeSeries containing a continuous chunk of the data.
+
+        Parameters
+        ----------
+        channels : {list,int,str}
+            Channels to load. Either integer number or (if appropriate
+            for a given data format) a string label.
+        data_offsets : {int}
+            First sample to return.
+        dur_samp : {int}
+            Duration in samples of chunk of data to return.
+
+        Returns
+        -------
+        data : {TimeSeries}
+            TimeSeries of data for the specified channel in the form
+            [events, duration].
+        
+        """
+        data = self._load_data(channels,[data_offset],dur_samp,0)
+        # remove events dimension
+        data = data[:,0,:]
+
+        # turn it into a TimeSeries
+        # get the samplesize
+        samplesize = 1./self.samplerate
+
+        # set timerange
+        samp_start = data_offset*samplesize
         samp_end = samp_start + (dur_samp-1)*samplesize
         time_range = np.linspace(samp_start,samp_end,dur_samp)
 
