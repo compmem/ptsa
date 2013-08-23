@@ -278,7 +278,8 @@ class HDF5Wrapper(BaseWrapper):
         # reshape if necessary
         cursamp = d.shape[1]
         newsamp = len(data)
-        d.shape = (d.shape[0], newsamp)
+        if cursamp != newsamp:
+            d.shape = (d.shape[0], newsamp)
 
         # set the data
         d[channel,:] = self._data_to_file(data)

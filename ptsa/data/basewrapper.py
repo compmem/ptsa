@@ -236,7 +236,7 @@ class BaseWrapper(object):
         samp_end = samp_start + (dur_samp-1)*samplesize
         time_range = np.linspace(samp_start,samp_end,dur_samp)
 
-	# make it a timeseries
+        # make it a timeseries
         dims = [Dim(channels,'channels'),
                 Dim(event_offsets,'event_offsets'),
                 Dim(time_range,'time')]
