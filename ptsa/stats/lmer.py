@@ -62,7 +62,7 @@ def gen_perms(dat, group_var, nperms):
     return perms
 
 
-def lmer_feature(formula_str, dat, perm_var, perms=None, **kwargs):
+def lmer_feature(formula_str, dat, perms=None, **kwargs):
     """
     Run LMER on a number of permutations of the predicted data.
 
@@ -70,6 +70,9 @@ def lmer_feature(formula_str, dat, perm_var, perms=None, **kwargs):
     """
     # convert the recarray to a DataFrame
     rdf = DataFrame({k:dat[k] for k in dat.dtype.names})
+
+    # get the perm_var
+    perm_var = formula_str.split('~')[0].strip()
 
     # get the column index
     col_ind = list(rdf.colnames).index(perm_var)
@@ -111,4 +114,4 @@ if __name__ == '__main__':
     dat = np.rec.fromarrays((np.random.randn(len(s)),
                              np.random.randn(len(s)),s),names='val,beh,subj')
     perms = gen_perms(dat,'subj',10)
-    t = lmer_feature('val ~ beh + (1|subj)',dat,perms,'val')
+    t = lmer_feature('val ~ beh + (1|subj)',dat,perms)
