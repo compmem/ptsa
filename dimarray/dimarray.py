@@ -1030,6 +1030,12 @@ class DimArray(AttrArray):
         # list of dims to be concatenated:
         conc_dims = [d.dims[axis] for d in data]
 
+        # convert all items to AttrArray view (necessary for call to
+        # np.concatenate which transposes the arrays using the numpy
+        # functions rather than the DimArray functions):
+        data = [d.view(AttrArray) for d in data]
+        #dim_names = [d.name for dat in data for d in dat.dims]
+        
         new_dat = np.concatenate(data,axis=axis)
         new_dims = copylib.deepcopy(self.dims)
         new_dims[axis] = Dim(np.concatenate(conc_dims),self.dim_names[axis])
@@ -1037,12 +1043,6 @@ class DimArray(AttrArray):
         new_attrs['dims'] = new_dims
         return self.__class__(new_dat,**new_attrs)
 
-        # # convert all items to AttrArray view (necessary for call to
-        # # np.concatenate which transposes the arrays using the numpy
-        # # functions rather than the DimArray functions):
-        # data = [d.view(AttrArray) for d in data]
-        # dim_names = [d.name for dat in data for d in dat.dims]
-        
         # # create new array:
         # result = np.concatenate(data,axis=axis).view(AttrArray)
         # result._attrs = self._attrs
