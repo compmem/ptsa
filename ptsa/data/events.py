@@ -205,7 +205,7 @@ class Events(np.recarray):
             if eventdata is None:
                 eventdata = newdat
             else:
-                eventdata.extend(newdat,axis=1)
+                eventdata = eventdata.extend(newdat,axis=1)
             
         # concatenate (must eventually check that dims match)
         tdim = eventdata['time']
