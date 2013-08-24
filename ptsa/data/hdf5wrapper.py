@@ -48,6 +48,7 @@ class HDF5Wrapper(BaseWrapper):
         self.filepath = filepath
         self.dataset_name = dataset_name
         self.annotations_name = annotations_name
+        self.channel_info_name = channel_info_name
         self.apply_gain = apply_gain
         self.gain_buffer = gain_buffer
         self.gain = None
