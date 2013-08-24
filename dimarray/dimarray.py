@@ -225,7 +225,29 @@ class DimSelect(Dim):
 
         # create the final master index from the list of filtered indices
         return DimIndex(np.ix_(*ind),ind)
-        
+
+    def index(self, index):
+        """
+        Index into elements along the dimension.
+        """
+        # get starting indicies
+        ind = [np.ones(shape, dtype=np.bool) 
+               for shape in self._parent_dim_shapes]
+
+        # make sure 1d
+        index = np.atleast_1d(index)
+
+        if issubclass(index.dtype.type, np.bool_):
+            # start with ones and apply logical &
+            ind[self._parent_dim_index] = [self._parent_dim_index] & index
+        else:
+            # start with zeros and index into it
+            ind[self._parent_dim_index][:] = False
+            ind[self._parent_dim_index][index] = True
+
+        # create the final master index from the list of filtered indices
+        return DimIndex(np.ix_(*ind),ind)
+
 
 class DimArray(AttrArray):
     """
