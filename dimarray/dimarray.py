@@ -405,8 +405,8 @@ class DimArray(AttrArray):
                                      "only Dim instances!\ndim %d: %s\n" % \
                                      (i,str(type(d))))
             # make sure it is unique
-            if d.shape[0] != np.unique(np.asarray(d)).shape[0]:
-                raise ValueError("Data for Dim objects must be unique!")
+            #if d.shape[0] != np.unique(np.asarray(d)).shape[0]:
+            #    raise ValueError("Data for Dim objects must be unique!")
         
         # Ensure that the lengths of the Dim instances match the array shape:
         if self.shape != tuple([len(d) for d in self.dims]):
