@@ -93,18 +93,19 @@ def lmer_feature(formula_str, dat, perms=None, **kwargs):
         # inside try block to catch convergence errors
         try:
             ms = lme4.lmer(rformula, data=rdf, **kwargs)
-            df = r['data.frame'](lme4.coef(r['summary'](ms)))
-            if tvals is None:
-                # init the data
-                # get the row names
-                rows = list(r['row.names'](df))
-                tvals = np.rec.fromarrays([np.ones(len(perms))*np.nan 
-                                           for r in range(len(rows))],
-                                          names=','.join(rows))
-            tvals[i] = tuple(df.rx2('t.value'))
         except:
-            pass
+            continue
             #tvals.append(np.array([np.nan]))
+        # extract the result
+        df = r['data.frame'](lme4.coef(r['summary'](ms)))
+        if tvals is None:
+            # init the data
+            # get the row names
+            rows = list(r['row.names'](df))
+            tvals = np.rec.fromarrays([np.ones(len(perms))*np.nan 
+                                       for ro in range(len(rows))],
+                                      names=','.join(rows))
+        tvals[i] = tuple(df.rx2('t.value'))
 
     return tvals
 
