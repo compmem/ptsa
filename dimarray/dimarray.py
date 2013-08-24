@@ -85,8 +85,8 @@ class Dim(AttrArray):
         elif dim.ndim == 0:
             dim.shape = (1,)
         
-        if dim.shape[0] != np.unique(np.asarray(dim)).shape[0]:
-            raise ValueError("Data for Dim objects must be unique!")
+        #if dim.shape[0] != np.unique(np.asarray(dim)).shape[0]:
+        #    raise ValueError("Data for Dim objects must be unique!")
 
         # convert to Dim and return:
         return dim.view(cls)
