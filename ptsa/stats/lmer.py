@@ -62,7 +62,12 @@ def gen_perms(dat, group_var, nperms):
     return perms
 
 
-def lmer_feature(formula_str, dat, perms, perm_var, **kwargs):
+def lmer_feature(formula_str, dat, perm_var, perms=None, **kwargs):
+    """
+    Run LMER on a number of permutations of the predicted data.
+
+    
+    """
     # convert the recarray to a DataFrame
     rdf = DataFrame({k:dat[k] for k in dat.dtype.names})
 
@@ -72,20 +77,33 @@ def lmer_feature(formula_str, dat, perms, perm_var, **kwargs):
     # make a formula obj
     rformula = Formula(formula_str)
 
+    # just apply to actual data if no perms
+    if perms is None:
+        perms = [np.arange(len(dat))]
+
     # run on each permutation
-    tvals = []
-    for perm in perms:
+    tvals = None
+    for i,perm in enumerate(perms):
         # set the perm
         rdf[col_ind] = rdf[col_ind].rx(perm+1)
 
         # inside try block to catch convergence errors
         try:
             ms = lme4.lmer(rformula, data=rdf, **kwargs)
-            tvals.append(np.array(list(r['data.frame'](lme4.coef(r['summary'](ms))).rx2('t.value'))))
+            df = r['data.frame'](lme4.coef(r['summary'](ms)))
+            if tvals is None:
+                # init the data
+                # get the row names
+                rows = list(r['row.names'](df))
+                tvals = np.rec.fromarrays([np.ones(len(perms))*np.nan 
+                                           for r in range(len(rows))],
+                                          names=','.join(rows))
+            tvals[i] = tuple(df.rx2('t.value'))
         except:
-            tvals.append(np.array([np.nan]))
+            pass
+            #tvals.append(np.array([np.nan]))
 
-    return np.array(tvals)
+    return tvals
 
 if __name__ == '__main__':
     
