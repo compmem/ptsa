@@ -1026,22 +1026,30 @@ class DimArray(AttrArray):
                 
         # add the current DimArray to the beginning of list:
         data.insert(0,self)
-        # convert all items to AttrArray view (necessary for call to
-        # np.concatenate which transposes the arrays using the numpy
-        # functions rather than the DimArray functions):
-        data = [d.view(AttrArray) for d in data]
-        dim_names = [d.name for dat in data for d in dat.dims]
-        
+
         # list of dims to be concatenated:
         conc_dims = [d.dims[axis] for d in data]
 
-        # create new array:
-        result = np.concatenate(data,axis=axis).view(AttrArray)
-        result._attrs = self._attrs
-        result.__array_finalize__(self)
-        # update dims & return:
-        result.dims[axis] = Dim(np.concatenate(conc_dims),self.dim_names[axis])
-        return result.view(self.__class__)        
+        new_dat = np.concatenate(data,axis=axis)
+        new_dims = copylib.deepcopy(self.dims)
+        new_dims[axis] = Dim(np.concatenate(conc_dims),self.dim_names[axis])
+        new_attrs = self._attrs.copy()
+        new_attrs['dims'] = new_dims
+        return self.__class__(new_dat,**new_attrs)
+
+        # # convert all items to AttrArray view (necessary for call to
+        # # np.concatenate which transposes the arrays using the numpy
+        # # functions rather than the DimArray functions):
+        # data = [d.view(AttrArray) for d in data]
+        # dim_names = [d.name for dat in data for d in dat.dims]
+        
+        # # create new array:
+        # result = np.concatenate(data,axis=axis).view(AttrArray)
+        # result._attrs = self._attrs
+        # result.__array_finalize__(self)
+        # # update dims & return:
+        # result.dims[axis] = Dim(np.concatenate(conc_dims),self.dim_names[axis])
+        # return result.view(self.__class__)        
 
     def add_dim(self, dim):
         """
