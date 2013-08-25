@@ -16,9 +16,9 @@ r = rpy2.robjects.r
 
 # For a Pythonic interface to R
 from rpy2.robjects.packages import importr
-from rpy2.robjects import Formula
+from rpy2.robjects import Formula, FactorVector
 from rpy2.robjects.environments import Environment
-from rpy2.robjects.vectors import DataFrame,IntVector
+from rpy2.robjects.vectors import DataFrame, IntVector
 
 # Make it so we can send numpy arrays to R
 import rpy2.robjects.numpy2ri
@@ -62,17 +62,27 @@ def gen_perms(dat, group_var, nperms):
     return perms
 
 
-def lmer_feature(formula_str, dat, perms=None, **kwargs):
+def lmer_feature(formula_str, dat, perms=None, 
+                 val=None, factors=None, **kwargs):
     """
     Run LMER on a number of permutations of the predicted data.
 
     
     """
-    # convert the recarray to a DataFrame
-    rdf = DataFrame({k:dat[k] for k in dat.dtype.names})
-
     # get the perm_var
     perm_var = formula_str.split('~')[0].strip()
+
+    # set the val if necessary
+    if not val is None:
+        dat[perm_var] = val
+
+    # make factor list if necessary
+    if factors is None:
+        factors = []
+
+    # convert the recarray to a DataFrame
+    rdf = DataFrame({k:(FactorVector(dat[k]) if k in factors else dat[k]) 
+                     for k in dat.dtype.names})
 
     # get the column index
     col_ind = list(rdf.colnames).index(perm_var)
