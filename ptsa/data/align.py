@@ -15,7 +15,7 @@ import csv
 import numpy as np
 from basewrapper import BaseWrapper
 
-def load_pyepl_eeg_pulses(logfile):
+def load_pyepl_eeg_pulses(logfile, event_label='UP'):
     """
     Load and process the default eeg log file from PyEPL.  This will
     extract only when the pulses turned on (not off), which is what is
@@ -25,7 +25,7 @@ def load_pyepl_eeg_pulses(logfile):
     reader = csv.reader(open(logfile,'rU'),dialect=csv.excel_tab)
     pulses = []
     for row in reader:
-        if row[2] == 'UP':
+        if row[2] == event_label:
             pulses.append(long(row[0]))
     return np.asarray(pulses)
 
@@ -43,35 +43,15 @@ def find_needle_in_haystack(needle, haystack, maxdiff):
         i = None
     return i
 
-def align_pyepl(wrappedfile, eeglog, events, annot_id='S255', 
-                channel_for_sr=0, 
-                window=100, thresh_ms=10,
-                event_time_id='event_time'):
+def times_to_offsets(eeg_times, eeg_offsets, beh_times,
+                     samplerate, window=100, thresh_ms=10):
     """
-    Take an Events instance and add esrc and eoffset, aligning the
-    events to the data in the supplied wrapped file (i.e., you must
-    wrap your data with something like EDFWrapper or HDF5Wrapper.)
-    This extracts the pulse information from the data's annotations
-    and matches it up with the pyepl eeg.eeglog file passed in.
-
-    It returns the updated Events.
+    Fit a line to the eeg times to offsets conversion and then apply
+    it to the provided behavioral event times.
     """
-
-    if(not isinstance(wrappedfile,BaseWrapper)):
-        raise ValueError('BaseWrapper instance required!')
+    pulse_ms = eeg_times
+    annot_ms = eeg_offsets
     
-    # point to wrapper
-    w = wrappedfile
-
-    # load clean pyepl eeg log
-    pulse_ms = load_pyepl_eeg_pulses(eeglog)
-
-    # load annotations from edf
-    annot = w.annotations
-
-    # convert seconds to ms for annot_ms
-    annot_ms = annot[annot['annotations']==annot_id]['onsets'] * 1000
-
     # pick beginning and end (needle in haystack)
     for i in xrange(len(annot_ms)-window):
         s_ind = find_needle_in_haystack(np.diff(annot_ms[i:i+window]),
@@ -105,9 +85,45 @@ def align_pyepl(wrappedfile, eeglog, events, annot_id='S255',
     c = c - x[0]*m
 
     # calc the event time in offsets
-    samplerate = w.samplerate
-    offsets = np.int64(np.round((m*events[event_time_id] + c)*samplerate/1000.))
+    #samplerate = w.samplerate
+    offsets = np.int64(np.round((m*beh_times + c)*samplerate/1000.))
+
+    return offsets
+
     
+def align_pyepl(wrappedfile, eeglog, events, annot_id='S255', 
+                channel_for_sr=0, 
+                window=100, thresh_ms=10,
+                event_time_id='event_time', eeg_event_label='UP'):
+    """
+    Take an Events instance and add esrc and eoffset, aligning the
+    events to the data in the supplied wrapped file (i.e., you must
+    wrap your data with something like EDFWrapper or HDF5Wrapper.)
+    This extracts the pulse information from the data's annotations
+    and matches it up with the pyepl eeg.eeglog file passed in.
+
+    It returns the updated Events.
+    """
+
+    if(not isinstance(wrappedfile,BaseWrapper)):
+        raise ValueError('BaseWrapper instance required!')
+    
+    # point to wrapper
+    w = wrappedfile
+
+    # load clean pyepl eeg log
+    pulse_ms = load_pyepl_eeg_pulses(eeglog, event_label=eeg_event_label)
+
+    # load annotations from edf
+    annot = w.annotations
+
+    # convert seconds to ms for annot_ms
+    annot_ms = annot[annot['annotations']==annot_id]['onsets'] * 1000
+
+    # get the offsets
+    offsets = times_to_offsets(pulse_ms, annot_ms, events[event_time_id],
+                               w.samplerate, window=window, thresh_ms=thresh_ms)
+
     # add esrc and eoffset to the Events instance
     events = events.add_fields(esrc=np.repeat(w,len(events)),
                                eoffset=offsets)

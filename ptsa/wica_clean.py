@@ -57,7 +57,7 @@ def _clean_find_thresh(Y,Kthr,wavelet,L):
         return xn, thld
     # thld = 3.6;
     # not sure where this 3.6 number came from, so I'm dropping it down
-    thld = .1 #3.6
+    thld = 2.1 #3.6
     # KK = 100;
     KK = 100.
     # LL = floor(log2(length(Y)));
@@ -173,7 +173,9 @@ def remove_strong_artifacts(data, Comp, Kthr=1.25, F=256,
 
     """
     # make sure not to modify data
-    icaEEG = data.copy()
+    #icaEEG = data.copy()
+    # allow to modify to save memory
+    icaEEG = data
     
     # L = round(F*0.1);
     L = np.int32(np.round(F*0.1))
@@ -311,15 +313,26 @@ def wica_clean(data, samplerate=None, pure_range=(None,None),
     # std_thresh = std_fact*np.std(vals)
     # comp_ind = np.nonzero(vals>=std_thresh)[0]
     comp_ind = []
+    # loop over EOG elecs
     for e in EOG_elecs:
+        # get the weights of each component onto that electrode
         vals = np.abs(A[e,:])
+        # calculate the threshold that the std must exceed for that
+        # component to be considered
         std_thresh = std_fact*np.std(vals)
         #comp_ind.extend(np.nonzero(vals>=std_thresh)[0].tolist())
+        # loop over potential components
         for s in np.nonzero(vals>=std_thresh)[0].tolist():
+            # calculate the weights of all electrodes into that component
             sweights = np.abs(A[:,s])
+            # get threshold based on the std across those weights
             sthresh2 = std_fact*sweights.std()
+            # see if that component crosses this second threshold
             if np.abs(A[e,s]) >= sthresh2:
+                # yes, so append to the list to clean
                 comp_ind.append(s)
+    # Instead, try and make sure the weights are above the STD thresh
+    # AND bigger for EOG elecs than for an elec like Pz
 
         
     comp_ind = np.unique(comp_ind)

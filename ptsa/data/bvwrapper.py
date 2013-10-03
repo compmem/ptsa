@@ -33,8 +33,9 @@ class BVWrapper(BaseWrapper):
         # set up the basic params of the data
         if os.path.exists(filepath):
             self.filepath = filepath
+            self.filedir = os.path.split(filepath)[0]
         else:
-            raise IOError(str(filepath)+'\n does not exist!'+
+            raise IOError(str(filepath)+'\n does not exist!\n'+
                           'Valid path to data file is needed!')
 
         # read in the info about the data from the header
@@ -44,9 +45,12 @@ class BVWrapper(BaseWrapper):
         # must remove the first lines b/c they are not standard INI format
         # also remove everything after [Comment] b/c it doesn't parse either
         try:
-            ind = lines.index('[Comment]\r\n')
+            ind = lines.index('[Comment]\r\r\n')
         except ValueError:
-            ind = None
+            try:
+                ind = lines.index('[Comment]\r\n')
+            except ValueError:
+                ind = None
         hdr_string = ''.join(lines[1:ind])
 
         # now read it in
@@ -56,14 +60,41 @@ class BVWrapper(BaseWrapper):
         self._binaryformat = cp.get('Binary Infos','binaryformat')
         self._nchannels = int(cp.get('Common Infos','numberofchannels'))
         self._data_orient = cp.get('Common Infos','dataorientation')
-        self._data_file = cp.get('Common Infos','datafile')
+        self._data_file = os.path.join(self.filedir,cp.get('Common Infos','datafile'))
         self._samplerate = float(10e5)/int(cp.get('Common Infos','samplinginterval'))
-        self._markerfile = cp.get('Common Infos','markerfile')
+        self._markerfile = os.path.join(self.filedir,cp.get('Common Infos','markerfile'))
 
-        # read in scale factors for each channel
-        self._channel_scale = np.zeros(self._nchannels)
+        # read in scale factors for each channel (and other info)
+        numbers = []
+        names = []
+        scales = []
+        units = []
+        impedances = []
+        #self._channel_scale = np.ones(self._nchannels)
         for i in range(self._nchannels):
-            self._channel_scale[i] = float(cp.get('Channel Infos','Ch%d'%(i+1)).split(',')[2])
+            info = cp.get('Channel Infos','Ch%d'%(i+1)).split(',')
+            #self._channel_scale[i] = float(info[2])
+            numbers.append(i+1)
+            names.append(info[0])
+            scales.append(float(info[2]))
+            units.append(unicode(info[3],'utf-8'))
+        # try and get the impedances
+        for i,line in enumerate(lines[ind:]):
+            if 'Impedance' in line:
+                # found impedances, try and read them
+                for l,li in enumerate(lines[ind+i+1:]):
+                    info = li.strip().split(' ')
+                    if l<len(names) and names[l] == info[1][:-1]:
+                        impedances.append(int(info[2]))
+                    else:
+                        break
+                break
+        if len(impedances) != len(names):
+            # pad with -1
+            impedances = [-1]*len(names)
+        self._channel_info = np.rec.fromarrays([numbers,names,scales,
+                                                units,impedances],
+                                               names='number,name,scale,unit,impedance')
             
         # process the binary format
         if self._binaryformat == 'INT_16':
@@ -83,6 +114,9 @@ class BVWrapper(BaseWrapper):
 
     def _get_nchannels(self):
         return self._nchannels
+
+    def _get_channel_info(self):
+        return self._channel_info
 
     def _get_nsamples(self, channel=None):
         return self._nsamples
@@ -150,7 +184,8 @@ class BVWrapper(BaseWrapper):
 
             # only pick the channels of interest and scale
             dat = np.multiply(mm[ssamp:ssamp+dur_samp,channels],
-                              self._channel_scale[channels])
+                              self._channel_info['scale'][channels])
+                              #self._channel_scale[channels])
             eventdata[:,e,:] = dat.T
 
         return eventdata    

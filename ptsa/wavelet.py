@@ -12,9 +12,10 @@ import numpy as np
 from scipy import unwrap
 import scipy.stats as stats
 from scipy.fftpack import fft,ifft
-
+import scipy.signal
+import scipy.ndimage
 from ptsa.filt import decimate
-from ptsa.helper import reshape_to_2d,reshape_from_2d
+from ptsa.helper import reshape_to_2d,reshape_from_2d,centered,next_pow2
 from ptsa.data import TimeSeries,Dim
 from ptsa.fixed_scipy import morlet as morlet_wavelet
 
@@ -259,6 +260,92 @@ def convolve_wave(wav,eegdat):
         wav_coef.append(np.convolve(wav,ev_dat,'same'))
     return wave_coef
 
+
+def fconv_multi(in1, in2, mode='full'):
+    """
+    Convolve multiple 1-dimensional arrays using FFT.
+
+    Calls scipy.signal.fft on every row in in1 and in2, multiplies
+    every possible pairwise combination of the transformed rows, and
+    returns an inverse fft (by calling scipy.signal.ifft) of the
+    result. Therefore the output array has as many rows as the product
+    of the number of rows in in1 and in2 (the number of colums depend
+    on the mode).
+    
+    Parameters
+    ----------
+    in1 : {array_like}
+        First input array. Must be arranged such that each row is a
+        1-D array with data to convolve.
+    in2 : {array_like}
+        Second input array. Must be arranged such that each row is a
+        1-D array with data to convolve.
+    mode : {'full','valid','same'},optional
+        Specifies the size of the output. See the docstring for
+        scipy.signal.convolve() for details.
+    
+    Returns
+    -------
+    Array with in1.shape[0]*in2.shape[0] rows with the convolution of
+    the 1-D signals in the rows of in1 and in2.
+    """    
+    # ensure proper number of dimensions
+    in1 = np.atleast_2d(in1)
+    in2 = np.atleast_2d(in2)
+
+    # get the number of signals and samples in each input
+    num1,s1 = in1.shape
+    num2,s2 = in2.shape
+    
+    # see if we will be returning a complex result
+    complex_result = (np.issubdtype(in1.dtype, np.complex) or
+                      np.issubdtype(in2.dtype, np.complex))
+
+    # determine the size based on the next power of 2
+    actual_size = s1+s2-1
+    size = np.power(2,next_pow2(actual_size))
+
+    # perform the fft of each row of in1 and in2:
+    #in1_fft = np.empty((num1,size),dtype=np.complex128)
+    in1_fft = np.empty((num1,size),dtype=np.complex)
+    for i in xrange(num1):
+        in1_fft[i] = fft(in1[i],size)
+    #in2_fft = np.empty((num2,size),dtype=np.complex128)
+    in2_fft = np.empty((num2,size),dtype=np.complex)
+    for i in xrange(num2):
+        in2_fft[i] = fft(in2[i],size)
+    
+    # duplicate the signals and multiply before taking the inverse
+    in1_fft = in1_fft.repeat(num2,axis=0)
+    in1_fft *= np.vstack([in2_fft]*num1)
+    ret = ifft(in1_fft)
+#     ret = ifft(in1_fft.repeat(num2,axis=0) * \
+#                np.vstack([in2_fft]*num1))
+    
+    # delete to save memory
+    del in1_fft, in2_fft
+    
+    # strip of extra space if necessary
+    ret = ret[:,:actual_size]
+    
+    # determine if complex, keeping only real if not
+    if not complex_result:
+        ret = ret.real
+    
+    # now only keep the requested portion
+    if mode == "full":
+        return ret
+    elif mode == "same":
+        if s1 > s2:
+            osize = s1
+        else:
+            osize = s2
+        return centered(ret,(num1*num2,osize))
+    elif mode == "valid":
+        return centered(ret,(num1*num2,np.abs(s2-s1)+1))
+
+
+
 def phase_pow_multi(freqs, dat,  samplerates=None, widths=5,
                     to_return='both', time_axis=-1,
                     conv_dtype=np.complex64, freq_name='freqs',
@@ -357,15 +444,20 @@ def phase_pow_multi(freqs, dat,  samplerates=None, widths=5,
     eegdat = reshape_to_2d(dat, time_axis) #.view(np.ndarray)
 
     # for efficiency pre-generate empty array for convolution:
-    wav_coef = np.empty((eegdat.shape[time_axis-1]*len(freqs),
-                         eegdat.shape[time_axis]),dtype=conv_dtype)
+    wav_coef = np.empty((eegdat.shape[0]*len(freqs),
+                         eegdat.shape[1]),dtype=conv_dtype)
     
     # populate this array with the convolutions:
     i=0
+    step = len(eegdat)
     for wav in wavelets:
-        for ev_dat in eegdat:
-            wav_coef[i]=np.convolve(wav,ev_dat,'same')
-            i+=1
+        wc = fconv_multi(wav,eegdat,'same')
+        wav_coef[i:i+step] = wc
+        i+=step
+        # for ev_dat in eegdat:
+        #     wav_coef[i]=np.convolve(wav,ev_dat,'same')
+        #     #wav_coef[i]=scipy.signal.fftconvolve(ev_dat,wav,'same')
+        #     i+=1
     
     # Determine shape for ouput arrays with added frequency dimension:
     newshape = list(origshape)

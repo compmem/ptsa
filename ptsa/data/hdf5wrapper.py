@@ -48,6 +48,7 @@ class HDF5Wrapper(BaseWrapper):
         self.filepath = filepath
         self.dataset_name = dataset_name
         self.annotations_name = annotations_name
+        self.channel_info_name = channel_info_name
         self.apply_gain = apply_gain
         self.gain_buffer = gain_buffer
         self.gain = None
@@ -278,7 +279,8 @@ class HDF5Wrapper(BaseWrapper):
         # reshape if necessary
         cursamp = d.shape[1]
         newsamp = len(data)
-        d.shape = (d.shape[0], newsamp)
+        if cursamp != newsamp:
+            d.shape = (d.shape[0], newsamp)
 
         # set the data
         d[channel,:] = self._data_to_file(data)

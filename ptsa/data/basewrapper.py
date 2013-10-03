@@ -93,9 +93,13 @@ class BaseWrapper(object):
         Returns
         -------
         channel_info : {array-like}
-            Channel_info
+            Channel information (e.g., names, locations, etc...)
         """
-        raise NotImplementedError
+        # generate recarray of channel info based on nchannels
+        return np.rec.fromarrays(zip(*[(i+1,'Ch%d'%(i+1)) 
+                                       for i in range(self.nchannels)]),
+                                 names='number,name')
+        #raise NotImplementedError
         
     def _set_channel_info(self, channel_info):
         """
@@ -145,14 +149,15 @@ class BaseWrapper(object):
                        start_time,end_time,buffer_time=0.0,
                        resampled_rate=None,
                        filt_freq=None,filt_type='stop',filt_order=4,
-                       keep_buffer=False):
+                       keep_buffer=False,
+                       loop_axis=None,num_mp_procs=0):
         """
         Return an TimeSeries containing data for the specified channel
         in the form [events,duration].
 
         Parameters
         ----------
-        channels: {int}
+        channels: {int} or {dict}
             Channels from which to load data.
         event_offsets: {array_like}
             Array/list of event offsets (in samples) into the data,
@@ -222,6 +227,14 @@ class BaseWrapper(object):
                              str(len(bad_evs))+' events.')
 
         # process the channels
+        if isinstance(channels, dict):
+            # turn into indices
+            ch_info = self.channels
+            key = channels.keys()[0]
+            channels = [np.nonzero(ch_info[key]==c)[0] for c in channels[key]]
+        elif isinstance(channels, str):
+            # find that channel by name
+            channels = np.nonzero(self.channels['name']==channels)[0]
         if channels is None or len(np.atleast_1d(channels))==0:
             channels = np.arange(self.nchannels)
         channels = np.atleast_1d(channels)
@@ -235,8 +248,8 @@ class BaseWrapper(object):
         samp_end = samp_start + (dur_samp-1)*samplesize
         time_range = np.linspace(samp_start,samp_end,dur_samp)
 
-	# make it a timeseries
-        dims = [Dim(channels,'channels'),
+        # make it a timeseries
+        dims = [Dim(self.channels[channels],'channels'),  # can index into channels
                 Dim(event_offsets,'event_offsets'),
                 Dim(time_range,'time')]
         eventdata = TimeSeries(np.asarray(eventdata),
@@ -254,7 +267,9 @@ class BaseWrapper(object):
 	if (not(resampled_rate is None) and
             not(resampled_rate == eventdata.samplerate)):
 	    # resample the data
-            eventdata = eventdata.resampled(resampled_rate)
+            eventdata = eventdata.resampled(resampled_rate,
+                                            loop_axis=loop_axis,
+                                            num_mp_procs=num_mp_procs)
 
         # remove the buffer and set the time range
 	if buf > 0 and not(keep_buffer):
@@ -284,7 +299,7 @@ class BaseWrapper(object):
         time_range = np.linspace(samp_start,samp_end,dur_samp)
 
 	# make it a timeseries
-        dims = [Dim(channels,'channels'),
+        dims = [Dim(self.channels[channels],'channels'),
                 Dim(time_range,'time')]
         data = TimeSeries(np.asarray(data),
                           'time',
@@ -300,4 +315,6 @@ class BaseWrapper(object):
                            lambda self,annot: self._set_annotations(annot))
     channel_info = property(lambda self: self._get_channel_info(),
                             lambda self,chan_info: self._set_channel_info(chan_info))
+    channels = property(lambda self: self._get_channel_info(),
+                        lambda self,chan_info: self._set_channel_info(chan_info))
     data = property(lambda self: self.get_all_data())

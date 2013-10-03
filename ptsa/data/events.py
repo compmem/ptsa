@@ -121,7 +121,8 @@ class Events(np.recarray):
     def get_data(self,channels,start_time,end_time,buffer_time=0.0,
                  resampled_rate=None,
                  filt_freq=None,filt_type='stop',filt_order=4,
-                 keep_buffer=False,esrc='esrc',eoffset='eoffset'):
+                 keep_buffer=False,esrc='esrc',eoffset='eoffset',
+                 loop_axis=None,num_mp_procs=0):
         """
         Return the requested range of data for each event by using the
         proper data retrieval mechanism for each event.
@@ -198,11 +199,13 @@ class Events(np.recarray):
                                         filt_freq,
                                         filt_type,
                                         filt_order,
-                                        keep_buffer)
+                                        keep_buffer,
+                                        loop_axis,
+                                        num_mp_procs)
             if eventdata is None:
                 eventdata = newdat
             else:
-                eventdata.extend(newdat,axis=1)
+                eventdata = eventdata.extend(newdat,axis=1)
             
         # concatenate (must eventually check that dims match)
         tdim = eventdata['time']

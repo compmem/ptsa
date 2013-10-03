@@ -149,12 +149,31 @@ def next_pow2(n):
     """
     Returns p such that 2 ** p >= n
     """
-    p   = np.floor(np.log2(n))
-    if 2 **  p ==  n:
+    p = int(np.floor(np.log2(n)))
+    if 2 **  p == n:
         return p
     else:
         return p + 1
 
+def pad_to_next_pow2(x, axis=0):
+    """
+    Pad an array with zeros to the next power of two along the
+    specified axis.
+
+    Note: This is much easier with numpy version 1.7.0, which has a
+    new pad method.
+    """
+    cur_len = x.shape[axis]
+    new_len = 2 ** next_pow2(cur_len)
+    to_pad = new_len - cur_len
+    if to_pad > 0:
+        shape = list(x.shape)
+        shape[axis] = to_pad
+        padding = np.zeros(shape, dtype=x.dtype)
+        return np.concatenate([x,padding], axis=axis)
+    else:
+        # nothing needs to be done
+        return x
 
 
 def centered(arr, newsize):
