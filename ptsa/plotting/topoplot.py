@@ -208,8 +208,9 @@ def topoplot(values=None, axes=None, center=(0,0), nose_dir=0., radius=0.5,
         # square surrounding the head.
     
     # make contour lines:
-    plt.contour(xi,yi,zi,contours,linewidths=linewidths[3],
-                linestyle=contours_ls,colors=colors[2])
+    if linewidths[3] > 0:
+        plt.contour(xi,yi,zi,contours,linewidths=linewidths[3],
+                    linestyle=contours_ls,colors=colors[2])
     # make countour color patches:
     plt.contourf(xi,yi,zi,contours,cmap=cmap)
 
