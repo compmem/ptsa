@@ -53,6 +53,8 @@ def times_to_offsets(eeg_times, eeg_offsets, beh_times,
     annot_ms = eeg_offsets
     
     # pick beginning and end (needle in haystack)
+    s_ind = None
+    e_ind = None
     for i in xrange(len(annot_ms)-window):
         s_ind = find_needle_in_haystack(np.diff(annot_ms[i:i+window]),
                                         np.diff(pulse_ms),thresh_ms)
