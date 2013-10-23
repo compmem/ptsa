@@ -19,7 +19,8 @@ default_head_props = {'head_linewidth': 3,
                       'nose_linewidth': 2,
                       'ear_linewidth': 2,
                      }
-default_label_props = {'fontsize': 'large'}
+default_label_props = {'ha': 'center',
+                       'va': 'center'}
 default_sensor_props = {'marker': 'o',
                         'c': 'k', 
                         's': 8}
@@ -29,8 +30,7 @@ default_contour_props = {'linewidths': 0,
 
 def topoplot(values=None, labels=None, sensors=None, axes=None, 
              center=(0,0), nose_dir=0., radius=0.5,
-             plot_head=True, head_props=None,
-             plot_sensors=True, sensor_props=None,
+             head_props=None, sensor_props=None,
              label_props=None, 
              contours=15, contour_props=None, 
              resolution=400, cmap=None, axis_props='off', 
@@ -58,12 +58,8 @@ def topoplot(values=None, labels=None, sensors=None, axes=None,
         up, 90 is left, 180 is down, 270 is right, etc.
     radius : {float}, optional
         Radius of the head.
-    plot_head : boolean, optional
-        Whether to plot the head outline.
     head_props : dict
         Dictionary of head properties. See default_head_props for choices.
-    plot_sensors : boolean, optional
-        Whether to plot the sensor locations.
     sensor_props : dict
         Dictionary of sensor properties. See options for scatter in mpl and
         default_sensor_props.
@@ -101,7 +97,7 @@ def topoplot(values=None, labels=None, sensors=None, axes=None,
 
     plt.axis(axis_props)
     
-    if plot_head: # head should be plotted
+    if True: # head should be plotted
         # deal with the head props
         hprops = default_head_props.copy()
         if not head_props is None:
@@ -191,7 +187,7 @@ def topoplot(values=None, labels=None, sensors=None, axes=None,
     x = x + center[0]
     y = y + center[1]
 
-    if plot_sensors: # plot electrodes
+    if True: # plot electrodes
         sprops = default_sensor_props.copy()
         if not sensor_props is None:
             sprops.update(sensor_props)
@@ -209,7 +205,7 @@ def topoplot(values=None, labels=None, sensors=None, axes=None,
 
         
     if values is None:
-        return('No values to plot specified!')
+        return #('No values to plot specified!')
     if np.size(values) != np.size(sensors,1):
         return('Numer of values to plot is different from number of sensors!'+
                '\nNo values have been plotted!')
