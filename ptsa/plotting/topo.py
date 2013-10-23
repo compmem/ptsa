@@ -11,17 +11,30 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from ptsa.helper import pol2cart, cart2pol, deg2rad
-try:
-    from griddata import griddata
-except:
-    print('Missing module: griddata.  No topoplots will be available.\n'+
-          'griddata-python may be obtained from: '+
-          'http://code.google.com/p/griddata-python/')
 
-def topoplot(values=None, axes=None, center=(0,0), nose_dir=0., radius=0.5,
-             sensors=None, colors=('black','black','black'),
-             linewidths=(3,2,2,0.5), contours_ls='-', contours=15, resolution=400,
-             cmap=None, axis_props='off', plot_mask='circular'):
+from scipy.interpolate import griddata
+
+default_head_props = {'head_linewidth': 3,
+                      'head_linecolor': 'black',
+                      'nose_linewidth': 2,
+                      'ear_linewidth': 2,
+                     }
+default_label_props = {'fontsize': 'large'}
+default_sensor_props = {'marker': 'o',
+                        'c': 'k', 
+                        's': 8}
+default_contour_props = {'linewidths': 0,
+                         'linestyle': '-',
+                         'colors': 'black',}
+
+def topoplot(values=None, labels=None, sensors=None, axes=None, 
+             center=(0,0), nose_dir=0., radius=0.5,
+             plot_head=True, head_props=None,
+             plot_sensors=True, sensor_props=None,
+             label_props=None, 
+             contours=15, contour_props=None, 
+             resolution=400, cmap=None, axis_props='off', 
+             plot_mask='circular', plot_radius_buffer=.2):
     """
     Plot a topographic map of the scalp in a 2-D circular view
     (looking down at the top of the head).
@@ -30,6 +43,12 @@ def topoplot(values=None, axes=None, center=(0,0), nose_dir=0., radius=0.5,
     ----------
     values : {None, array-like}, optional
         Values to plot. There must be one value for each electrode.
+    labels : {None, array-like}, optional
+        Electrode labels/names to plot. There must be one for each electrode.
+    sensors : {None, tuple of floats}, optional
+        Polar coordinates of the sensor locations. If not None,
+        sensors[0] specifies the angle (in degrees) and sensors[1]
+        specifies the radius.
     axes : {matplotlib.axes}, optional
         Axes to which the topoplot should be added.
     center : {tuple of floats}, optional
@@ -38,24 +57,24 @@ def topoplot(values=None, axes=None, center=(0,0), nose_dir=0., radius=0.5,
         Angle (in degrees) where the nose is pointing. 0 is
         up, 90 is left, 180 is down, 270 is right, etc.
     radius : {float}, optional
-        Radius of the head.    
-    sensors : {None, tuple of floats}, optional
-        Polar coordinates of the sensor locations. If not None,
-        sensors[0] specifies the angle (in degrees) and sensors[1]
-        specifies the radius.
-    colors : {tuple of str or None}, optional
-        Colors for the outline of the head, sensor markers, and contours
-        respectively. If any is None, the corresponding feature is
-        not plotted. For contours either a single color or
-        multiple colors can be specified.
-    linewidths : {tuple of floats}, optional
-        Line widths for the head, nose, ears, and contours
-        respectively. For contours either a single linewith or
-        multiple linewidths can be specified.
-    contours_ls : {str}, optional
-        Line style of the contours.
+        Radius of the head.
+    plot_head : boolean, optional
+        Whether to plot the head outline.
+    head_props : dict
+        Dictionary of head properties. See default_head_props for choices.
+    plot_sensors : boolean, optional
+        Whether to plot the sensor locations.
+    sensor_props : dict
+        Dictionary of sensor properties. See options for scatter in mpl and
+        default_sensor_props.
+    label_props : dict
+        Dictionary of sensor label properties. See options for text in mpl
+        and default_label_props.
     contours : {int}, optional
-        Number of countours.
+        Number of contours.
+    contour_props : dict
+        Dictionary of contour properties. See options for contour in mpl and
+        default_contour_props.
     resolution : {int}, optional
         Resolution of the interpolated grid. Higher numbers give
         smoother edges of the plot, but increase memory and
@@ -68,13 +87,12 @@ def topoplot(values=None, axes=None, center=(0,0), nose_dir=0., radius=0.5,
     plot_mask : {str}, optional
         The mask around the plotted values. 'linear' conects the outer
         electrodes with straight lines, 'circular' draws a circle
-        around the outer electrodes, and 'square' (or any other value)
-        draws a square around the electrodes.
+        around the outer electrodes (see plot_radius_buffer).
+    plot_radius_buffer : float, optional
+        Buffer outside the electrode circumference for generating
+        interpolated values with a circular mask. 
+        This should be greater than zero to aviod interpolation errors.
     """
-
-    # If no colormap is specified, use default colormap:
-    if cmap is None:
-        cmap = plt.get_cmap()
 
     if axes is not None: # axes are given
         a=axes
@@ -83,10 +101,16 @@ def topoplot(values=None, axes=None, center=(0,0), nose_dir=0., radius=0.5,
 
     plt.axis(axis_props)
     
-    if colors[0]: # head should be plotted
+    if plot_head: # head should be plotted
+        # deal with the head props
+        hprops = default_head_props.copy()
+        if not head_props is None:
+            hprops.update(head_props)
+
         # Set up head
-        head = plt.Circle(center, radius,fill=False, linewidth=linewidths[0],
-                          edgecolor=colors[0])
+        head = plt.Circle(center, radius, fill=False, 
+                          linewidth=hprops['head_linewidth'],
+                          edgecolor=hprops['head_linecolor'])
 
         # Nose:
         nose_width = 0.18*radius
@@ -105,8 +129,10 @@ def topoplot(values=None, axes=None, center=(0,0), nose_dir=0., radius=0.5,
         # Move nose with head:
         nose_x = nose_x + center[0]
         nose_y = nose_y + center[1]
-        nose = plt.Line2D(nose_x,nose_y,color=colors[0],linewidth=linewidths[1],
-                          solid_joinstyle='round',solid_capstyle='round')
+        nose = plt.Line2D(nose_x,nose_y,
+                          solid_joinstyle='round',solid_capstyle='round',
+                          color=hprops['head_linecolor'],
+                          linewidth=hprops['nose_linewidth'])
 
         # Ears:
         q = .04 # ear lengthening
@@ -130,12 +156,14 @@ def topoplot(values=None, axes=None, center=(0,0), nose_dir=0., radius=0.5,
         leftear_x = leftear_x + center[0]
         leftear_y = leftear_y + center[1]
         
-        ear_right = plt.Line2D(rightear_x,rightear_y,color=colors[0],
-                               linewidth=linewidths[3],solid_joinstyle='round',
+        ear_right = plt.Line2D(rightear_x,rightear_y,color=hprops['head_linecolor'],
+                               linewidth=hprops['ear_linewidth'],
+                               solid_joinstyle='round',
                                solid_capstyle='round')
-        ear_left = plt.Line2D(leftear_x,leftear_y,color=colors[0],
-                             linewidth=linewidths[3],solid_joinstyle='round',
-                             solid_capstyle='round')
+        ear_left = plt.Line2D(leftear_x,leftear_y,color=hprops['head_linecolor'],
+                              linewidth=hprops['ear_linewidth'],
+                              solid_joinstyle='round',
+                              solid_capstyle='round')
         
         a.add_artist(head)
         a.add_artist(nose)
@@ -156,27 +184,43 @@ def topoplot(values=None, axes=None, center=(0,0), nose_dir=0., radius=0.5,
     # expand or shrink electrode locations with radius of head:
     radii = radii*(radius/0.5)
     # plotting radius is determined by largest sensor radius:
-    plot_radius = max(radii)
+    plot_radius = max(radii)*(1.0+plot_radius_buffer)
     
     # convert electrode locations to cartesian coordinates for plotting:
     x,y = pol2cart(angles,radii)
     x = x + center[0]
     y = y + center[1]
 
-    if colors[1]: # plot electrodes
-        plt.plot(x,y,markerfacecolor=colors[1],marker='o',linestyle='')
+    if plot_sensors: # plot electrodes
+        sprops = default_sensor_props.copy()
+        if not sensor_props is None:
+            sprops.update(sensor_props)
+
+        #a.plot(x,y,markerfacecolor=colors[1],marker='o',linestyle='')
+        a.scatter(x, y, zorder=10, **sprops)
+
+    if not labels is None:
+        lprops = default_label_props.copy()
+        if not label_props is None:
+            lprops.update(label_props)
+
+        for i in range(len(labels)):
+            a.text(x[i],y[i],labels[i],**lprops)
+
         
     if values is None:
         return('No values to plot specified!')
     if np.size(values) != np.size(sensors,1):
         return('Numer of values to plot is different from number of sensors!'+
                '\nNo values have been plotted!')
-    
+
+    # set the values
     z = values
-    
+
     # resolution determines the number of interpolated points per unit
     nx = round(resolution*plot_radius)
     ny = round(resolution*plot_radius)
+
     # now set up the grid:
     xi, yi = np.meshgrid(np.linspace(-plot_radius,plot_radius,nx),
                          np.linspace(-plot_radius,plot_radius,ny))
@@ -190,27 +234,49 @@ def topoplot(values=None, axes=None, center=(0,0), nose_dir=0., radius=0.5,
         # with a linear boundary (connecting the outer electrode
         # locations)
         #zi = griddata(x,y,z,xi,yi,masked=True)
-        zi = griddata(x,y,z,xi,yi)
+        #zi = griddata(x,y,z,xi,yi)
+        pass
+    elif plot_mask=='circular':
+        npts = np.mean((nx,ny))*2
+        t = np.linspace(0,2*np.pi,npts)[:-1]
+        x = np.r_[x,np.cos(t)*plot_radius]
+        y = np.r_[y,np.sin(t)*plot_radius]
+        z = np.r_[z,np.zeros(len(t))]
     else:
         # we need a custom mask:
         #zi = griddata(x,y,z,xi,yi,ext=1,masked=False)
-        zi = griddata(x,y,z,xi,yi)
-        if plot_mask=='circular':
-            # the interpolated array doesn't know about its position
-            # in space and hence we need to subtract head center from
-            # xi & xi to calculate the mask
-            mask = (np.sqrt(np.power(xi-center[0],2) +
-                            np.power(yi-center[1],2)) > plot_radius)
-            zi[mask] = 0
+        #zi = griddata(x,y,z,xi,yi)
+        # zi = griddata((x,y),z,(xi,yi),method='cubic')
+        # if plot_mask=='circular':
+        #     # the interpolated array doesn't know about its position
+        #     # in space and hence we need to subtract head center from
+        #     # xi & xi to calculate the mask
+        #     mask = (np.sqrt(np.power(xi-center[0],2) +
+        #                     np.power(yi-center[1],2)) > plot_radius)
+        #     zi[mask] = 0
+        #     zi[np.isnan(zi)] = 0.0
+        #     zi[mask] = np.nan
         # other masks may be added here and can be defined as shown
         # for the circular mask. All other plot_mask values result in
         # no mask which results in showing interpolated values for the
         # square surrounding the head.
+        pass
     
-    # make contour lines:
-    if linewidths[3] > 0:
-        plt.contour(xi,yi,zi,contours,linewidths=linewidths[3],
-                    linestyle=contours_ls,colors=colors[2])
+    # calc the grid
+    zi = griddata((x,y),z,(xi,yi),method='cubic')
+
+    # If no colormap is specified, use default colormap:
+    if cmap is None:
+        cmap = plt.get_cmap()
+        
+    # make contours
+    cprops = default_contour_props.copy()
+    if not contour_props is None:
+        cprops.update(contour_props)
+    
+    if np.any(cprops['linewidths'] > 0):
+        plt.contour(xi,yi,zi,contours,**cprops)
+
     # make countour color patches:
     plt.contourf(xi,yi,zi,contours,cmap=cmap)
 
