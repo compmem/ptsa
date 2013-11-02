@@ -32,7 +32,7 @@ def topoplot(values=None, labels=None, sensors=None, axes=None,
              center=(0,0), nose_dir=0., radius=0.5,
              head_props=None, sensor_props=None,
              label_props=None, 
-             contours=15, contour_props=None, 
+             contours=15, contour_props=None,
              resolution=400, cmap=None, axis_props='off', 
              plot_mask='circular', plot_radius_buffer=.2):
     """
@@ -274,5 +274,5 @@ def topoplot(values=None, labels=None, sensors=None, axes=None,
         plt.contour(xi,yi,zi,contours,**cprops)
 
     # make countour color patches:
-    plt.contourf(xi,yi,zi,contours,cmap=cmap)
+    plt.contourf(xi,yi,zi,contours,cmap=cmap,extend='both')
 
