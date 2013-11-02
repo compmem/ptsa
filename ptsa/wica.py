@@ -93,7 +93,7 @@ def find_blinks(dat, L, fast_rate=.5, slow_rate=.975, thresh=None):
     
     return id_artef,id_noise
 
-def _clean_find_thresh(Y,Kthr,wavelet,L,art_noise_id=None):
+def _clean_find_thresh(Y,Kthr,wavelet,L):
     # init
     xn = None
     thld = 0.0
@@ -103,32 +103,28 @@ def _clean_find_thresh(Y,Kthr,wavelet,L,art_noise_id=None):
     # find the outliers
     # need to replace this with blink-finding code
 
-    #if True:
-    if art_noise_id is None:
-        if False:
-            # Sig = median(abs(Y)/0.6745);
-            #Sig = np.median(np.abs(Y)/0.6745)
-            #Sig = np.median(np.abs(icaEEG[Comp[c],pure_range[0]:pure_range[1]])/0.6745)
-            Sig = np.median(np.abs(Y)/0.6745)
-            # Thr = 4*Sig;
-            Thr = 3*Sig
-            # idx = find(abs(Y) > Thr);
-            idx = np.nonzero(np.abs(Y) > Thr)[0]
-            # idx_ext = zeros(1,length(idx)*(2*L+1));
-            idx_ext = np.zeros(len(idx)*(2*L+1), dtype=np.int32)
-            # for k=1:length(idx),
-            #     idx_ext((2*L+1)*(k-1)+1:(2*L+1)*k) = [idx(k)-L:idx(k)+L];
-            # end
-            for k in xrange(len(idx)):
-                idx_ext[(2*L+1)*(k):(2*L+1)*(k+1)-1] = np.arange(idx[k]-L,idx[k]+L)
-            # id_noise=setdiff((1:N), idx_ext);
-            id_noise = np.setdiff1d(range(N), idx_ext)
-            # id_artef=setdiff((1:N), id_noise);
-            id_artef = np.setdiff1d(range(N), id_noise)
-        else:
-            id_artef,id_noise = find_blinks(Y,L)
+    if False:
+        # Sig = median(abs(Y)/0.6745);
+        #Sig = np.median(np.abs(Y)/0.6745)
+        #Sig = np.median(np.abs(icaEEG[Comp[c],pure_range[0]:pure_range[1]])/0.6745)
+        Sig = np.median(np.abs(Y)/0.6745)
+        # Thr = 4*Sig;
+        Thr = 3*Sig
+        # idx = find(abs(Y) > Thr);
+        idx = np.nonzero(np.abs(Y) > Thr)[0]
+        # idx_ext = zeros(1,length(idx)*(2*L+1));
+        idx_ext = np.zeros(len(idx)*(2*L+1), dtype=np.int32)
+        # for k=1:length(idx),
+        #     idx_ext((2*L+1)*(k-1)+1:(2*L+1)*k) = [idx(k)-L:idx(k)+L];
+        # end
+        for k in xrange(len(idx)):
+            idx_ext[(2*L+1)*(k):(2*L+1)*(k+1)-1] = np.arange(idx[k]-L,idx[k]+L)
+        # id_noise=setdiff((1:N), idx_ext);
+        id_noise = np.setdiff1d(range(N), idx_ext)
+        # id_artef=setdiff((1:N), id_noise);
+        id_artef = np.setdiff1d(range(N), id_noise)
     else:
-        id_artef,id_noise = art_noise_id
+        id_artef,id_noise = find_blinks(Y,L)
 
     print len(id_artef),len(id_noise)
 
@@ -217,20 +213,16 @@ def _clean_use_thresh(Y,thld,wavelet):
     # return the cleaned data
     return xn
 
-def _clean_comp(comp, Kthr, L, thld=None, art_noise_id=None):
+def _clean_comp(comp, Kthr, L, thld=None):
     wavelet = pywt.Wavelet('db3')
     N = np.int32(2**np.floor(np.log2(len(comp))))
 
     # Y = icaEEG(Comp(c),1:N);
     Y = comp[:N]
-    if not art_noise_id is None:
-        an_id = (art_noise_id[0][art_noise_id[0]<N],
-                 art_noise_id[1][art_noise_id[1]<N])
-        art_noise_id = an_id
         
     if thld is None:
         # opt(c) = thld;
-        xn,thld = _clean_find_thresh(Y,Kthr,wavelet,L,art_noise_id)
+        xn,thld = _clean_find_thresh(Y,Kthr,wavelet,L)
         if thld == 0.0:
             return comp, thld
     else:
@@ -330,23 +322,17 @@ def remove_strong_artifacts(data, A, icaEEG, Comp, Kthr=1.25, F=256,
     for c in xrange(len(Comp)):
         if find_thresh:
             thld = None
-            #art_noise_id = find_blinks(np.dot(A[:,Comp[c]],data),L)
-            #print len(art_noise_id[0]),len(art_noise_id[1])
-            #print max(art_noise_id[0]),max(art_noise_id[1])
-            art_noise_id = None
         else:
             thld = opt[c]
-            art_noise_id = None
         if has_mp and num_mp_procs != 0:
             # call with mp
             mp_res.append(po.apply_async(_clean_comp,
                                          (icaEEG[Comp[c]], Kthr,
-                                          L, thld, art_noise_id)))
+                                          L, thld)))
         else:
             sys.stdout.write("Component #%d: "%(Comp[c]))
             sys.stdout.flush()
-            comp,thld = _clean_comp(icaEEG[Comp[c]], Kthr, L, thld=thld, 
-                                    art_noise_id=art_noise_id)
+            comp,thld = _clean_comp(icaEEG[Comp[c]], Kthr, L, thld=thld)
             icaEEG[Comp[c]] = comp
             if find_thresh:
                 opt[c] = thld
