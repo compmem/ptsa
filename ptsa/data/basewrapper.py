@@ -160,7 +160,7 @@ class BaseWrapper(object):
         channels: {int} or {dict}
             Channels from which to load data.
         event_offsets: {array_like}
-            Array/list of event offsets (in samples) into the data,
+            Array/list of event offsets (in seconds) into the data,
             specifying each event onset time.
         start_time: {float}
             Start of epoch to retrieve (in time-unit of the data).
@@ -195,8 +195,8 @@ class BaseWrapper(object):
         if(np.min(event_offsets)<0):
             raise ValueError('Event offsets must not be negative!')
 
-        # make sure the events are an actual array
-        event_offsets = np.asarray(event_offsets)
+        # make sure the events are an actual array and convert to samples
+        event_offsets = np.int64(np.round(np.asarray(event_offsets)*self.samplerate))
         
         # set event durations from rate
         # get the samplesize

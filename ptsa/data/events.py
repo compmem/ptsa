@@ -154,7 +154,7 @@ class Events(np.recarray):
             Name for the field containing the source for the time
             series data corresponding to the event.
         eoffset: {string},optional
-            Name for the field containing the offset (in samples) for
+            Name for the field containing the offset (in seconds) for
             the event within the specified source.
         
         Returns

@@ -88,7 +88,10 @@ def times_to_offsets(eeg_times, eeg_offsets, beh_times,
 
     # calc the event time in offsets
     #samplerate = w.samplerate
-    offsets = np.int64(np.round((m*beh_times + c)*samplerate/1000.))
+    #offsets = np.int64(np.round((m*beh_times + c)*samplerate/1000.))
+
+    # return seconds
+    offsets = (m*beh_times + c)/1000.
 
     return offsets
 
