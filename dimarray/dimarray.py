@@ -411,6 +411,7 @@ class DimArray(AttrArray):
         # called __array_finalize__ with this flag set):
         if (isinstance(obj,DimArray) and obj._skip_dim_check):
             return
+
         # ensure that the dims attribute is valid:
         self._chk_dims()
 
@@ -608,7 +609,7 @@ class DimArray(AttrArray):
             for ind in indlist:
                 # increment the current dim
                 i += 1
-                if isinstance(ind,int):
+                if isinstance(ind,int) or isinstance(ind,long):
                     # if a changed dimension was reduced to one
                     # level, remove that dimension
                     tokeep = tokeep[tokeep!=i]
@@ -852,7 +853,7 @@ class DimArray(AttrArray):
         elif bin_labels == 'sequential':
             new_dim_dat = np.arange(len(dimbin_indx))
         elif ((len(np.atleast_1d(bin_labels).shape) == 1) and
-              (len(np.atleast_1d(bin_lables)) == bins)):
+              (len(np.atleast_1d(bin_labels)) == bins)):
             new_dim_dat = np.altleast_1d(bin_labels)
         else:
             raise ValueError("Invalid value for bin_labels. Allowed values " +
