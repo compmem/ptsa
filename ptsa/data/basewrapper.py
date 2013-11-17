@@ -145,12 +145,12 @@ class BaseWrapper(object):
         """
         raise NotImplementedError
             
-    def get_event_data(self,channels,event_offsets,
+    def get_event_data(self,channels,events,
                        start_time,end_time,buffer_time=0.0,
                        resampled_rate=None,
                        filt_freq=None,filt_type='stop',filt_order=4,
                        keep_buffer=False,
-                       loop_axis=None,num_mp_procs=0):
+                       loop_axis=None,num_mp_procs=0,eoffset='eoffset'):
         """
         Return an TimeSeries containing data for the specified channel
         in the form [events,duration].
@@ -159,7 +159,7 @@ class BaseWrapper(object):
         ----------
         channels: {int} or {dict}
             Channels from which to load data.
-        event_offsets: {array_like}
+        events: {array_like} or {recarray}
             Array/list of event offsets (in seconds) into the data,
             specifying each event onset time.
         start_time: {float}
@@ -187,6 +187,18 @@ class BaseWrapper(object):
         dur = end_time - start_time
         offset = start_time
         buf = buffer_time
+
+        # get the event offsets
+        if ((not (hasattr(events,'dtype') or hasattr(events,'columns'))) or
+            (hasattr(events,'dtype') and events.dtype.names is None)):
+            # they just passed in a list
+            event_offsets = events
+        elif ((hasattr(events, 'dtype') and (eoffset in events.dtype.names)) or
+              (hasattr(events, 'columns') and (eoffset in events.columns))):
+            event_offsets = events[eoffset]
+        else:
+            raise ValueError(eoffset+' must be a valid fieldname '+
+                             'specifying the offset for the data.')
         
         # Sanity checks:
         if(dur<0):
@@ -231,13 +243,14 @@ class BaseWrapper(object):
             # turn into indices
             ch_info = self.channels
             key = channels.keys()[0]
-            channels = [np.nonzero(ch_info[key]==c)[0] for c in channels[key]]
+            channels = [np.nonzero(ch_info[key]==c)[0][0] for c in channels[key]]
         elif isinstance(channels, str):
             # find that channel by name
-            channels = np.nonzero(self.channels['name']==channels)[0]
+            channels = np.nonzero(self.channels['name']==channels)[0][0]
         if channels is None or len(np.atleast_1d(channels))==0:
             channels = np.arange(self.nchannels)
         channels = np.atleast_1d(channels)
+        channels.sort()
 
         # load the timeseries (this must be implemented by subclasses)
         eventdata = self._load_data(channels,event_offsets,dur_samp,offset_samp)
@@ -250,7 +263,7 @@ class BaseWrapper(object):
 
         # make it a timeseries
         dims = [Dim(self.channels[channels],'channels'),  # can index into channels
-                Dim(event_offsets,'event_offsets'),
+                Dim(events,'events'),
                 Dim(time_range,'time')]
         eventdata = TimeSeries(np.asarray(eventdata),
                                'time',
