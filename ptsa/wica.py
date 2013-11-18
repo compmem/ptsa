@@ -126,6 +126,7 @@ def _clean_find_thresh(Y,Kthr,wavelet,L):
     else:
         id_artef,id_noise = find_blinks(Y,L)
 
+    # make sure it's not all noise or artifact
     print len(id_artef),len(id_noise)
 
     # if isempty(id_artef),
