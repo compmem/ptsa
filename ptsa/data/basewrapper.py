@@ -292,11 +292,12 @@ class BaseWrapper(object):
         # return the timeseries
         return eventdata
 
-    def get_all_data(self):
+    def get_all_data(self, channels=None):
         """
         Return a TimeSeries containing all the data.
         """
-        channels = np.arange(self.nchannels)
+        if channels is None:
+            channels = np.arange(self.nchannels)
         dur_samp = self.nsamples
         data = self._load_data(channels,[0],dur_samp,0)
         # remove events dimension
