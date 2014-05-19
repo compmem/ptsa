@@ -443,11 +443,6 @@ class DimArray(AttrArray):
             raise AttributeError("Dimension names must be unique!\nnames: "+
                                  str(self.dim_names))
 
-        # Ensure unique dimension names (this will fail if not all Dims)
-        if len(np.unique(self.dim_names)) != len(self.dim_names):
-            raise AttributeError("Dimension names must be unique!\nnames: "+
-                                 str(self.dim_names))
-
         # Ensure dimension names are at least 1 charater long
         if np.any([len(s)<1 for s in self.dim_names]):
             raise AttributeError("Dimension names must be at least 1 character"+
