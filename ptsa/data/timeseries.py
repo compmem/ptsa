@@ -320,8 +320,8 @@ class TimeSeries(DimArray):
             # concatenate the new data
             newdat = np.concatenate(newdat,axis=self.get_axis(loop_axis))
 
-        sys.stdout.write('\n')
-        sys.stdout.flush()
+            sys.stdout.write('\n')
+            sys.stdout.flush()
 
         # remove pad if we padded it
         if pad_to_pow2:
