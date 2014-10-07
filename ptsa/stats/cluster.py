@@ -214,7 +214,7 @@ def sensor_neighbors(sensor_locs):
     return cn
 
 
-def tfce(x, dt=.1, E=0.5, H=2.0, tail=0, connectivity=None):
+def tfce(x, dt=.1, E=2/3., H=2.0, tail=0, connectivity=None):
     """
     Threshold-Free Cluster Enhancement.
     """
@@ -228,13 +228,13 @@ def tfce(x, dt=.1, E=0.5, H=2.0, tail=0, connectivity=None):
     # figure out thresh range based on tail and the data
     if tail == -1:
         sign = -1.0
-        trange = np.arange(-dt,x.min(),-dt)
+        trange = np.arange(-dt,x.min()-dt,-dt)
     elif tail == 1:
         sign = 1.0
-        trange = np.arange(dt,x.max(),dt)
+        trange = np.arange(dt,x.max()+dt,dt)
     else:
         sign = 1.0
-        trange = np.arange(dt,np.abs(x).max(),dt)
+        trange = np.arange(dt,np.abs(x).max()+dt,dt)
 
     # get starting values for data (reshape it b/c needs to be 1d)
     xt = np.zeros_like(x).reshape(np.prod(x.shape))
