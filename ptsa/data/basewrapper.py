@@ -208,7 +208,7 @@ class BaseWrapper(object):
             raise ValueError('Event offsets must not be negative!')
 
         # make sure the events are an actual array and convert to samples
-        event_offsets = np.int64(np.round(np.asarray(event_offsets)*self.samplerate))
+        event_offsets = np.atleast_1d(np.int64(np.round(np.asarray(event_offsets)*self.samplerate)))
         
         # set event durations from rate
         # get the samplesize

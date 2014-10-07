@@ -202,7 +202,9 @@ class TimeSeries(DimArray):
         ts : {TimeSeries}
             A TimeSeries instance with the filtered data.
         """
-        filtered_array = filt.buttfilt(np.asarray(self),freq_range,self.samplerate,filt_type,
+
+        filtered_array = filt.buttfilt(np.asarray(self),
+                                       freq_range,self.samplerate,filt_type,
                                        order,axis=self.taxis)
         attrs = self._attrs.copy()
         for k in self._required_attrs.keys():
