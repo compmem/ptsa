@@ -1080,7 +1080,6 @@ class DimArray(AttrArray):
         ret.dims[0] = dim
         # return as desired class
         return ret.view(self.__class__)
-    
 
     def get_axis(self,axis):
         """
