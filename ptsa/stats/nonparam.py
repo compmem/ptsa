@@ -12,6 +12,48 @@ import numpy as np
 from scipy.stats import ttest_ind, ttest_1samp, norm
 import sys
 
+def gen_perms(dat, group_var, nperms):
+    """
+    Generate permutations within a group variable, but across conditions. 
+
+    There is no need to sort your data as this method will shuffle the
+    indices properly.
+
+    """
+    # grab the unique groups
+    ugrp = np.unique(dat[group_var])
+
+    # save indices for each unique group
+    grpind = {u:np.nonzero(dat[group_var]==u)[0] for u in ugrp}
+
+    # set the base permutation indices for each unique group
+    p_ind = {u:np.arange(len(grpind[u])) for u in ugrp}
+    
+    # start with actual data
+    perms = [np.arange(len(dat))]
+
+    # loop and shuffle for each perm
+    for p in xrange(nperms):
+        # set the starting indices
+        ind = np.arange(len(dat))
+
+        # loop over each group
+        for u in ugrp:
+            # permute the indices for that group
+            perm = np.random.permutation(p_ind[u])
+
+            # insert the permuted group indices into the base index
+            np.put(ind,grpind[u],grpind[u][perm])
+
+        # append the shuffled perm to the list of permutations
+        perms.append(ind)
+
+    # turn the final perms into an array
+    perms = np.array(perms)
+    return perms
+
+
+
 def ttest_ind_z_one_sided(X,Y):
     # do the test
     t,p = ttest_ind(X,Y)
