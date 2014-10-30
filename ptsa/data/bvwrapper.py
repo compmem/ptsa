@@ -79,7 +79,6 @@ class BVWrapper(BaseWrapper):
         names = []
         scales = []
         units = []
-        impedances = []
         #self._channel_scale = np.ones(self._nchannels)
         for i in range(self._nchannels):
             info = cp.get('Channel Infos','Ch%d'%(i+1)).split(',')
@@ -89,19 +88,17 @@ class BVWrapper(BaseWrapper):
             scales.append(float(info[2]))
             units.append(unicode(info[3],'utf-8'))
         # try and get the impedances
+        impedances = np.ones(len(names))*-1
         for i,line in enumerate(lines[ind:]):
             if 'Impedance' in line:
                 # found impedances, try and read them
+                skipped = 0
                 for l,li in enumerate(lines[ind+i+1:]):
                     info = li.strip().split(' ')
-                    if l<len(names) and names[l] == info[1][:-1]:
-                        impedances.append(int(info[2]))
-                    else:
-                        break
+                    cname = info[1][:-1]
+                    if cname in names:
+                        impedances[names.index(cname)] = int(info[2])
                 break
-        if len(impedances) != len(names):
-            # pad with -1
-            impedances = [-1]*len(names)
         self._channel_info = np.rec.fromarrays([numbers,names,scales,
                                                 units,impedances],
                                                names='number,name,scale,unit,impedance')
