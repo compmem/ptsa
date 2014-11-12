@@ -15,6 +15,55 @@ import csv
 import numpy as np
 from basewrapper import BaseWrapper
 
+
+def times_to_offsets(eeg_times, beh_times, ev_times, blen=10, tolerance=.0015):
+    """
+    Fit line to EEG pulse times and behavioral pulse times and apply to event times.
+
+    """
+    start_ind = None
+    # get starting ind for the beh_times
+    for i in range(len(beh_times)//2):
+        if np.abs(np.diff(eeg_times[:blen]) - 
+                  np.diff(beh_times[i:blen+i])).sum()<(tolerance*blen):
+            start_ind = i
+            break
+    if start_ind is None:
+        raise ValueError('No starting point found')
+
+    # iterate, makeing sure each diff is within tolerance
+    etimes = []
+    btimes = []
+    j = 0
+    for i,bt in enumerate(beh_times[start_ind:]):
+        if (i == 0) or (np.abs((bt-btimes[-1])-(eeg_times[j]-etimes[-1]))<(tolerance)):
+            # looks good, so append
+            etimes.append(eeg_times[j])
+            btimes.append(bt)
+            # increment eeg times counter
+            j += 1
+            #print i,
+        else:
+            # no good, so say we're skipping
+            print '.', #(np.abs((bt-btimes[-1])-(eeg_times[j]-etimes[-1]))),
+    print
+    # convert to arrays
+    etimes = np.array(etimes)
+    btimes = np.array(btimes)
+    print "Num. matching: ", len(etimes) #,len(btimes)
+    #plot(etimes,btimes,'o')
+
+    # fit a line to convert between behavioral and eeg times
+    A = np.vstack([btimes, np.ones(len(btimes))]).T
+    m, c = np.linalg.lstsq(A, etimes)[0]
+    print "Slope and Offset: ", m ,c
+
+    # convert to get eoffsets
+    eoffsets = ev_times*m + c
+
+    return eoffsets
+
+
 def load_pyepl_eeg_pulses(logfile, event_label='UP'):
     """
     Load and process the default eeg log file from PyEPL.  This will
@@ -43,8 +92,8 @@ def find_needle_in_haystack(needle, haystack, maxdiff):
         i = None
     return i
 
-def times_to_offsets(eeg_times, eeg_offsets, beh_times,
-                     samplerate, window=100, thresh_ms=10):
+def times_to_offsets_old(eeg_times, eeg_offsets, beh_times,
+                         samplerate, window=100, thresh_ms=10):
     """
     Fit a line to the eeg times to offsets conversion and then apply
     it to the provided behavioral event times.
