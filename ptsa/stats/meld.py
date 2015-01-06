@@ -16,6 +16,7 @@ import numpy as np
 from numpy.lib.recfunctions import append_fields
 from scipy.linalg import diagsvd
 from scipy.stats import rankdata
+import scipy.stats.distributions as dists
 
 from joblib import Parallel,delayed
 
@@ -31,15 +32,18 @@ from rpy2.robjects.vectors import DataFrame, Vector, FloatVector
 from rpy2.rinterface import MissingArg,SexpVector
 
 # Make it so we can send numpy arrays to R
-import rpy2.robjects.numpy2ri
-rpy2.robjects.numpy2ri.activate()
+#import rpy2.robjects.numpy2ri
+#rpy2.robjects.numpy2ri.activate()
+import rpy2.robjects as ro
+from rpy2.robjects.numpy2ri import numpy2ri
+ro.conversion.py2ri = numpy2ri
 
 # load some required packages
 # PBS: Eventually we should try/except these to get people 
 # to install missing packages
 lme4 = importr('lme4')
 rstats = importr('stats')
-fdrtool = importr('fdrtool')
+#fdrtool = importr('fdrtool')
 if hasattr(lme4,'coef'):
     r_coef  = lme4.coef
 else:
@@ -54,72 +58,7 @@ else:
 
 # load ptsa clustering
 import cluster
-
-
-def lmer_feature(formula_str, dat, perms=None, 
-                 val=None, factors=None, **kwargs):
-    """
-    Run LMER on a number of permutations of the predicted data.
-
-    
-    """
-    # get the perm_var
-    perm_var = formula_str.split('~')[0].strip()
-
-    # set the val if necessary
-    if not val is None:
-        dat[perm_var] = val
-
-    # make factor list if necessary
-    if factors is None:
-        factors = []
-
-    # convert the recarray to a DataFrame
-    rdf = DataFrame({k:(FactorVector(dat[k]) 
-                        if (k in factors) or isinstance(dat[k][0],str) 
-                        else dat[k]) 
-                     for k in dat.dtype.names})
-    
-    #rdf = com.convert_to_r_dataframe(pd.DataFrame(dat),strings_as_factors=True)
-    
-
-    # get the column index
-    col_ind = list(rdf.colnames).index(perm_var)
-
-    # make a formula obj
-    rformula = Formula(formula_str)
-
-    # just apply to actual data if no perms
-    if perms is None:
-        #perms = [np.arange(len(dat))]
-        perms = [None]
-
-    # run on each permutation
-    tvals = None
-    for i,perm in enumerate(perms):
-        if not perm is None:
-            # set the perm
-            rdf[col_ind] = rdf[col_ind].rx(perm+1)
-
-        # inside try block to catch convergence errors
-        try:
-            ms = lme4.lmer(rformula, data=rdf, **kwargs)
-        except:
-            continue
-            #tvals.append(np.array([np.nan]))
-        # extract the result
-
-        df = r['data.frame'](r_coef(r['summary'](ms)))
-        if tvals is None:
-            # init the data
-            # get the row names
-            rows = list(r['row.names'](df))
-            tvals = np.rec.fromarrays([np.ones(len(perms))*np.nan 
-                                       for ro in range(len(rows))],
-                                      names=','.join(rows))
-        tvals[i] = tuple(df.rx2('t.value'))
-
-    return tvals
+from stat_helper import fdr_correction
 
 class LMER():
     """
@@ -163,7 +102,6 @@ class LMER():
                                   else df[k]) 
                                for k in df.dtype.names})
         #self._rdf = com.convert_to_r_dataframe(pd.DataFrame(df),strings_as_factors=True)
-
 
         # get the column index
         self._col_ind = list(self._rdf.colnames).index(pred_var)
@@ -234,56 +172,17 @@ class LMER():
 
             # set the values
             tvals[i] = tuple(df.rx2('t.value'))
+            #tvals[i] = tuple(df['X3'])
             log_likes[i] = float(r['logLik'](ms)[0])
 
         return tvals, log_likes
 
 
-
-
-"""LMER-PLS/MELD Notes
-
-We can optionally have this run on rank data, too, so that it's
-non-parametric. In this case we would rank the continuous variables
-and the predicted data, but not the factors.
-
-I'm not sure, yet, how this will work for whole-brain RSA. In that
-case all the pairwise comparisons are our observations. We can
-then correlate them with the behavior distances, just like in
-behavior-PLS and then perform the SVD on those correlations. That
-will give us a component weighted based on the strength of the
-correlation (which could be performed non-parametrically). Then we
-perform the across-subject lmer on the whole-brain data
-transformed by the components, repeating this process for each
-permutation. Then we do the same for the bootstrap to get the
-stable weights. 
-
-Note that this would have to run on neural distances calculated at all
-the spheres over the entire brain and data would have to be in
-template space.
-
-For RSA-PLS analyses we'd also need to provide a way to do custom
-permutations. The bootstrap would be the same :)
-
-It would be great to figure out how to integrate this within a
-joint-modeling framework.
-
-"""
-
-def procrustes(orig_lv, boot_lv):
-    # define coordinate space between orignal and bootstrap LVs
-    temp=np.dot(orig_lv,boot_lv.T)
-
-    # orthogonalze space
-    U,s,V = np.linalg.svd(temp)
-
-    # determine procrustean transform
-    #rotatemat=U*V'    
-    return np.dot(U,V)
-
 def pick_stable_features(R, nboot=500, do_tfce=True, 
                          connectivity=None, shape=None, 
-                         dt=.05, E=2/3., H=2.0):
+                         dt=.01, E=2/3., H=2.0):
+    """Use a bootstrap to pick stable features.
+    """
     # generate the boots
     boots = [np.random.random_integers(0,len(R)-1,len(R))
              for i in xrange(nboot)]
@@ -308,7 +207,19 @@ def pick_stable_features(R, nboot=500, do_tfce=True,
     # calc bootstrap ratio
     Rtb = np.array([Rt[boots[b]].mean(0) for b in range(len(boots))])
     Rtbr = Rt.mean(0)/Rtb.std(0)
+    Rtbr = dists.t(len(R)-1).pdf(Rtbr)
     return Rtbr
+
+def procrustes(orig_lv, boot_lv):
+    # define coordinate space between orignal and bootstrap LVs
+    temp=np.dot(orig_lv,boot_lv.T)
+
+    # orthogonalze space
+    U,s,V = np.linalg.svd(temp)
+
+    # determine procrustean transform
+    #rotatemat=U*V'    
+    return np.dot(U,V)
 
 def sparse_stable_svd(R, nboot=50):
     # generate the boots
@@ -405,15 +316,17 @@ def _eval_model(model_id, perm=None, boot=None):
                                     shape=mm._feat_shape, 
                                     dt=mm._dt, E=mm._E, H=mm._H)
 
-        stable_ind = np.abs(Rtbr)>mm._feat_thresh
+        #stable_ind = np.abs(Rtbr)>mm._feat_thresh
+        stable_ind = Rtbr<mm._feat_thresh
         stable_ind = stable_ind.reshape((stable_ind.shape[0],-1))
 
         # zero out non-stable
+        feat_mask[:,~stable_ind] = True
         R_nocat[:,~stable_ind] = 0.0
 
         # save R before concatenating if not a permutation
         if perm is None and _R is None:
-            _R = R_nocat
+            _R = R_nocat.copy()
 
     # concatenate R for SVD
     R = np.concatenate([R_nocat[i] for i in range(len(R_nocat))])
@@ -438,6 +351,9 @@ def _eval_model(model_id, perm=None, boot=None):
     #     #s[np.abs(Vh).sum(1)==0.0] = 0.0
     # else:
     U, s, Vh = np.linalg.svd(R, full_matrices=False)
+
+    # fix near zero vals from SVD
+    Vh[np.abs(Vh)<.000001] = 0.0
 
     # calc prop of variance accounted for
     if mm._ss is None:
@@ -486,6 +402,7 @@ def _eval_model(model_id, perm=None, boot=None):
             df = r['data.frame'](r_coef(r['summary'](mer)))
             rows = list(r['row.names'](df))
             new_tvals = np.rec.fromarrays([[tv] for tv in tuple(df.rx2('t.value'))],
+            #new_tvals = np.rec.fromarrays([[tv] for tv in tuple(df['X3'])],
                                           names=','.join(rows))
             new_ll = float(r['logLik'](mer)[0])
             res.append((new_tvals,np.array([new_ll])))
@@ -509,6 +426,9 @@ def _eval_model(model_id, perm=None, boot=None):
         for n in temp_t.dtype.names: temp_t[n] = 0.0
         temp_ll[0] = 0.0
         res.append((temp_t,temp_ll))
+
+        # must make ss, too
+        ss = np.array([1.0])
 
     tvals,log_likes = zip(*res)
     tvals = np.concatenate(tvals)
@@ -542,13 +462,6 @@ def _eval_model(model_id, perm=None, boot=None):
 
     return out
 
-def lmer_feat(mer, Dw):
-    mer = r['refit'](mer, FloatVector(Dw))
-    df = r['data.frame'](r_coef(r['summary'](mer)))
-    rows = list(r['row.names'](df))
-    new_tvals = np.rec.fromarrays([[tv] for tv in tuple(df.rx2('t.value'))],
-                                  names=','.join(rows))
-    return new_tvals
 
 def _memmap_array(x, memmap_dir=None):
     if memmap_dir is None:
@@ -577,8 +490,8 @@ class MELD(object):
                  use_ranks=False, use_norm=True,
                  memmap=False, memmap_dir=None,
                  resid_formula=None,
-                 svd_terms=None, feat_thresh=2.576,
-                 feat_nboot=500, do_tfce=True, 
+                 svd_terms=None, feat_thresh=0.05, #feat_thresh=2.576,
+                 feat_nboot=500, do_tfce=False, 
                  connectivity=None, shape=None, 
                  dt=.05, E=2/3., H=2.0,
                  #nperms=500, nboot=100, 
@@ -691,7 +604,11 @@ class MELD(object):
                     sys.stdout.flush()
 
                 for i in xrange(self._D[g].shape[1]):
+                    # rank it
                     self._D[g][:,i] = rankdata(self._D[g][:,i])
+
+                    # normalize it
+                    self._D[g][:,i] = (self._D[g][:,i] - 1)/(len(self._D[g][:,i])-1)
 
             # reshape M, so we don't have to do it repeatedly
             self._M[g] = self._D[g].copy() #dep_data[ind].reshape((dep_data[ind].shape[0],-1))
@@ -714,13 +631,18 @@ class MELD(object):
                 self._svd_terms = [c for c in cols if not 'Intercept' in c]
             else:
                 self._svd_terms = svd_terms
+
+            #self._A[g] = np.vstack([ms[c] #np.array(ms.rx(c)) 
             self._A[g] = np.concatenate([np.array(ms.rx(c)) 
                                          for c in self._svd_terms]).T
-                                         #for c in cols if not 'Intercept' in c]).T
 
             if use_ranks:
                 for i in xrange(self._A[g].shape[1]):
+                    # rank it
                     self._A[g][:,i] = rankdata(self._A[g][:,i])
+
+                    # normalize it
+                    self._A[g][:,i] = (self._A[g][:,i] - 1)/(len(self._A[g][:,i])-1)
 
             # normalize A
             if True: #use_norm:
@@ -799,7 +721,6 @@ class MELD(object):
         global _global_meld
         if _global_meld and _global_meld.has_key(my_id):
             del _global_meld[my_id]
-
 
 
     def run_perms(self, perms, n_jobs=None, verbose=None):
@@ -972,11 +893,18 @@ class MELD(object):
         names = [n for n in tfs.dtype.names
                  if n != '(Intercept)']
         brs = []
-        for n in names:
+        for i,n in enumerate(names):
+            # get mask for used features for that term
+            # [PBS: should we do a logical_or across terms?]
+            fmask = ~self._feat_mask[0,i]
+
             # reshape back to number of bootstraps
-            tf = tfs[n].reshape((len(self._tb),-1))
+            tf = tfs[n].reshape((len(self._tb),-1))[:,fmask]
+            
             # calculate the bootstrap ratio and shape to feature space
-            brs.append((tf[0]/tf.std(0)).reshape(self._feat_shape))
+            br = np.nan * np.ones_like(fmask)
+            br[fmask] = tf[0]/tf.std(0)
+            brs.append(br.reshape(self._feat_shape))
 
         brs = np.rec.fromarrays(brs, names=','.join(names))
 
@@ -986,28 +914,29 @@ class MELD(object):
     def fdr_boot(self):
         """Calculate the False Discovery Rate on the bootstrap ratios.
 
-        Makes use of the fdrtool package in R, which estimates the
-        signal and null distributions across your features.
+        Applies only to non-masked features. Calculates p-values by
+        treating the bootstrap ratios as t-values and the number of
+        subjects to determine the degrees of freedom.
         """
         # get the boot ratios
         brs = self.boot_ratio
         names = brs.dtype.names
         qvals = []
-        for n in names:
-            # get R vector of bootstrap ratios
-            br = brs[n].flatten()
-            good_ind = ~np.isnan(br)
-            qv = np.ones_like(br)
-            br = FloatVector(br[good_ind])
+        for i,n in enumerate(names):
+            # bootstrap ratios
+            fmask = ~np.isnan(brs[n])
+            br = brs[n][fmask]
 
-            # calc the fdr
-            results = fdrtool.fdrtool(br, statistic='normal', 
-                                      plot=False, verbose=False)
+            # turn the brs into p-vals
+            bp = dists.t(len(self._feat_mask)-1).pdf(br)
 
-            # append the qvals
-            qv[good_ind] = np.array(results.rx('qval'))
-            
-            qvals.append(qv.reshape(self._feat_shape))
+            # calc FDR
+            reject,q = fdr_correction(bp)
+
+            # set up q-vals
+            qv = np.ones(self._feat_shape)
+            qv[fmask] = q
+            qvals.append(qv)
 
         # convert to recarray
         qvals = np.rec.fromarrays(qvals, names=','.join(names))
@@ -1024,7 +953,7 @@ if __name__ == '__main__':
     # generate some fake data
     nobs = 100
     nsubj = 10
-    nfeat = (30,40)
+    nfeat = (30,50)
     nperms = 50
     nboots = 50
     use_ranks = False
@@ -1067,12 +996,13 @@ if __name__ == '__main__':
     me_s = MELD('val ~ beh+beh2', '(1|subj)', 'subj',
                 dep_data_s, ind_data, factors = {'subj':None},
                 use_ranks=use_ranks, 
-                feat_nboot=500, do_tfce=True, 
+                feat_nboot=500, feat_thresh=0.05,
+                do_tfce=True,
                 connectivity=None, shape=None, 
                 dt=.05, E=2/3., H=2.0,
                 n_jobs=n_jobs)
     me_s.run_perms(nperms)
-    #me.run_boots(nboots)
+    me_s.run_boots(nboots)
 
 
     # # explore the results
@@ -1093,9 +1023,9 @@ if __name__ == '__main__':
     print "Terms:",me_s.terms
     print "t-vals:",me_s.t_terms
     print "term p-vals:",me_s.pvals
-    #brs_s = me_s.boot_ratio
-    #print "Bootstrap ratio shape:",brs_s.shape
-    #print "BR num sig:",[(n,(me_s.fdr_boot[n]<=.05).sum())
-    #                     for n in brs_s.dtype.names]
+    brs_s = me_s.boot_ratio
+    print "Bootstrap ratio shape:",brs_s.shape
+    print "BR num sig:",[(n,(me_s.fdr_boot[n]<=.01).sum())
+                        for n in brs_s.dtype.names]
 
 
