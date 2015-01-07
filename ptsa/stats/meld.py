@@ -944,6 +944,36 @@ class MELD(object):
         # grab the qs
         return qvals
 
+    @property
+    def p_boot(self):
+        """Calculate the pvals based on the bootstrap ratios.
+
+        Applies only to non-masked features. Calculates p-values by
+        treating the bootstrap ratios as t-values and the number of
+        subjects to determine the degrees of freedom.
+        """
+        # get the boot ratios
+        brs = self.boot_ratio
+        names = brs.dtype.names
+        pvals = []
+        for i,n in enumerate(names):
+            # bootstrap ratios
+            fmask = ~np.isnan(brs[n])
+            br = brs[n][fmask]
+
+            # turn the brs into p-vals
+            bp = np.ones(self._feat_shape)
+            bp[fmask] = dists.t(len(self._feat_mask)-1).pdf(br)
+
+            # append the pvals
+            pvals.append(bp)
+
+        # convert to recarray
+        pvals = np.rec.fromarrays(pvals, names=','.join(names))
+
+        # return the pvals
+        return pvals
+    
 
 if __name__ == '__main__':
 
