@@ -177,6 +177,24 @@ class LMER():
 
         return tvals, log_likes
 
+def R_to_tfce(R, connectivity=None, shape=None, 
+              dt=.01, E=2/3., H=2.0):
+    """Apply TFCE to the R values."""
+    # allocate for tfce
+    #Rt = np.zeros([R.shape[0],R.shape[1]]+list(shape))
+    #Rt = np.zeros_like(R)
+    #Rt = R.copy()
+    Rt = np.arctanh(R)
+    # loop
+    for i in range(Rt.shape[0]):
+        for j in range(Rt.shape[1]):
+            Rt[i,j] = cluster.tfce(Rt[i,j].reshape(*shape),
+                                   dt=dt,tail=1,connectivity=connectivity, 
+                                   E=E,H=H).flatten()
+            Rt[i,j] += cluster.tfce(Rt[i,j].reshape(*shape),
+                                    dt=dt,tail=-1,connectivity=connectivity, 
+                                    E=E,H=H).flatten()
+    return Rt
 
 def pick_stable_features(R, nboot=500, do_tfce=True, 
                          connectivity=None, shape=None, 
@@ -189,17 +207,18 @@ def pick_stable_features(R, nboot=500, do_tfce=True,
 
     # run tfce on each subj and cond
     if do_tfce:
-        # allocate for tfce
-        Rt = np.zeros([R.shape[0],R.shape[1]]+list(shape))
-        # loop
-        for i in range(Rt.shape[0]):
-            for j in range(Rt.shape[1]):
-                Rt[i,j] = cluster.tfce(np.arctanh(R[i,j]).reshape(*shape),
-                                       dt=dt,tail=1,connectivity=connectivity, 
-                                       E=E,H=H)
-                Rt[i,j] += cluster.tfce(np.arctanh(R[i,j]).reshape(*shape),
-                                        dt=dt,tail=-1,connectivity=connectivity, 
-                                        E=E,H=H)
+        # # allocate for tfce
+        # Rt = np.zeros([R.shape[0],R.shape[1]]+list(shape))
+        # # loop
+        # for i in range(Rt.shape[0]):
+        #     for j in range(Rt.shape[1]):
+        #         Rt[i,j] = cluster.tfce(np.arctanh(R[i,j]).reshape(*shape),
+        #                                dt=dt,tail=1,connectivity=connectivity, 
+        #                                E=E,H=H)
+        #         Rt[i,j] += cluster.tfce(np.arctanh(R[i,j]).reshape(*shape),
+        #                                 dt=dt,tail=-1,connectivity=connectivity, 
+        #                                 E=E,H=H)
+        Rt = R
     else:
         # convert to Z
         Rt = np.arctanh(R)
@@ -308,6 +327,11 @@ def _eval_model(model_id, perm=None, boot=None):
         # zero invariant features
         feat_mask = np.isnan(R)
         R_nocat[feat_mask] = 0.0
+
+        if mm._do_tfce:
+            R_nocat = R_to_tfce(R_nocat, connectivity = mm._connectivity, 
+                                shape=mm._feat_shape, 
+                                dt=mm._dt, E=mm._E, H=mm._H)
 
         # pick only stable features
         Rtbr = pick_stable_features(R_nocat, nboot=mm._feat_nboot, 
@@ -1006,6 +1030,8 @@ if __name__ == '__main__':
     for i in range(0,20,2):
         for j in range(2):
             dep_data_s[:,4,i+j] += (ind_data['beh'] * (i+1)/200.)
+            dep_data_s[:,5,i+j] += (ind_data['beh'] * (i+1)/200.)
+
 
     # smooth the data
     import scipy.ndimage
@@ -1026,7 +1052,7 @@ if __name__ == '__main__':
     me_s = MELD('val ~ beh+beh2', '(1|subj)', 'subj',
                 dep_data_s, ind_data, factors = {'subj':None},
                 use_ranks=use_ranks, 
-                feat_nboot=500, feat_thresh=0.05,
+                feat_nboot=500, feat_thresh=0.01,
                 do_tfce=True,
                 connectivity=None, shape=None, 
                 dt=.05, E=2/3., H=2.0,
@@ -1055,7 +1081,9 @@ if __name__ == '__main__':
     print "term p-vals:",me_s.pvals
     brs_s = me_s.boot_ratio
     print "Bootstrap ratio shape:",brs_s.shape
-    print "BR num sig:",[(n,(me_s.fdr_boot[n]<=.01).sum())
+    print "BR num sig (fdr_boot):",[(n,(me_s.fdr_boot[n]<=.05).sum())
+                        for n in brs_s.dtype.names]
+    print "BR num sig (p_boot[):",[(n,(me_s.p_boot[n]<=.01).sum())
                         for n in brs_s.dtype.names]
 
 
