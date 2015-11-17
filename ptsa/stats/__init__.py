@@ -7,6 +7,4 @@
 #
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ##
 
-from topo import topoplot
-from misc import errorfill
 

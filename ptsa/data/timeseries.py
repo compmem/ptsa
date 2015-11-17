@@ -9,6 +9,7 @@
 
 from dimarray import Dim,DimArray,AttrArray
 from ptsa import filt
+from ptsa.helper import next_pow2, pad_to_next_pow2
 
 from scipy.signal import resample
 import numpy as np
@@ -201,7 +202,9 @@ class TimeSeries(DimArray):
         ts : {TimeSeries}
             A TimeSeries instance with the filtered data.
         """
-        filtered_array = filt.buttfilt(self,freq_range,self.samplerate,filt_type,
+
+        filtered_array = filt.buttfilt(np.asarray(self),
+                                       freq_range,self.samplerate,filt_type,
                                        order,axis=self.taxis)
         attrs = self._attrs.copy()
         for k in self._required_attrs.keys():
@@ -209,8 +212,8 @@ class TimeSeries(DimArray):
         return TimeSeries(filtered_array,self.tdim, self.samplerate,
                           dims=self.dims.copy(), **attrs)
 
-    def resampled(self,resampled_rate,window=None,
-                  loop_axis=None,num_mp_procs=0):
+    def resampled(self, resampled_rate, window=None,
+                  loop_axis=None, num_mp_procs=0, pad_to_pow2=False):
         """
         Resample the data and reset all the time ranges.
 
@@ -230,6 +233,9 @@ class TimeSeries(DimArray):
             0 means no multiprocessing
             >0 specifies num procs to use
             None means yes, and use all possible procs
+        pad_to_pow2: bool, optional
+            Pad along the time dimension to the next power of 2 so
+            that the resampling is much faster (experimental).
 
         Returns
         -------
@@ -245,10 +251,23 @@ class TimeSeries(DimArray):
         new_length = int(np.round(len(time_range)*
                                   resampled_rate/self.samplerate))
 
+        if pad_to_pow2:
+            padded_length = 2**next_pow2(len(time_range))
+            padded_new_length = int(np.round(padded_length*resampled_rate/self.samplerate))
+            time_range = np.hstack([time_range, 
+                                    (np.arange(1,padded_length-len(time_range)+1)*np.diff(time_range[-2:]))+time_range[-1]])
+
         if loop_axis is None:
             # just do standard method on all data at once
-            newdat,new_time_range = resample(self, new_length, t=time_range,
-                                             axis=self.taxis, window=window)
+            if pad_to_pow2:
+                newdat,new_time_range = resample(pad_to_next_pow2(np.asarray(self),axis=self.taxis), 
+                                                 padded_new_length, t=time_range,
+                                                 axis=self.taxis, window=window)
+            else:
+                newdat,new_time_range = resample(np.asarray(self),
+                                                 new_length, t=time_range,
+                                                 axis=self.taxis, window=window)
+
         else:
             # loop over specified axis
             # get the loop axis name and length
@@ -263,17 +282,29 @@ class TimeSeries(DimArray):
             for i in range(loop_dim_len):
                 ind[i] = True
                 dat = self.select(**{loop_dim:ind})
+                taxis = dat.taxis
                 if has_mp and num_mp_procs != 0:
                     # start async proc
-                    newdat.append(po.apply_async(resample,
-                                                 (dat, new_length, time_range,
-                                                  dat.taxis, window)))
+                    if pad_to_pow2:
+                        dat = pad_to_next_pow2(np.asarray(dat), axis=dat.taxis)
+                        newdat.append(po.apply_async(resample,
+                                                     (np.asarray(dat), padded_new_length, time_range,
+                                                      taxis, window)))
+                    else:
+                        newdat.append(po.apply_async(resample,
+                                                     (np.asarray(dat), new_length, time_range,
+                                                      taxis, window)))
                 else:
                     # just call on that dataset
                     sys.stdout.write('%d '%i)
                     sys.stdout.flush()
-                    ndat,new_time_range = resample(dat, new_length, t=time_range,
-                                                   axis=dat.taxis, window=window)
+                    if pad_to_pow2:
+                        dat = pad_to_next_pow2(np.asarray(dat), axis=dat.taxis)
+                        ndat,new_time_range = resample(np.asarray(dat), padded_new_length, t=time_range,
+                                                       axis=taxis, window=window)
+                    else:
+                        ndat,new_time_range = resample(np.asarray(dat), new_length, t=time_range,
+                                                       axis=taxis, window=window)
                     newdat.append(ndat)
                 ind[i] = False
             if has_mp and num_mp_procs != 0:
@@ -292,9 +323,14 @@ class TimeSeries(DimArray):
             # concatenate the new data
             newdat = np.concatenate(newdat,axis=self.get_axis(loop_axis))
 
-        # sys.stdout.write('\n')
-        # sys.stdout.flush()
-            
+            sys.stdout.write('\n')
+            sys.stdout.flush()
+
+        # remove pad if we padded it
+        if pad_to_pow2:
+            newdat = newdat.take(range(new_length),axis=self.taxis)
+            new_time_range = new_time_range[:new_length]
+
         # set the time dimension
         newdims = self.dims.copy()
         attrs = self.dims[self.taxis]._attrs.copy()

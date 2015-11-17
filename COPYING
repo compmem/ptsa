@@ -1,11 +1,11 @@
 PTSA - The Python Time Series Analysis Toolbox
 
-Copyright (C) 2007-2009
+Copyright (C) 2007-2014
 Per B. Sederberg <psederberg@gmail.com> and
 Christoph T. Weidemann <ctw@cogsci.info>
 
 Authors: Per B. Sederberg and Christoph T. Weidemann
-URL: TBA
+URL: https://github.com/compmem/ptsa
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

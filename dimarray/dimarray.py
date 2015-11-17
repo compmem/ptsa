@@ -85,11 +85,169 @@ class Dim(AttrArray):
         elif dim.ndim == 0:
             dim.shape = (1,)
         
-        if dim.shape[0] != np.unique(np.asarray(dim)).shape[0]:
-            raise ValueError("Data for Dim objects must be unique!")
+        #if dim.shape[0] != np.unique(np.asarray(dim)).shape[0]:
+        #    raise ValueError("Data for Dim objects must be unique!")
 
         # convert to Dim and return:
         return dim.view(cls)
+
+class DimIndex(tuple):
+    """
+    Tuple representing a fancy index of a Dim along with its siblings.
+    """
+    def __new__(typ, ind, bool_ind):
+        res = tuple.__new__(typ, ind)
+        res._bool_ind = bool_ind
+        return res
+    
+    def __and__(self, other):
+        # compare each bool
+        # check other is DimIndex
+        ind = []
+        for l,r in zip(self._bool_ind,other._bool_ind):
+            ind.append(l&r)
+        return DimIndex(np.ix_(*ind),ind)
+
+    def __or__(self, other):
+        # compare each bool
+        # check other is DimIndex
+        ind = []
+        for l,r in zip(self._bool_ind,other._bool_ind):
+            ind.append(l|r)
+        return DimIndex(np.ix_(*ind),ind)
+
+    def __xor__(self, other):
+        # compare each bool
+        # check other is DimIndex
+        ind = []
+        for l,r in zip(self._bool_ind,other._bool_ind):
+            ind.append(l^r)
+        return DimIndex(np.ix_(*ind),ind)
+
+class DimSelect(Dim):
+    """
+    Dim that supports boolean comparisons for fancy indexing.
+    """
+    _required_attrs = {'name':str,
+                       '_parent_dim_shapes':list,
+                       '_parent_dim_index':int}
+    
+    def __new__(cls, dim, parent_dim_shapes, parent_dim_index):
+
+        # verify that dim is a Dim instance
+        
+        # set the kwargs to have what we need
+        kwargs = {}
+        kwargs['name'] = dim.name
+        kwargs['_parent_dim_shapes'] = parent_dim_shapes
+        kwargs['_parent_dim_index'] = parent_dim_index
+
+        # creat the new instance
+        ds = Dim(dim, **kwargs)
+
+        # convert to DimSelect and return
+        return ds.view(cls)
+
+    def __lt__(self, other):
+        # get starting indicies
+        ind = [np.ones(shape, dtype=np.bool) for shape in self._parent_dim_shapes]
+
+        # do the comparison along the desired dimension
+        ind[self._parent_dim_index] = np.asarray(self) < other
+
+        # create the final master index from the list of filtered indices
+        return DimIndex(np.ix_(*ind),ind)
+
+    def __le__(self, other):
+        # get starting indicies
+        ind = [np.ones(shape, dtype=np.bool) for shape in self._parent_dim_shapes]
+
+        # do the comparison along the desired dimension
+        ind[self._parent_dim_index] = np.asarray(self) <= other
+
+        # create the final master index from the list of filtered indices
+        return DimIndex(np.ix_(*ind),ind)
+
+    def __gt__(self, other):
+        # get starting indicies
+        ind = [np.ones(shape, dtype=np.bool) for shape in self._parent_dim_shapes]
+
+        # do the comparison along the desired dimension
+        ind[self._parent_dim_index] = np.asarray(self) > other
+
+        # create the final master index from the list of filtered indices
+        return DimIndex(np.ix_(*ind),ind)
+
+    def __ge__(self, other):
+        # get starting indicies
+        ind = [np.ones(shape, dtype=np.bool) for shape in self._parent_dim_shapes]
+
+        # do the comparison along the desired dimension
+        ind[self._parent_dim_index] = np.asarray(self) >= other
+
+        # create the final master index from the list of filtered indices
+        return DimIndex(np.ix_(*ind),ind)
+
+    def __eq__(self, other):
+        # get starting indicies
+        ind = [np.ones(shape, dtype=np.bool) for shape in self._parent_dim_shapes]
+
+        # do the comparison along the desired dimension
+        ind[self._parent_dim_index] = np.asarray(self) == other
+
+        # create the final master index from the list of filtered indices
+        return DimIndex(np.ix_(*ind),ind)
+
+    def __ne__(self, other):
+        # get starting indicies
+        ind = [np.ones(shape, dtype=np.bool) for shape in self._parent_dim_shapes]
+
+        # do the comparison along the desired dimension
+        ind[self._parent_dim_index] = np.asarray(self) != other
+
+        # create the final master index from the list of filtered indices
+        return DimIndex(np.ix_(*ind),ind)
+
+    def is_in(self, vals):
+        """
+        Elementwise boolean check for membership in a list.
+        """
+        # get starting indicies
+        ind = [np.ones(shape, dtype=np.bool) for shape in self._parent_dim_shapes]
+
+        # do the comparison along the desired dimension
+        ind[self._parent_dim_index] = np.lib.arraysetops.in1d(np.asarray(self),vals)
+        # i = self._parent_dim_index
+        # self_array = np.asarray(self)
+        # ind[i] = False
+        # for val in vals:
+        #     ind[i] = ind[i] | (self_array == val)
+
+        # create the final master index from the list of filtered indices
+        return DimIndex(np.ix_(*ind),ind)
+
+    def index(self, index):
+        """
+        Index into elements along the dimension.
+        """
+        # get starting indicies
+        ind = [np.ones(shape, dtype=np.bool) 
+               for shape in self._parent_dim_shapes]
+
+        # make sure 1d
+        index = np.atleast_1d(index)
+
+        if issubclass(index.dtype.type, np.bool_):
+            # start with ones and apply logical &
+            ind[self._parent_dim_index] = [self._parent_dim_index] & index
+        else:
+            # start with zeros and index into it
+            ind[self._parent_dim_index][:] = False
+            ind[self._parent_dim_index][index] = True
+
+        # create the final master index from the list of filtered indices
+        return DimIndex(np.ix_(*ind),ind)
+
 
 class DimArray(AttrArray):
     """
@@ -253,6 +411,7 @@ class DimArray(AttrArray):
         # called __array_finalize__ with this flag set):
         if (isinstance(obj,DimArray) and obj._skip_dim_check):
             return
+
         # ensure that the dims attribute is valid:
         self._chk_dims()
 
@@ -269,8 +428,8 @@ class DimArray(AttrArray):
                                      "only Dim instances!\ndim %d: %s\n" % \
                                      (i,str(type(d))))
             # make sure it is unique
-            if d.shape[0] != np.unique(np.asarray(d)).shape[0]:
-                raise ValueError("Data for Dim objects must be unique!")
+            #if d.shape[0] != np.unique(np.asarray(d)).shape[0]:
+            #    raise ValueError("Data for Dim objects must be unique!")
         
         # Ensure that the lengths of the Dim instances match the array shape:
         if self.shape != tuple([len(d) for d in self.dims]):
@@ -279,11 +438,6 @@ class DimArray(AttrArray):
                                  str(self.shape)+"\nShape of the dims:\n"+
                                  str(tuple([len(d) for d in self.dims])))
         
-        # Ensure unique dimension names (this will fail if not all Dims)
-        if len(np.unique(self.dim_names)) != len(self.dim_names):
-            raise AttributeError("Dimension names must be unique!\nnames: "+
-                                 str(self.dim_names))
-
         # Ensure unique dimension names (this will fail if not all Dims)
         if len(np.unique(self.dim_names)) != len(self.dim_names):
             raise AttributeError("Dimension names must be unique!\nnames: "+
@@ -333,7 +487,7 @@ class DimArray(AttrArray):
 
                     # replace the string to access the dimension like:
                     # self['dim1']
-                    filterStr = re.sub(r'\b'+k+r'\b','self["'+k+'"]',filterStr)
+                    filterStr = re.sub(r'\b'+k+r'\b','np.asarray(self["'+k+'"])',filterStr)
 
                     # get the new index
                     newind = eval(filterStr)
@@ -343,7 +497,7 @@ class DimArray(AttrArray):
 
                     # see if we should remove the dim to emulate
                     # picking a specific index (e.g., x[10] same as
-                    # x[time==4])
+                    # x["time==4"])
                     # we normally require each value in a dim is unique,
                     # but a dim could be a list of events that you probe,
                     # which could have multiple values after an equality test,
@@ -405,8 +559,12 @@ class DimArray(AttrArray):
             res = self._dim_namesRE.search(index)
             if res:
                 # we have a single name, so return the
-                # corresponding dimension
-                return self.dims[self.dim_names.index(res.group())]
+                # corresponding dimension as a DimSelect
+                #return self.dims[self.dim_names.index(res.group())]
+                ind = self.dim_names.index(res.group())
+                return DimSelect(self.dims[ind],
+                                 [d.shape for d in self.dims],
+                                 ind)
             else:
                 # call _select_ind to get the new index from the string
                 index,o_ind,remove_dim = self._select_ind(index)
@@ -446,7 +604,7 @@ class DimArray(AttrArray):
             for ind in indlist:
                 # increment the current dim
                 i += 1
-                if isinstance(ind,int):
+                if isinstance(ind,int) or isinstance(ind,long):
                     # if a changed dimension was reduced to one
                     # level, remove that dimension
                     tokeep = tokeep[tokeep!=i]
@@ -690,7 +848,7 @@ class DimArray(AttrArray):
         elif bin_labels == 'sequential':
             new_dim_dat = np.arange(len(dimbin_indx))
         elif ((len(np.atleast_1d(bin_labels).shape) == 1) and
-              (len(np.atleast_1d(bin_lables)) == bins)):
+              (len(np.atleast_1d(bin_labels)) == bins)):
             new_dim_dat = np.altleast_1d(bin_labels)
         else:
             raise ValueError("Invalid value for bin_labels. Allowed values " +
@@ -741,7 +899,7 @@ class DimArray(AttrArray):
                         
         Parameters
         ----------
-        axis : {int,str}
+        axis : int
             The dimension to be binned. Can be name or number.
         bins : {int,list,tuple}
             Specifies how the data should be binned. Acceptable values
@@ -868,15 +1026,14 @@ class DimArray(AttrArray):
         # make sure we have a list
         if isinstance(data,DimArray):
             data = [data]
-        else: # if we have a container of DimArrays:
+        else:
             data = list(data)
 
         # make sure we have an axis number:
         axis = self.get_axis(axis)
 
         # make sure all dim_names match:
-        dim_names_deviations = [np.sum(d.dim_names!=self.dim_names)
-                                for d in data]
+        dim_names_deviations = [np.sum(d.dim_names!=self.dim_names) for d in data]
         if np.sum(dim_names_deviations)>0:
             raise ValueError('Names of the dimensions do not match!')
                 
@@ -887,12 +1044,16 @@ class DimArray(AttrArray):
                 
         # add the current DimArray to the beginning of list:
         data.insert(0,self)
-        
+
         # list of dims to be concatenated:
         conc_dims = [d.dims[axis] for d in data]
 
-        # create new array:
+        # convert all items to AttrArray view (necessary for call to
+        # np.concatenate which transposes the arrays using the numpy
+        # functions rather than the DimArray functions):
         data = [d.view(AttrArray) for d in data]
+        #dim_names = [d.name for dat in data for d in dat.dims]
+        
         new_dat = np.concatenate(data,axis=axis)
         new_dims = copylib.deepcopy(self.dims)
         new_dims[axis] = Dim(np.concatenate(conc_dims),self.dim_names[axis])
@@ -900,7 +1061,13 @@ class DimArray(AttrArray):
         new_attrs['dims'] = new_dims
         return self.__class__(new_dat,**new_attrs)
 
-
+        # # create new array:
+        # result = np.concatenate(data,axis=axis).view(AttrArray)
+        # result._attrs = self._attrs
+        # result.__array_finalize__(self)
+        # # update dims & return:
+        # result.dims[axis] = Dim(np.concatenate(conc_dims),self.dim_names[axis])
+        # return result.view(self.__class__)        
 
     def add_dim(self, dim):
         """
@@ -913,7 +1080,6 @@ class DimArray(AttrArray):
         ret.dims[0] = dim
         # return as desired class
         return ret.view(self.__class__)
-    
 
     def get_axis(self,axis):
         """
