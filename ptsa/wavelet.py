@@ -256,7 +256,7 @@ def morlet_multi(freqs, widths, samplerates,
 def convolve_wave(wav,eegdat):
     wave_coef = []
     for ev_dat in eegdat:
-        wav_coef.append(np.convolve(wav,ev_dat,'same'))
+        wave_coef.append(np.convolve(wav,ev_dat,'same'))
     return wave_coef
 
 def phase_pow_multi(freqs, dat,  samplerates=None, widths=5,

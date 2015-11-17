@@ -33,8 +33,8 @@ def peak_finder(x0, thresh=None, extrema=1):
     peak_mag : array
         The magnitude of the identified peaks
 
-    Note
-    ----
+    Notes
+    -----
     If repeated values are found the first is identified as the peak.
     Adapted from peak_finder.py in the MNE package
     http://www.martinos.org/mne/
