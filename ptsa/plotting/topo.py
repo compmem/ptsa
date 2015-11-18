@@ -11,6 +11,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from ptsa.helper import pol2cart, cart2pol, deg2rad
+
 from scipy.interpolate import griddata
 
 default_head_props = {'head_linewidth': 3,
@@ -74,13 +75,9 @@ def topoplot(values=None, labels=None, sensors=None, axes=None,
         Resolution of the interpolated grid. Higher numbers give
         smoother edges of the plot, but increase memory and
         computational demands.
-    method : {'cubic','linear','nearest'}, optional
-        Method of interpolation. See scipy.interpolate.griddata for
-        details.
-    fill_value : float, optional
-        Value used to fill in for requested points outside of the
-        convex hull of the input points. See
-        scipy.interpolate.griddata for details.
+    cmap : {None,matplotlib.colors.LinearSegmentedColormap}, optional
+        Color map for the contour plot. If colMap==None, the default
+        color map is used.
     axis_props : {str}, optional
         Axis properties.
     plot_mask : {str}, optional
@@ -212,14 +209,10 @@ def topoplot(values=None, labels=None, sensors=None, axes=None,
     if np.size(values) != np.size(sensors,1):
         return('Numer of values to plot is different from number of sensors!'+
                '\nNo values have been plotted!')
-<<<<<<< HEAD:ptsa/plotting/topoplot.py
-    
-=======
 
     # set the values
     z = values
 
->>>>>>> 9f8f962b5eb9eef707e128598720d110cdedad31:ptsa/plotting/topo.py
     # resolution determines the number of interpolated points per unit
     nx = round(resolution*plot_radius)
     ny = round(resolution*plot_radius)
@@ -231,17 +224,6 @@ def topoplot(values=None, labels=None, sensors=None, axes=None,
     xi = xi + center[0]
     yi = yi + center[1]
     # interploate points:
-<<<<<<< HEAD:ptsa/plotting/topoplot.py
-    points = np.array([x,y]).T
-    xyi = np.array([xi,yi]).T
-    zi = griddata(points,values,xyi,method).T
-    
-    # make contour lines:
-    plt.contour(xi,yi,zi,contours,linewidths=linewidths[3],
-                linestyle=contours_ls,colors=colors[2],**kwargs)
-    # make countour color patches:
-    plt.contourf(xi,yi,zi,contours,**kwargs)
-=======
     if plot_mask=='linear':
         # masked = True means that no extrapolation outside the
         # electrode boundaries is made this effectively creates a mask
@@ -293,5 +275,4 @@ def topoplot(values=None, labels=None, sensors=None, axes=None,
 
     # make countour color patches:
     plt.contourf(xi,yi,zi,contours,cmap=cmap,extend='both')
->>>>>>> 9f8f962b5eb9eef707e128598720d110cdedad31:ptsa/plotting/topo.py
 
