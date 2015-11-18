@@ -262,9 +262,9 @@ class BaseWrapper(object):
             ch_info = self.channels
             key = channels.keys()[0]
             channels = [np.nonzero(ch_info[key]==c)[0][0] for c in channels[key]]
-        elif isinstance(channels, str):
-            # find that channel by name
-            channels = np.nonzero(self.channels['name']==channels)[0][0]
+        # elif isinstance(channels, str):
+        #     # find that channel by name
+        #     channels = np.nonzero(self.channels['name']==channels)[0][0]
         if channels is None or len(np.atleast_1d(channels))==0:
             channels = np.arange(self.nchannels)
         channels = np.atleast_1d(channels)
@@ -280,7 +280,8 @@ class BaseWrapper(object):
         time_range = np.linspace(samp_start,samp_end,dur_samp)
 
         # make it a timeseries
-        dims = [Dim(self.channels[channels],'channels'),  # can index into channels
+        # dims = [Dim(self.channels[channels],'channels'),  # can index into channels
+        dims = [Dim(channels,'channels'),  # can index into channels
                 Dim(events,'events'),
                 Dim(time_range,'time')]
         eventdata = TimeSeries(np.asarray(eventdata),
