@@ -11,7 +11,7 @@
 import numpy as np
 
 from timeseries import TimeSeries,Dim
-from basewrapper import BaseWrapper
+# from basewrapper import BaseWrapper
 
 #import pdb
 
@@ -122,7 +122,8 @@ class Events(np.recarray):
                  resampled_rate=None,
                  filt_freq=None,filt_type='stop',filt_order=4,
                  keep_buffer=False,esrc='esrc',eoffset='eoffset',
-                 loop_axis=None,num_mp_procs=0):
+                 loop_axis=None,num_mp_procs=0,
+                 eoffset_in_time=True):
         """
         Return the requested range of data for each event by using the
         proper data retrieval mechanism for each event.
@@ -156,6 +157,9 @@ class Events(np.recarray):
         eoffset: {string},optional
             Name for the field containing the offset (in seconds) for
             the event within the specified source.
+        eoffset_in_time: {boolean},optional        
+            If True, the unit of the event offsets is taken to be
+            time (unit of the data), otherwise samples.
         
         Returns
         -------
@@ -201,7 +205,9 @@ class Events(np.recarray):
                                         filt_order,
                                         keep_buffer,
                                         loop_axis,
-                                        num_mp_procs)
+                                        num_mp_procs,
+                                        eoffset,
+                                        eoffset_in_time)
             if eventdata is None:
                 eventdata = newdat
             else:

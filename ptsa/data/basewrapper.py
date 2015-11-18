@@ -161,9 +161,9 @@ class BaseWrapper(object):
                        resampled_rate=None,
                        filt_freq=None,filt_type='stop',filt_order=4,
                        keep_buffer=False,
-                       loop_axis=None,num_mp_procs=0,eoffset='eoffset'):
-        """
-        Return an TimeSeries containing data for the specified channel
+                       loop_axis=None,num_mp_procs=0,eoffset='eoffset',
+                       eoffset_in_time=True):
+        """Return an TimeSeries containing data for the specified channel
         in the form [events,duration].
 
         Parameters
@@ -171,8 +171,9 @@ class BaseWrapper(object):
         channels: {int} or {dict}
             Channels from which to load data.
         events: {array_like} or {recarray}
-            Array/list of event offsets (in seconds) into the data,
-            specifying each event onset time.
+            Array/list of event offsets (in time or samples as
+            specified by eoffset_in_time; in time by default) into
+            the data, specifying each event onset time.
         start_time: {float}
             Start of epoch to retrieve (in time-unit of the data).
         end_time: {float}
@@ -192,6 +193,9 @@ class BaseWrapper(object):
             The order of the filter.
         keep_buffer: {boolean},optional
             Whether to keep the buffer when returning the data.
+        eoffset_in_time: {boolean},optional        
+            If True, the unit of the event offsets is taken to be
+            time (unit of the data), otherwise samples.
         """
 
         # translate back to dur and offset
@@ -218,8 +222,11 @@ class BaseWrapper(object):
         if(np.min(event_offsets)<0):
             raise ValueError('Event offsets must not be negative!')
 
-        # make sure the events are an actual array and convert to samples
-        event_offsets = np.atleast_1d(np.int64(np.round(np.asarray(event_offsets)*self.samplerate)))
+        # make sure the events are an actual array:
+        event_offsets = np.asarray(event_offsets)
+        if eoffset_in_time:
+            # convert to samples
+            event_offsets = np.atleast_1d(np.int64(np.round(event_offsets*self.samplerate)))
         
         # set event durations from rate
         # get the samplesize
