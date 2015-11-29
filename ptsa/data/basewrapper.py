@@ -57,25 +57,14 @@ class BaseWrapper(object):
         """
         raise NotImplementedError
     
-    # def _get_nchannels(self):
-    #     """
-    #     Returns the number of channels in a dataset.
-        
-    #     Returns
-    #     -------
-    #     nchannels : {int}
-    #         Number of channels.
-    #     """
-    #     raise NotImplementedError
-    
-    def _get_channels(self):
+    def _get_nchannels(self):
         """
-        Returns the channel labels in a dataset.
+        Returns the number of channels in a dataset.
         
         Returns
         -------
-        channels : {list}
-            List of channels.
+        nchannels : {int}
+            Number of channels.
         """
         raise NotImplementedError
     
@@ -163,7 +152,8 @@ class BaseWrapper(object):
                        keep_buffer=False,
                        loop_axis=None,num_mp_procs=0,eoffset='eoffset',
                        eoffset_in_time=True):
-        """Return an TimeSeries containing data for the specified channel
+        """
+        Return an TimeSeries containing data for the specified channel
         in the form [events,duration].
 
         Parameters
@@ -222,11 +212,8 @@ class BaseWrapper(object):
         if(np.min(event_offsets)<0):
             raise ValueError('Event offsets must not be negative!')
 
-        # make sure the events are an actual array:
-        event_offsets = np.asarray(event_offsets)
-        if eoffset_in_time:
-            # convert to samples
-            event_offsets = np.atleast_1d(np.int64(np.round(event_offsets*self.samplerate)))
+        # make sure the events are an actual array and convert to samples
+        event_offsets = np.atleast_1d(np.int64(np.round(np.asarray(event_offsets)*self.samplerate)))
         
         # set event durations from rate
         # get the samplesize
@@ -262,9 +249,9 @@ class BaseWrapper(object):
             ch_info = self.channels
             key = channels.keys()[0]
             channels = [np.nonzero(ch_info[key]==c)[0][0] for c in channels[key]]
-        # elif isinstance(channels, str):
-        #     # find that channel by name
-        #     channels = np.nonzero(self.channels['name']==channels)[0][0]
+        elif isinstance(channels, str):
+            # find that channel by name
+            channels = np.nonzero(self.channels['name']==channels)[0][0]
         if channels is None or len(np.atleast_1d(channels))==0:
             channels = np.arange(self.nchannels)
         channels = np.atleast_1d(channels)
@@ -280,8 +267,7 @@ class BaseWrapper(object):
         time_range = np.linspace(samp_start,samp_end,dur_samp)
 
         # make it a timeseries
-        # dims = [Dim(self.channels[channels],'channels'),  # can index into channels
-        dims = [Dim(channels,'channels'),  # can index into channels
+        dims = [Dim(self.channels[channels],'channels'),  # can index into channels
                 Dim(events,'events'),
                 Dim(time_range,'time')]
         eventdata = TimeSeries(np.asarray(eventdata),
@@ -318,7 +304,7 @@ class BaseWrapper(object):
         if channels is None:
             channels = np.arange(self.nchannels)
         dur_samp = self.nsamples
-        data = self._load_data(self.channels,[0],dur_samp,0)
+        data = self._load_data(channels,[0],dur_samp,0)
         # remove events dimension
         data = data[:,0,:]
 
@@ -332,50 +318,7 @@ class BaseWrapper(object):
         time_range = np.linspace(samp_start,samp_end,dur_samp)
 
 	# make it a timeseries
-        dims = [Dim(self.channels,'channels'),
-                Dim(time_range,'time')]
-        data = TimeSeries(np.asarray(data),
-                          'time',
-                          self.samplerate,dims=dims)
-
-        return data
-    
-    def get_some_data(self,channels,data_offset,dur_samp):
-        """
-        Return a TimeSeries containing a continuous chunk of the data.
-
-        Parameters
-        ----------
-        channels : {list,int,str}
-            Channels to load. Either integer number or (if appropriate
-            for a given data format) a string label.
-        data_offsets : {int}
-            First sample to return.
-        dur_samp : {int}
-            Duration in samples of chunk of data to return.
-
-        Returns
-        -------
-        data : {TimeSeries}
-            TimeSeries of data for the specified channel in the form
-            [events, duration].
-        
-        """
-        data = self._load_data(channels,[data_offset],dur_samp,0)
-        # remove events dimension
-        data = data[:,0,:]
-
-        # turn it into a TimeSeries
-        # get the samplesize
-        samplesize = 1./self.samplerate
-
-        # set timerange
-        samp_start = data_offset*samplesize
-        samp_end = samp_start + (dur_samp-1)*samplesize
-        time_range = np.linspace(samp_start,samp_end,dur_samp)
-
-	# make it a timeseries
-        dims = [Dim(self.channels,'channels'),
+        dims = [Dim(self.channels[channels],'channels'),
                 Dim(time_range,'time')]
         data = TimeSeries(np.asarray(data),
                           'time',
@@ -386,9 +329,7 @@ class BaseWrapper(object):
     # class properties
     samplerate = property(lambda self: self._get_samplerate())
     nsamples = property(lambda self: self._get_nsamples())
-    # nchannels = property(lambda self: self._get_nchannels())
-    nchannels = property(lambda self: len(self._get_channels()))
-    channels = property(lambda self: self._get_channels())
+    nchannels = property(lambda self: self._get_nchannels())
     annotations = property(lambda self: self._get_annotations(),
                            lambda self,annot: self._set_annotations(annot))
     channel_info = property(lambda self: self._get_channel_info(),
