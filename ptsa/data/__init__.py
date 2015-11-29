@@ -12,8 +12,7 @@ from timeseries import TimeSeries
 
 from basewrapper import BaseWrapper
 from arraywrapper import ArrayWrapper
-from edfwrapper import EdfWrapper
-from hdf5wrapper import HDF5Wrapper
+#from edfwrapper import EdfWrapper
 
 from events import Events
 

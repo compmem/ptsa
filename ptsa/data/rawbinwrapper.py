@@ -18,8 +18,6 @@ import struct
 import os
 from scipy.io import loadmat
 
-from glob import glob
-
 class RawBinWrapper(BaseWrapper):
     """
     Interface to data stored in binary format with a separate file for
@@ -40,7 +38,7 @@ class RawBinWrapper(BaseWrapper):
 
         # set what we can from the params 
         if self.params.has_key('samplerate'):
-            self._samplerate = self.params['samplerate']
+            self.samplerate = self.params['samplerate']
         if self.params.has_key('format'):
             self.format = self.params['format']
         if self.params.has_key('dataformat'):
@@ -66,20 +64,14 @@ class RawBinWrapper(BaseWrapper):
     def _get_nsamples(self,channel=None):
         # get the dimensions of the data
         # must open a valid channel and seek to the end
-        eegfiles = glob(self.dataroot+'.*[0-9]')
-        efile = open(eegfiles[0],'rb')
-        efile.seek(0,2)
-        nsamples = efile.tell()/self.nBytes
-        if (efile.tell()%self.nBytes) != 0:
-            raise ValueError('File length does not correspond to data format!')
+        nsamples = None
         return nsamples
 
-    def _get_channels(self):
+    def _get_nchannels(self):
         # get the dimensions of the data
         # must loop through directory identifying valid channels
-        channel_files = glob(self.dataroot+'.*[0-9]')
-        channels = [cf.split('.')[-1] for cf in channel_files]
-        return channels
+        nchannels = None
+        return nchannels
 
     def _get_annotations(self):
         # no annotations for raw data
@@ -88,34 +80,25 @@ class RawBinWrapper(BaseWrapper):
 
     def _get_params(self,dataroot):
         """Get parameters of the data from the dataroot."""
-        # # set default params
-        # params = {'samplerate':256.03,'gain':1.}
-        params = {}
+        # set default params
+        params = {'samplerate':256.03,'gain':1.}
 
         # first look for dataroot.params file
-        param_file = dataroot + '.params'
-        if not os.path.isfile(param_file):
+        paramFile = dataroot + '.params'
+        if not os.path.isfile(paramFile):
             # see if it's params.txt
-            param_file = os.path.join(os.path.dirname(dataroot),'params.txt')
-            if not os.path.isfile(param_file):
-                raise IOError(
-                    'No params file found in '+str(dataroot)+
-                    '. Params files must be in the same directory '+
-                    'as the EEG data and must be named \".params\" '+
-                    'or \"params.txt\".')
-                # return params
+            paramFile = os.path.join(os.path.dirname(dataroot),'params.txt')
+            if not os.path.isfile(paramFile):
+                #raise "file not found"  # fix this
+                return params
         
         # we have a file, so open and process it
-        for line in open(param_file,'r').readlines():
+        for line in open(paramFile,'r').readlines():
             # get the columns by splitting
             cols = line.strip().split()
             # set the params
             params[cols[0]] = eval(string.join(cols[1:]))
-
-        if (not params.has_key('samplerate')) or (not params.has_key('gain')):
-            raise ValueError('Params file must contain samplerate and gain!\n'+
-                             'The following fields were supplied:\n'+
-                             str(params.keys()))
+        
         # return the params dict
         return params
         
@@ -123,7 +106,7 @@ class RawBinWrapper(BaseWrapper):
     def _load_data(self,channels,event_offsets,dur_samp,offset_samp):
         """
         """
-        
+
         # allocate for data
         eventdata = np.empty((len(channels),len(event_offsets),dur_samp),
                              dtype=np.float)*np.nan
@@ -131,20 +114,18 @@ class RawBinWrapper(BaseWrapper):
         # loop over channels
         for c,channel in enumerate(channels):
             # determine the file
-            # eegfname = '%s.%03i' % (self.dataroot,channel)
-            if isinstance(channel,str):
-                eegfname = self.dataroot+'.'+channel
-            elif int(channel)==channel: # isinstance distinguished
-                                        # between np.int and np.int32
-                eegfname = self.dataroot+'.'+str(channel)
-            else:
-                raise ValueError('Channel must be int or string, received '+
-                                 str(type(channel))+'; value: '+str(channel))
+            eegfname = '%s.%03i' % (self.dataroot,channel)
             if os.path.isfile(eegfname):
                 efile = open(eegfname,'rb')
             else:
-                raise IOError('EEG file not found for channel '+str(channel)+
-                              ' and file root '+self.dataroot)
+                # try unpadded lead
+                eegfname = '%s.%i' % (self.dataroot,channel)
+                if os.path.isfile(eegfname):
+                    efile = open(eegfname,'rb')
+                else:
+                    raise IOError(
+                        'EEG file not found for channel %i and file root %s\n' 
+                        % (channel,self.dataroot))
 
             # loop over events
             for e,evOffset in enumerate(event_offsets):
