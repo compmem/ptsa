@@ -9,9 +9,7 @@
 
 # global imports
 import numpy as np
-
 from timeseries import TimeSeries,Dim
-# from basewrapper import BaseWrapper
 
 #import pdb
 
@@ -181,7 +179,7 @@ class Events(np.recarray):
 
         # loop over unique sources
         eventdata = None
-        for s,src in enumerate(usources):
+        for src in usources:
             # get the eventOffsets from that source
             ind = np.atleast_1d(self[esrc]==src)
             
@@ -212,6 +210,7 @@ class Events(np.recarray):
                 eventdata = newdat
             else:
                 eventdata = eventdata.extend(newdat,axis=1)
+            
         # concatenate (must eventually check that dims match)
         tdim = eventdata['time']
         cdim = eventdata['channels']
