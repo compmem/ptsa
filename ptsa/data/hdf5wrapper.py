@@ -21,12 +21,10 @@ class HDF5Wrapper(BaseWrapper):
     """
     def __init__(self, filepath, dataset_name='data',
                  annotations_name='annotations',
-                 channel_info_name='channel_info', data=None,
-                 file_dtype=None, apply_gain=True, gain_buffer=.005,
-                 samplerate=None, nchannels=None, annotations=None,
-                 channel_info=None, dataset_chunks=True,
-                 dataset_maxshape=False, **hdf5opts):
-        # CTW: is there a good way to allow separate **hdf5opts for the different datasets?
+                 channel_info_name='channel_info',
+                 data=None, file_dtype=None, apply_gain=True, gain_buffer=.005,
+                 samplerate=None, nchannels=None, nsamples=None,
+                 annotations=None, channel_info=None, **hdf5opts):
         """
         Initialize the interface to the data.
 
@@ -57,11 +55,8 @@ class HDF5Wrapper(BaseWrapper):
         self.hdf5opts = hdf5opts
         
         self.file_dtype = file_dtype
-        # CTW: shouldn't we allow specification of data_dtype that
-        # could override the data array's dtype as dtype argument to
-        # create_dataset? Perhaps a keyword dataset_dtype?
         self.data_dtype = None
-
+        
         # see if create dataset
         if not data is None:
             # must provide samplerate and data
@@ -70,17 +65,9 @@ class HDF5Wrapper(BaseWrapper):
 
             # use the data to create a dataset
             self.data_dtype = data.dtype
-            if dataset_maxshape:
-                d = f.create_dataset(self.dataset_name,
-                                     data=self._data_to_file(data),
-                                     chunks=dataset_chunks,
-                                     maxshape=dataset_maxshape,
-                                     **hdf5opts)
-            else:
-                d = f.create_dataset(self.dataset_name,
-                                     data=self._data_to_file(data),
-                                     chunks=dataset_chunks,
-                                     **hdf5opts)
+            d = f.create_dataset(self.dataset_name,
+                                 data=self._data_to_file(data),
+                                 **hdf5opts)
             d.attrs['data_dtype'] = data.dtype.char
             d.attrs['gain'] = self.gain
 
@@ -142,9 +129,9 @@ class HDF5Wrapper(BaseWrapper):
             self.gain = 1.0
             # calc it if we are going from float to int
             if (self.file_dtype.kind == 'i') and (self.data_dtype.kind == 'f'):
-                fr = np.float128(np.iinfo(self.file_dtype).max*2)
-                dr = np.float128(np.abs(data).max()*2 * (1.+self.gain_buffer))
-                self.gain = np.float64(dr/fr)
+                fr = np.iinfo(self.file_dtype).max*2
+                dr = np.abs(data).max()*2 * (1.+self.gain_buffer)
+                self.gain = dr/fr
                 
         # calc and apply gain if necessary
         if self.apply_gain and self.gain != 1.0:
@@ -176,21 +163,13 @@ class HDF5Wrapper(BaseWrapper):
         f.close()
         return nsamples
 
-    # def _get_nchannels(self):
-    #     # get the dimensions of the data
-    #     f = h5py.File(self.filepath,'r')
-    #     data = f[self.dataset_name]
-    #     nchannels = data.shape[0]
-    #     f.close()
-    #     return nchannels
-
-    def _get_channels(self):
+    def _get_nchannels(self):
         # get the dimensions of the data
         f = h5py.File(self.filepath,'r')
         data = f[self.dataset_name]
         nchannels = data.shape[0]
         f.close()
-        return [channel for channel in range(nchannels)]
+        return nchannels
 
     def _get_annotations(self):
         # get the dimensions of the data
