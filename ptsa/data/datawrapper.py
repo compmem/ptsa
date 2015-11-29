@@ -7,8 +7,6 @@
 #
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ##
 
-import numpy as np
-
 class DataWrapper(object):
     """
     Base class to provide interface to timeseries data.  
@@ -72,10 +70,10 @@ class DataWrapper(object):
         #             Dim('time',timeRange)]            
         dims = [Dim(eventOffsets,'eventOffsets'),
                 Dim(timeRange,'time')]
-        eventdata = TimeSeries(DimArray(np.asarray(eventdata),
-                                        dims),
+        eventdata = TimeSeries(np.asarray(eventdata),
+                               dims,
                                tdim='time',
-                               samplerate=self.samplerate)
+                               self.samplerate)
 
         return eventdata
 
