@@ -9,12 +9,12 @@
 
 import sys
 import numpy as np
-from scipy import unwrap
-import scipy.stats as stats
+# from scipy import unwrap
+# import scipy.stats as stats
 from scipy.fftpack import fft,ifft
-import scipy.signal
-import scipy.ndimage
-from ptsa.filt import decimate
+# import scipy.signal
+# import scipy.ndimage
+# from ptsa.filt import decimate
 from ptsa.helper import reshape_to_2d,reshape_from_2d,centered,next_pow2
 from ptsa.data import TimeSeries,Dim
 from ptsa.fixed_scipy import morlet as morlet_wavelet
@@ -22,11 +22,11 @@ from ptsa.fixed_scipy import morlet as morlet_wavelet
 import pywt
 import math
 
-try:
-    import multiprocessing as mp
-    has_mp = True
-except ImportError:
-    has_mp = False
+# try:
+#     import multiprocessing as mp
+#     has_mp = True
+# except ImportError:
+#     has_mp = False
 
 
 def swt(data, wavelet, level=None):
@@ -257,7 +257,7 @@ def morlet_multi(freqs, widths, samplerates,
 def convolve_wave(wav,eegdat):
     wave_coef = []
     for ev_dat in eegdat:
-        wav_coef.append(np.convolve(wav,ev_dat,'same'))
+        wave_coef.append(np.convolve(wav,ev_dat,'same'))
     return wave_coef
 
 
@@ -590,7 +590,7 @@ def phase_pow_multi_old(freqs, dat, samplerates, widths=5, to_return='both',
     
     # reshape the data to 2D with time on the 2nd dimension
     origshape = dat.shape
-    eegdat = reshapeTo2D(dat,time_axis)
+    eegdat = reshape_to_2d(dat,time_axis)
 
     # for efficiency pre-generate empty array for convolution:
     wavCoef = np.empty((eegdat.shape[time_axis-1]*len(freqs),
@@ -613,7 +613,7 @@ def phase_pow_multi_old(freqs, dat, samplerates, widths=5, to_return='both',
         # calculate power:
         power = np.power(np.abs(wavCoef),2)
         # reshape to new shape:
-        power = reshapeFrom2D(power,time_axis,newshape)
+        power = reshape_from_2d(power,time_axis,newshape)
     
     if to_return == 'phase' or to_return == 'both':
         # normalize the phase estimates to length one taking care of
@@ -626,7 +626,7 @@ def phase_pow_multi_old(freqs, dat, samplerates, widths=5, to_return='both',
         # calculate phase:
         phase = np.angle(wavCoef)
         # reshape to new shape
-        phase = reshapeFrom2D(phase,time_axis,newshape)
+        phase = reshape_from_2d(phase,time_axis,newshape)
     
     if to_return == 'power':
         return power
@@ -820,7 +820,7 @@ def calcPhasePow(freqs,dat,samplerate,axis=-1,width=5,verbose=False,to_return='b
     
     # reshape the data to 2D with time on the 2nd dimension
     origshape = dat.shape
-    eegdat = reshapeTo2D(dat,axis)
+    eegdat = reshape_to_2d(dat,axis)
 
     # allocate
     phaseAll = []
@@ -842,9 +842,9 @@ def calcPhasePow(freqs,dat,samplerate,axis=-1,width=5,verbose=False,to_return='b
         
         # reshape back do original data shape
 	if to_return == 'phase' or to_return == 'both':
-	    phase = reshapeFrom2D(phase,axis,origshape)
+	    phase = reshape_from_2d(phase,axis,origshape)
 	if to_return == 'pow' or to_return == 'both':
-	    power = reshapeFrom2D(power,axis,origshape)
+	    power = reshape_from_2d(power,axis,origshape)
 
 	# see if allocate
 	if len(phaseAll) == 0 and len(powerAll) == 0:
