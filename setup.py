@@ -35,6 +35,7 @@ setup(name='ptsa',
       url=['http://ptsa.sourceforge.net'],
       packages=['ptsa','ptsa.tests','ptsa.data','ptsa.data.tests',
                 'ptsa.data.edf','ptsa.plotting','ptsa.plotting.tests',
+                'ptsa.stats',
                 'dimarray','dimarray.tests'],
       ext_modules = ext_modules
       )
