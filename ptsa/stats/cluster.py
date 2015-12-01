@@ -66,11 +66,11 @@ def find_clusters(x, threshold, tail=0, connectivity=None):
     x = np.asanyarray(x)
 
     if tail == -1:
-        x_in = x < threshold
+        x_in = x <= threshold
     elif tail == 1:
-        x_in = x > threshold
+        x_in = x >= threshold
     else:
-        x_in = np.abs(x) > threshold
+        x_in = np.abs(x) >= threshold
 
     if connectivity is None:
         labels, n_labels = ndimage.label(x_in)
@@ -226,15 +226,18 @@ def tfce(x, dt=.1, E=2/3., H=2.0, tail=0, connectivity=None):
     x = np.asanyarray(x)
 
     # figure out thresh range based on tail and the data
+    trange = []
     if tail == -1:
         sign = -1.0
-        trange = np.arange(-dt,x.min()-dt,-dt)
+        if (x<0).sum()>0:
+            trange = np.arange(x[x<0].max(),x.min()-dt,-dt)
     elif tail == 1:
         sign = 1.0
-        trange = np.arange(dt,x.max()+dt,dt)
+        if (x>0).sum()>0:
+            trange = np.arange(x[x>0].min(),x.max()+dt,dt)
     else:
         sign = 1.0
-        trange = np.arange(dt,np.abs(x).max()+dt,dt)
+        trange = np.arange(np.abs(x).min(),np.abs(x).max()+dt,dt)
 
     # get starting values for data (reshape it b/c needs to be 1d)
     xt = np.zeros_like(x).reshape(np.prod(x.shape))
