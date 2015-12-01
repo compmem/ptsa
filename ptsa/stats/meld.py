@@ -202,32 +202,24 @@ def R_to_tfce(R, connectivity=None, shape=None,
                                     E=E,H=H).flatten()
     return Rt
 
-def pick_stable_features(R, nboot=500, do_tfce=True):
+def pick_stable_features(Z, nboot=500):
     """Use a bootstrap to pick stable features.
     """
     # generate the boots
-    boots = [np.random.random_integers(0,len(R)-1,len(R))
+    boots = [np.random.random_integers(0,len(Z)-1,len(Z))
              for i in xrange(nboot)]
 
-    # run tfce on each subj and cond
-    if do_tfce:
-        # will have already been run
-        Rt = R
-    else:
-        # convert to Z
-        Rt = np.arctanh(R)
-
     # calc bootstrap ratio
-    Rtb = np.array([Rt[boots[b]].mean(0) for b in range(len(boots))])
-    Rtbr = Rt.mean(0)/Rtb.std(0)
+    Zb = np.array([Z[boots[b]].mean(0) for b in range(len(boots))])
+    Zbr = Z.mean(0)/Zb.std(0)
 
     # ignore any nans
-    Rtbr[np.isnan(Rtbr)]=0.
+    Zbr[np.isnan(Zbr)]=0.
 
     # bootstrap ratios are supposedly t-distributed, so test sig
-    Rtbr = dists.t(len(R)-1).cdf(-1*np.abs(Rtbr))*2.
-    Rtbr[Rtbr>1]=1
-    return Rtbr
+    Zbr = dists.t(len(Z)-1).cdf(-1*np.abs(Zbr))*2.
+    Zbr[Zbr>1]=1
+    return Zbr
 
 # global container so that we can use joblib with a smaller memory
 # footprint (i.e., we don't need to duplicate everything)
@@ -272,13 +264,17 @@ def _eval_model(model_id, perm=None):
     R_nocat[feat_mask] = 0.0
 
     if mm._do_tfce:
+        # turn to Z, then TFCE
         R_nocat = R_to_tfce(R_nocat, connectivity = mm._connectivity, 
                             shape=mm._feat_shape, 
                             dt=mm._dt, E=mm._E, H=mm._H)
-
+    else:
+        # turn to Z
+        R_nocat = np.arctanh(R_nocat)
+                
     # pick only stable features
-    Rtbr = pick_stable_features(R_nocat, nboot=mm._feat_nboot, 
-                                do_tfce=mm._do_tfce)
+    # NOTE: R_nocat is no longer R, it's either TFCE or Z
+    Rtbr = pick_stable_features(R_nocat, nboot=mm._feat_nboot)
 
     # apply the thresh
     stable_ind = Rtbr<mm._feat_thresh
@@ -293,9 +289,11 @@ def _eval_model(model_id, perm=None):
         _R = R_nocat.copy()
 
     # concatenate R for SVD
+    # NOTE: It's really either Z or TFCE now
     R = np.concatenate([R_nocat[i] for i in range(len(R_nocat))])
 
     # perform svd
+    #U, s, Vh = np.linalg.svd(np.arctanh(R), full_matrices=False)
     U, s, Vh = np.linalg.svd(R, full_matrices=False)
 
     # fix near zero vals from SVD
@@ -386,9 +384,8 @@ def _eval_model(model_id, perm=None):
     # scale tvals across features
     tfs = []
     for k in tvals.dtype.names:
-        # scaled by _ss so the tvals look realistic, but doesn't change the outcome
         tfs.append(np.dot(tvals[k],
-                          np.dot(diagsvd(ss[ss>0]/_ss, len(ss[ss>0]),len(ss[ss>0])),
+                          np.dot(diagsvd(ss[ss>0], len(ss[ss>0]),len(ss[ss>0])),
                                  Vh[ss>0,...]))) #/(ss>0).sum())
     tfs = np.rec.fromarrays(tfs, names=','.join(tvals.dtype.names))
 
