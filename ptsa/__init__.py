@@ -26,7 +26,8 @@ packages = ('ptsa',
             'ptsa.data',
             'ptsa.data.tests',
             'ptsa.plotting',
-            'ptsa.plotting.tests')
+            'ptsa.plotting.tests',
+            'ptsa.stats')
 
 def _test(method, level, verbosity, flags):
     """
