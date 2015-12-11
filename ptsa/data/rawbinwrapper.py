@@ -72,9 +72,10 @@ class RawBinWrapper(BaseWrapper):
             names.append(self._chanfiles[i].split('.')[-1])
         self._channel_info = np.rec.fromarrays(
             [numbers, names], names='number,name')
-            
-            
-            
+                    
+    def _get_dataroot(self, channel=None):
+        # Same dataroot for all channels:
+        return self._dataroot            
 
     def _get_samplerate(self, channel=None):
         # Same samplerate for all channels:
@@ -148,13 +149,15 @@ class RawBinWrapper(BaseWrapper):
         # loop over channels
         for c, channel in enumerate(channels):
             # determine the file
-            eegfname = '{}.{:0>3}'.format(self._dataroot,channel)
+            eegfname = self._dataroot+'.'+self._channel_info['name'][channel]
+            # eegfname = '{}.{:0>3}'.format(self._dataroot,channel)
             if os.path.isfile(eegfname):
                 efile = open(eegfname,'rb')
             else:
                 raise IOError(
-                    'EEG file not found for channel {:0>3} ' +
-                    'and file root {}\n'.format(channel,self._dataroot))
+                    'EEG file not found: '+eegfname)
+                    # 'EEG file not found for channel {:0>3} '.format(channel) +
+                    # 'and file root {}\n'.format(self._dataroot))
 
             # loop over events
             for e, ev_offset in enumerate(event_offsets):
@@ -184,6 +187,8 @@ class RawBinWrapper(BaseWrapper):
 	eventdata *= self._gain
 	
         return eventdata
+
+    dataroot = property(lambda self: self._get_dataroot())
 
 # # This doesn't seem to work and also doesn't seem to belong in this file:
 # def createEventsFromMatFile(matfile):
