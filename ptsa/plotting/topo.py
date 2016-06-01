@@ -33,7 +33,6 @@ def topoplot(values=None, labels=None, sensors=None, axes=None,
              head_props=None, sensor_props=None,
              label_props=None, 
              contours=15, contour_props=None,
-             # resolution=400, cmap=None, axis_props='off', 
              resolution=400, axis_props='off', 
              plot_mask='circular', plot_radius_buffer=.2,
              **kwargs):
@@ -142,8 +141,8 @@ def topoplot(values=None, labels=None, sensors=None, axes=None,
             [q+.0555, q+.0775, q+.0783, q+.0746, q+.0555,
              -.0055, -.0932, -.1313, -.1384, -.1199])*(radius/0.5)
         # Convert to polar coordinates for rotating:
-        rightear_polar_angle,rightear_polar_radius = cart2pol(ear_x, ear_y)
-        leftear_polar_angle,leftear_polar_radius = cart2pol(-ear_x, ear_y)
+        rightear_polar_angle, rightear_polar_radius = cart2pol(ear_x, ear_y)
+        leftear_polar_angle, leftear_polar_radius = cart2pol(-ear_x, ear_y)
         rightear_polar_angle = rightear_polar_angle+deg2rad(nose_dir)
         leftear_polar_angle = leftear_polar_angle+deg2rad(nose_dir)
         # And back to cartesian coordinates for plotting:
@@ -182,7 +181,7 @@ def topoplot(values=None, labels=None, sensors=None, axes=None,
         return("No sensor locations specified!")
     
     # Convert & rotate sensor locations:
-    angles = sensors[0]
+    angles = -sensors[0]+90
     angles = angles+nose_dir
     angles = deg2rad(angles)
     radii = sensors[1]
