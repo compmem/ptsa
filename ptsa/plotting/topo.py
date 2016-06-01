@@ -33,8 +33,10 @@ def topoplot(values=None, labels=None, sensors=None, axes=None,
              head_props=None, sensor_props=None,
              label_props=None, 
              contours=15, contour_props=None,
-             resolution=400, cmap=None, axis_props='off', 
-             plot_mask='circular', plot_radius_buffer=.2):
+             # resolution=400, cmap=None, axis_props='off', 
+             resolution=400, axis_props='off', 
+             plot_mask='circular', plot_radius_buffer=.2,
+             **kwargs):
     """
     Plot a topographic map of the scalp in a 2-D circular view
     (looking down at the top of the head).
@@ -75,9 +77,6 @@ def topoplot(values=None, labels=None, sensors=None, axes=None,
         Resolution of the interpolated grid. Higher numbers give
         smoother edges of the plot, but increase memory and
         computational demands.
-    cmap : {None,matplotlib.colors.LinearSegmentedColormap}, optional
-        Color map for the contour plot. If colMap==None, the default
-        color map is used.
     axis_props : {str}, optional
         Axis properties.
     plot_mask : {str}, optional
@@ -88,6 +87,8 @@ def topoplot(values=None, labels=None, sensors=None, axes=None,
         Buffer outside the electrode circumference for generating
         interpolated values with a circular mask. 
         This should be greater than zero to aviod interpolation errors.
+    **kwargs : optional
+        Optional keyword arguments to be passed on to contourf.
     """
 
     if axes is not None: # axes are given
@@ -269,9 +270,9 @@ def topoplot(values=None, labels=None, sensors=None, axes=None,
     # calc the grid
     zi = griddata((x, y), z, (xi, yi), method='cubic')
 
-    # If no colormap is specified, use default colormap:
-    if cmap is None:
-        cmap = plt.get_cmap()
+    # # If no colormap is specified, use default colormap:
+    # if cmap is None:
+    #     cmap = plt.get_cmap()
         
     # make contours
     cprops = default_contour_props.copy()
@@ -279,8 +280,9 @@ def topoplot(values=None, labels=None, sensors=None, axes=None,
         cprops.update(contour_props)
  
     if np.any(cprops['linewidths'] > 0):
-        a.contour(xi,yi,zi,contours,**cprops)
+        a.contour(xi, yi, zi, contours, **cprops)
 
     # make countour color patches:
-    a.contourf(xi,yi,zi,contours,cmap=cmap,extend='both')
+    # a.contourf(xi, yi, zi, contours, cmap=cmap, extend='both')
+    a.contourf(xi, yi, zi, contours, extend='both', **kwargs)
 
