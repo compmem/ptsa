@@ -104,6 +104,7 @@ def find_clusters(x, threshold, tail=0, connectivity=None):
         sums = np.array(sums)
     return clusters, sums
 
+
 def pval_from_histogram(T, H0, tail):
     """Get p-values from stats values given an H0 distribution
 
@@ -142,26 +143,27 @@ def sparse_dim_connectivity(dim_con):
     ind = np.indices(dlen)
 
     # reshape them
-    dind = [ind[i].reshape((nelements,1)) for i in range(ind.shape[0])]
-    
+    dind = [ind[i].reshape((nelements, 1)) for i in range(ind.shape[0])]
+
     # fill the rows and columns
     rows = []
     cols = []
 
-    # loop to create mix of 
+    # loop to create mix of
     for i in range(len(dind)):
         # get the connected elements for that dimension
-        r,c = np.nonzero(dim_con[i])
+        r, c = np.nonzero(dim_con[i])
 
         # loop over them
         for j in range(len(r)):
             # extend the row/col connections
-            rows.extend(np.nonzero(dind[i]==r[j])[0])
-            cols.extend(np.nonzero(dind[i]==c[j])[0])
+            rows.extend(np.nonzero(dind[i] == r[j])[0])
+            cols.extend(np.nonzero(dind[i] == c[j])[0])
 
     # create the sparse connectivity matrix
     data = np.ones(len(rows))
-    cmat = sparse.coo_matrix((data,(rows,cols)), shape=(nelements,nelements))
+    cmat = sparse.coo_matrix((data, (rows, cols)),
+                             shape=(nelements, nelements))
 
     return cmat
 
@@ -229,30 +231,33 @@ def tfce(x, dt=.1, E=2/3., H=2.0, tail=0, connectivity=None):
     trange = []
     if tail == -1:
         sign = -1.0
-        if (x<0).sum()>0:
-            trange = np.arange(x[x<0].max(),x.min()-dt,-dt)
+        if (x < 0).sum() > 0:
+            trange = np.arange(x[x < 0].max(), x.min()-dt, -dt)
     elif tail == 1:
         sign = 1.0
-        if (x>0).sum()>0:
-            trange = np.arange(x[x>0].min(),x.max()+dt,dt)
+        if (x > 0).sum()>0:
+            trange = np.arange(x[x > 0].min(), x.max()+dt, dt)
     else:
         sign = 1.0
-        trange = np.arange(np.abs(x).min(),np.abs(x).max()+dt,dt)
+        trange = np.arange(np.abs(x).min(), np.abs(x).max()+dt, dt)
 
     # get starting values for data (reshape it b/c needs to be 1d)
     xt = np.zeros_like(x).reshape(np.prod(x.shape))
-    
-    # make own connectivity if not provided so that we have consistent return values
+
+    # make own connectivity if not provided so that we have consistent
+    # return values
     if connectivity is None:
-        connectivity = sparse_dim_connectivity([simple_neighbors_1d(n) for n in x.shape])
+        connectivity = sparse_dim_connectivity([simple_neighbors_1d(n)
+                                                for n in x.shape])
 
     # integrate in steps of dt over the threshold
     # do reshaping once
     xr = x.reshape(np.prod(x.shape))
     for thresh in trange:
         # get the clusters (reshape as necessary)
-        clusts,sums = find_clusters(xr, thresh, 
-                                    tail=tail, connectivity=connectivity)        
+        clusts, sums = find_clusters(xr, thresh,
+                                     tail=tail,
+                                     connectivity=connectivity)
 
         # add to values in clusters
         for c in clusts:
