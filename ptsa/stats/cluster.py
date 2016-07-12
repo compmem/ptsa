@@ -241,18 +241,19 @@ def tfce(x, dt=.1, E=2/3., H=2.0, tail=0, connectivity=None):
         sign = 1.0
         trange = np.arange(np.abs(x).min(), np.abs(x).max()+dt, dt)
 
-    # get starting values for data (reshape it b/c needs to be 1d)
-    xt = np.zeros_like(x).reshape(np.prod(x.shape))
-
     # make own connectivity if not provided so that we have consistent
     # return values
     if connectivity is None:
-        connectivity = sparse_dim_connectivity([simple_neighbors_1d(n)
-                                                for n in x.shape])
-
-    # integrate in steps of dt over the threshold
-    # do reshaping once
-    xr = x.reshape(np.prod(x.shape))
+        xr = x
+        #connectivity = sparse_dim_connectivity([simple_neighbors_1d(n)
+        #                                        for n in x.shape])
+    else:
+        # integrate in steps of dt over the threshold
+        # do reshaping once
+        xr = x.reshape(np.prod(x.shape))
+        
+    # get starting values for data (reshaped if needed)
+    xt = np.zeros_like(xr)
     for thresh in trange:
         # get the clusters (reshape as necessary)
         clusts, sums = find_clusters(xr, thresh,
@@ -265,4 +266,7 @@ def tfce(x, dt=.1, E=2/3., H=2.0, tail=0, connectivity=None):
             xt[c] += sign * np.power(c.sum(),E) * np.power(sign*thresh,H) * dt
 
     # return the enhanced data, reshaped back
-    return xt.reshape(*(x.shape))
+    if connectivity is None:
+        return xt
+    else:
+        return xt.reshape(*(x.shape))

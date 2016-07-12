@@ -173,7 +173,7 @@ class LMER():
                 # init the data
                 # get the row names
                 rows = list(r['row.names'](df))
-                tvals = np.rec.fromarrays([np.ones(len(perms))*np.nan 
+                tvals = np.rec.fromarrays([np.ones(len(perms))*np.nan
                                            for ro in range(len(rows))],
                                           names=','.join(rows))
                 log_likes = np.zeros(len(perms))
@@ -221,11 +221,15 @@ def R_to_tfce(R, connectivity=None, shape=None,
     for i in range(Rt.shape[0]):
         for j in range(Rt.shape[1]):
             # apply tfce in pos and neg direction
-            Rt[i, j] += cluster.tfce(Z[i, j],  # .reshape(*shape),
+            Zin = Z[i, j]
+            if connectivity is None:
+                # reshape back
+                Zin = Zin.reshape(*shape)
+            Rt[i, j] += cluster.tfce(Zin,
                                      dt=dt, tail=1,
                                      connectivity=connectivity,
                                      E=E, H=H).flatten()
-            Rt[i, j] += cluster.tfce(Z[i, j],  # .reshape(*shape),
+            Rt[i, j] += cluster.tfce(Zin,
                                      dt=dt, tail=-1,
                                      connectivity=connectivity,
                                      E=E, H=H).flatten()
@@ -360,6 +364,9 @@ def _eval_model(model_id, perm=None):
     R_nocat[feat_mask] = 0.0
 
     # turn to Z
+    # make sure we are not 1/-1
+    R_nocat[R_nocat > .9999] = .9999
+    R_nocat[R_nocat < -.9999] = -.9999
     R_nocat = np.arctanh(R_nocat)
 
     if mm._do_tfce:
@@ -673,7 +680,8 @@ class MELD(object):
                                          dtype=np.bool)
 
             # create the connectivity (will mask later)
-            if self._do_tfce and self._connectivity is None:
+            if self._do_tfce and self._connectivity is None and \
+               (len(self._dep_mask.flatten()) > self._dep_mask.sum()):
                 # create the connectivity
                 self._connectivity = cluster.sparse_dim_connectivity([cluster.simple_neighbors_1d(n)
                                                                       for n in self._feat_shape])
@@ -756,9 +764,8 @@ class MELD(object):
         self._factors = factors
 
         # mask the connectivity
-        if self._do_tfce:
-            self._connectivity = self._connectivity.tolil()[np.ix_(self._dep_mask.flatten(),
-                                                                   self._dep_mask.flatten())].tocoo()
+        if self._do_tfce and (len(self._dep_mask.flatten()) > self._dep_mask.sum()):
+            self._connectivity = self._connectivity.tolil()[self._dep_mask.flatten()][:,self._dep_mask.flatten()].tocoo()
 
         # prepare for the perms and boots and jackknife
         self._perms = []
@@ -819,7 +826,6 @@ class MELD(object):
         global _global_meld
         if _global_meld and my_id in _global_meld:
             del _global_meld[my_id]
-
 
     def run_perms(self, perms, n_jobs=None, verbose=None):
         """Run the specified permutations.
