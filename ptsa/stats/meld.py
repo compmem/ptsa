@@ -382,6 +382,9 @@ def _eval_model(model_id, perm=None):
     # NOTE: Ztemp is no longer R, it's either TFCE or Z
     Rtbr = pick_stable_features(Ztemp, nboot=mm._feat_nboot)
 
+    # actually use the TFCE for SVD
+    R_nocat = Ztemp
+
     # apply the thresh
     stable_ind = Rtbr < mm._feat_thresh
     stable_ind = stable_ind.reshape((stable_ind.shape[0], -1))
@@ -395,11 +398,10 @@ def _eval_model(model_id, perm=None):
         _R = R_nocat.copy()
 
     # concatenate R for SVD
-    # NOTE: It's really Z now
+    # NOTE: It's really Z or TFCE now
     R = np.concatenate([R_nocat[i] for i in range(len(R_nocat))])
 
     # perform svd
-    # U, s, Vh = np.linalg.svd(np.arctanh(R), full_matrices=False)
     U, s, Vh = np.linalg.svd(R, full_matrices=False)
 
     # fix near zero vals from SVD
@@ -461,10 +463,10 @@ def _eval_model(model_id, perm=None):
         # must make dummy data
         if lmer is None:
             O = [mm._O[i].copy() for i in ind_b]
-            if boot is not None:
-                # replace the group
-                for i, k in enumerate(mm._groups):
-                    O[i][mm._re_group] = k
+            # if boot is not None:
+            #     # replace the group
+            #     for i, k in enumerate(mm._groups):
+            #         O[i][mm._re_group] = k
 
             lmer = LMER(mm._formula_str, np.concatenate(O),
                         factors=mm._factors,
@@ -977,7 +979,7 @@ if __name__ == '__main__':
     nobs = 100
     nsubj = 10
     nfeat = (10, 30)
-    nperms = 50
+    nperms = 200
     use_ranks = False
     smoothed = False
     memmap = False
