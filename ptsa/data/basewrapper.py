@@ -259,6 +259,10 @@ class BaseWrapper(object):
         if channels is None or len(np.atleast_1d(channels))==0:
             channels = np.arange(self.nchannels)
         channels = np.atleast_1d(channels)
+        # if channels is a container with channel names, convert to indices:
+        for i in range(len(channels)):
+            if isinstance(channels[i], str):
+                channels[i] = np.nonzero(self.channels['name']==channels)[0][0]
         channels.sort()
 
         # load the timeseries (this must be implemented by subclasses)
