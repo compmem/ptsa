@@ -252,13 +252,19 @@ class BaseWrapper(object):
             # turn into indices
             ch_info = self.channels
             key = channels.keys()[0]
-            channels = [np.nonzero(ch_info[key]==c)[0][0] for c in channels[key]]
+            channels = [np.nonzero(ch_info[key]==c)[0][0]
+                        for c in channels[key]]
         elif isinstance(channels, str):
             # find that channel by name
             channels = np.nonzero(self.channels['name']==channels)[0][0]
         if channels is None or len(np.atleast_1d(channels))==0:
             channels = np.arange(self.nchannels)
         channels = np.atleast_1d(channels)
+        # if channels is a container with channel names, convert to
+        # indices (can't directly change elements in array, because
+        # dtype would remain str):
+        channels = np.array([np.nonzero(self.channels['name']==c)[0][0]
+                             if isinstance(c, str) else c for c in channels])
         channels.sort()
 
         # load the timeseries (this must be implemented by subclasses)
