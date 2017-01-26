@@ -173,7 +173,7 @@ class LMER():
                 # init the data
                 # get the row names
                 rows = list(r['row.names'](df))
-                tvals = np.rec.fromarrays([np.ones(len(perms))*np.nan 
+                tvals = np.rec.fromarrays([np.ones(len(perms))*np.nan
                                            for ro in range(len(rows))],
                                           names=','.join(rows))
                 log_likes = np.zeros(len(perms))
@@ -184,46 +184,145 @@ class LMER():
 
         return tvals, log_likes
 
-def R_to_tfce(R, connectivity=None, shape=None, 
+
+class OnlineVariance(object):
+    """
+    Welford's algorithm computes the sample variance incrementally.
+
+    http://stackoverflow.com/questions/5543651/computing-standard-deviation-in-a-stream
+    """
+
+    def __init__(self, iterable=None, ddof=1):
+        self.ddof, self.n, self.mean, self.M2 = ddof, 0, 0.0, 0.0
+        if iterable is not None:
+            for datum in iterable:
+                self.include(datum)
+
+    def include(self, datum):
+        self.n += 1
+        self.delta = datum - self.mean
+        self.mean += self.delta / self.n
+        self.M2 += self.delta * (datum - self.mean)
+        self.variance = self.M2 / (self.n - self.ddof)
+
+    @property
+    def std(self):
+        return np.sqrt(self.variance)
+
+
+def R_to_tfce(R, connectivity=None, shape=None,
               dt=.01, E=2/3., H=2.0):
     """Apply TFCE to the R values."""
     # allocate for tfce
     Rt = np.zeros_like(R)
-    Z = np.arctanh(R)
+    # Z = np.arctanh(R)
+    Z = R
     # loop
     for i in range(Rt.shape[0]):
         for j in range(Rt.shape[1]):
             # apply tfce in pos and neg direction
-            Rt[i,j] += cluster.tfce(Z[i,j].reshape(*shape),
-                                   dt=dt,tail=1,connectivity=connectivity, 
-                                   E=E,H=H).flatten()
-            Rt[i,j] += cluster.tfce(Z[i,j].reshape(*shape),
-                                    dt=dt,tail=-1,connectivity=connectivity, 
-                                    E=E,H=H).flatten()
+            Zin = Z[i, j]
+            if connectivity is None:
+                # reshape back
+                Zin = Zin.reshape(*shape)
+            Rt[i, j] += cluster.tfce(Zin,
+                                     dt=dt, tail=1,
+                                     connectivity=connectivity,
+                                     E=E, H=H).flatten()
+            Rt[i, j] += cluster.tfce(Zin,
+                                     dt=dt, tail=-1,
+                                     connectivity=connectivity,
+                                     E=E, H=H).flatten()
     return Rt
+
 
 def pick_stable_features(Z, nboot=500):
     """Use a bootstrap to pick stable features.
     """
     # generate the boots
-    boots = [np.random.random_integers(0,len(Z)-1,len(Z))
+    boots = [np.random.random_integers(0, len(Z)-1, len(Z))
              for i in xrange(nboot)]
 
     # calc bootstrap ratio
-    Zb = np.array([Z[boots[b]].mean(0) for b in range(len(boots))])
-    Zbr = Z.mean(0)/Zb.std(0)
+    # calc the bootstrap std in efficient way
+    # old way
+    # Zb = np.array([Z[boots[b]].mean(0) for b in range(len(boots))])
+    # Zbr = Z.mean(0)/Zb.std(0)
+    ov = OnlineVariance(ddof=0)
+    for b in range(len(boots)):
+        ov.include(Z[boots[b]].mean(0))
+    Zbr = Z.mean(0)/ov.std
 
     # ignore any nans
-    Zbr[np.isnan(Zbr)]=0.
+    Zbr[np.isnan(Zbr)] = 0.
 
     # bootstrap ratios are supposedly t-distributed, so test sig
     Zbr = dists.t(len(Z)-1).cdf(-1*np.abs(Zbr))*2.
-    Zbr[Zbr>1]=1
+    Zbr[Zbr > 1] = 1
     return Zbr
+
+
+# modified from:
+# http://stackoverflow.com/questions/20983882/efficient-dot-products-of-large-memory-mapped-arrays
+def _block_slices(dim_size, block_size):
+    """Generator that yields slice objects for indexing into
+    sequential blocks of an array along a particular axis
+    """
+    count = 0
+    while True:
+        yield slice(count, count + block_size, 1)
+        count += block_size
+        if count > dim_size:
+            raise StopIteration
+
+
+def blockwise_dot(A, B, max_elements=int(2**26), out=None):
+    """
+    Computes the dot product of two matrices in a block-wise fashion.
+    Only blocks of `A` with a maximum size of `max_elements` will be
+    processed simultaneously.
+    """
+
+    if len(A.shape) == 1:
+        A = A[np.newaxis, :]
+    if len(B.shape) == 1:
+        B = B[:,np.newaxis]
+    m,  n = A.shape
+    n1, o = B.shape
+
+    if n1 != n:
+        raise ValueError('matrices are not aligned')
+
+    if A.flags.f_contiguous:
+        # prioritize processing as many columns of A as possible
+        max_cols = max(1, max_elements / m)
+        max_rows = max_elements / max_cols
+
+    else:
+        # prioritize processing as many rows of A as possible
+        max_rows = max(1, max_elements / n)
+        max_cols = max_elements / max_rows
+
+    if out is None:
+        out = np.empty((m, o), dtype=np.result_type(A, B))
+    elif out.shape != (m, o):
+        raise ValueError('output array has incorrect dimensions')
+
+    for mm in _block_slices(m, max_rows):
+        out[mm, :] = 0
+        for nn in _block_slices(n, max_cols):
+            A_block = A[mm, nn].copy()  # copy to force a read
+            out[mm, :] += np.dot(A_block, B[nn, :])
+            del A_block
+            # out[mm, :] += np.dot(A[mm, nn], B[nn, :])
+
+    return out
+
 
 # global container so that we can use joblib with a smaller memory
 # footprint (i.e., we don't need to duplicate everything)
 _global_meld = {}
+
 
 def _eval_model(model_id, perm=None):
     # set vars from model
@@ -246,66 +345,76 @@ def _eval_model(model_id, perm=None):
         if perm is None:
             ind[k] = np.arange(len(A))
         else:
-            ind[k] = perm[k]            
+            ind[k] = perm[k]
 
-        if perm is None and not mm._R is None:
+        if perm is None and mm._R is not None:
             # reuse R we already calculated
             R.append(mm._R[ind_b[i]])
         else:
             # calc the correlation
-            #R.append(np.inner(A.T,M[ind[k]].T))
-            R.append(np.dot(A.T,M[ind[k]]))
+            #R.append(np.dot(A.T,M[ind[k]].copy()))
+            #R.append(blockwise_dot(M[:][ind[k]].T, A).T)
+            R.append(blockwise_dot(M[ind[k]].T, A).T)
 
     # turn R into array
     R_nocat = np.array(R)
-    
+
     # zero invariant features
     feat_mask = np.isnan(R)
     R_nocat[feat_mask] = 0.0
 
+    # turn to Z
+    # make sure we are not 1/-1
+    R_nocat[R_nocat > .9999] = .9999
+    R_nocat[R_nocat < -.9999] = -.9999
+    R_nocat = np.arctanh(R_nocat)
+
     if mm._do_tfce:
-        # turn to Z, then TFCE
-        R_nocat = R_to_tfce(R_nocat, connectivity = mm._connectivity, 
-                            shape=mm._feat_shape, 
-                            dt=mm._dt, E=mm._E, H=mm._H)
+        # run TFCE
+        Ztemp = R_to_tfce(R_nocat, connectivity=mm._connectivity,
+                          shape=mm._feat_shape,
+                          dt=mm._dt, E=mm._E, H=mm._H)
     else:
-        # turn to Z
-        R_nocat = np.arctanh(R_nocat)
-                
+        # just use the current Z without TFCE
+        Ztemp = R_nocat
+
     # pick only stable features
-    # NOTE: R_nocat is no longer R, it's either TFCE or Z
-    Rtbr = pick_stable_features(R_nocat, nboot=mm._feat_nboot)
+    # NOTE: Ztemp is no longer R, it's either TFCE or Z
+    Rtbr = pick_stable_features(Ztemp, nboot=mm._feat_nboot)
+
+    # actually use the TFCE for SVD
+    R_nocat = Ztemp
 
     # apply the thresh
-    stable_ind = Rtbr<mm._feat_thresh
-    stable_ind = stable_ind.reshape((stable_ind.shape[0],-1))
+    stable_ind = Rtbr < mm._feat_thresh
+    stable_ind = stable_ind.reshape((stable_ind.shape[0], -1))
 
     # zero out non-stable
-    feat_mask[:,~stable_ind] = True
-    R_nocat[:,~stable_ind] = 0.0
+    feat_mask[:, ~stable_ind] = True
+    R_nocat[:, ~stable_ind] = 0.0
 
     # save R before concatenating if not a permutation
     if perm is None and _R is None:
         _R = R_nocat.copy()
 
     # concatenate R for SVD
-    # NOTE: It's really either Z or TFCE now
+    # NOTE: It's really Z or TFCE now
     R = np.concatenate([R_nocat[i] for i in range(len(R_nocat))])
 
     # perform svd
-    #U, s, Vh = np.linalg.svd(np.arctanh(R), full_matrices=False)
     U, s, Vh = np.linalg.svd(R, full_matrices=False)
 
     # fix near zero vals from SVD
-    Vh[np.abs(Vh)<(.00000001*mm._dt)] = 0.0
+    Vh[np.abs(Vh) < (.00000001 * mm._dt)] = 0.0
+    s[np.abs(s) < .00000001] = 0.0
 
     # calc prop of variance accounted for
     if mm._ss is None:
-        #_ss = np.sqrt((s*s).sum())
+        # _ss = np.sqrt((s*s).sum())
         _ss = s.sum()
     else:
         _ss = mm._ss
-    #ss /= ss.sum()
+    # ss /= ss.sum()
     ss = s
 
     # set up lmer
@@ -315,22 +424,24 @@ def _eval_model(model_id, perm=None):
         O = [mm._O[i].copy() for i in ind_b]
 
         lmer = LMER(mm._formula_str, np.concatenate(O),
-                    factors=mm._factors, 
+                    factors=mm._factors,
                     resid_formula_str=mm._resid_formula_str, **mm._lmer_opts)
         mer = None
     else:
         mer = mm._mer
-    
+
     # loop over LVs performing LMER
     res = []
     for i in range(len(Vh)):
         if ss[i] <= 0.0:
-            #print 'skipped ',str(i)
+            # print 'skipped ',str(i)
             continue
 
         # flatten then weigh features via dot product
-        Dw = np.concatenate([np.dot(mm._D[k][ind[k]],Vh[i])
-                             for g,k in enumerate(mm._groups[ind_b])])
+        Dw = np.concatenate([#np.dot(mm._D[k][ind[k]].copy(),Vh[i])
+                             #blockwise_dot(mm._D[k][:][ind[k]], Vh[i])
+                             blockwise_dot(mm._D[k][ind[k]], Vh[i])
+                             for g, k in enumerate(mm._groups[ind_b])])
 
         # run the main model
         if mer is None:
@@ -342,71 +453,95 @@ def _eval_model(model_id, perm=None):
             mer = r['refit'](mer, FloatVector(Dw))
             df = r['data.frame'](r_coef(r['summary'](mer)))
             rows = list(r['row.names'](df))
-            new_tvals = np.rec.fromarrays([[tv] for tv in tuple(df.rx2('t.value'))],
+            new_tvals = np.rec.fromarrays([[tv]
+                                           for tv in tuple(df.rx2('t.value'))],
                                           names=','.join(rows))
             new_ll = float(r['logLik'](mer)[0])
-            res.append((new_tvals,np.array([new_ll])))
+            res.append((new_tvals, np.array([new_ll])))
 
     if len(res) == 0:
         # must make dummy data
         if lmer is None:
             O = [mm._O[i].copy() for i in ind_b]
-            if not boot is None:
-                # replace the group
-                for i,k in enumerate(mm._groups):
-                    O[i][mm._re_group] = k
+            # if boot is not None:
+            #     # replace the group
+            #     for i, k in enumerate(mm._groups):
+            #         O[i][mm._re_group] = k
 
             lmer = LMER(mm._formula_str, np.concatenate(O),
-                        factors=mm._factors, 
-                        resid_formula_str=mm._resid_formula_str, **mm._lmer_opts)
+                        factors=mm._factors,
+                        resid_formula_str=mm._resid_formula_str,
+                        **mm._lmer_opts)
 
         Dw = np.random.randn(len(np.concatenate(O)))
-        temp_t,temp_ll = lmer.run(vals=Dw)
+        temp_t, temp_ll = lmer.run(vals=Dw)
 
-        for n in temp_t.dtype.names: temp_t[n] = 0.0
+        for n in temp_t.dtype.names:
+            temp_t[n] = 0.0
         temp_ll[0] = 0.0
-        res.append((temp_t,temp_ll))
+        res.append((temp_t, temp_ll))
 
         # must make ss, too
         ss = np.array([1.0])
-        #print "perm fail"
+        # print "perm fail"
 
     # pull out data from all the components
-    tvals,log_likes = zip(*res)
+    tvals, log_likes = zip(*res)
     tvals = np.concatenate(tvals)
     log_likes = np.concatenate(log_likes)
 
     # recombine and scale the tvals across components
-    ts = np.rec.fromarrays([np.dot(tvals[k],ss[ss>0.0]/_ss) #/(ss>0.).sum()
+    ts = np.rec.fromarrays([np.dot(tvals[k],
+                                   ss[ss > 0.0] / _ss)  # /(ss>0.).sum()
                             for k in tvals.dtype.names],
-                           names= ','.join(tvals.dtype.names))
+                           names=','.join(tvals.dtype.names))
 
     # scale tvals across features
     tfs = []
     for k in tvals.dtype.names:
-        tfs.append(np.dot(tvals[k],
-                          np.dot(diagsvd(ss[ss>0], len(ss[ss>0]),len(ss[ss>0])),
-                                 Vh[ss>0,...]))) #/(ss>0).sum())
+        # tfs.append(np.dot(tvals[k],
+        #                   np.dot(diagsvd(ss[ss > 0],
+        #                                  len(ss[ss > 0]),
+        #                                  len(ss[ss > 0])),
+        #                          Vh[ss > 0, ...])))  # /(ss>0).sum())
+        tfs.append(blockwise_dot(tvals[k],
+                                 blockwise_dot(diagsvd(ss[ss > 0],
+                                         len(ss[ss > 0]),
+                                         len(ss[ss > 0])),
+                                 Vh[ss > 0, ...])))
     tfs = np.rec.fromarrays(tfs, names=','.join(tvals.dtype.names))
 
     # decide what to return
     if perm is None:
         # return tvals, tfs, and R for actual non-permuted data
-        out = (ts,tfs,_R,feat_mask,_ss,mer)
-    
+        out = (ts, tfs, _R, feat_mask, _ss, mer)
     else:
         # return the tvals for the terms
-        out = (ts,tfs,~feat_mask[0])
+        out = (ts, tfs, ~feat_mask[0])
 
     return out
 
 
-def _memmap_array(x, memmap_dir=None):
+def _memmap_array(x, memmap_dir=None, use_h5py=False, unique_id=''):
     if memmap_dir is None:
         memmap_dir = tempfile.gettempdir()
-    filename = os.path.join(memmap_dir,str(id(x))+'.npy')
-    np.save(filename,x)
-    return np.load(filename,'r')
+    # generate the base filename
+    filename = os.path.join(memmap_dir,
+                            unique_id + '_' + str(id(x)))
+    if use_h5py:
+        import h5py
+        filename += '.h5'
+        h = h5py.File(filename)
+        mmap_dat = h.create_dataset('mdat', data=x,
+                                    compression='gzip')
+        h.flush()
+    else:
+        # use normal memmap
+        # filename = os.path.join(memmap_dir, str(id(x)) + '.npy')
+        filename += '.npy'
+        np.save(filename, x)
+        mmap_dat = np.load(filename, 'r+')
+    return mmap_dat
 
 
 class MELD(object):
@@ -422,16 +557,16 @@ class MELD(object):
 
     """
     def __init__(self, fe_formula, re_formula,
-                 re_group, dep_data, ind_data, 
+                 re_group, dep_data, ind_data,
                  factors=None, row_mask=None,
+                 dep_mask=None,
                  use_ranks=False, use_norm=True,
                  memmap=False, memmap_dir=None,
                  resid_formula=None,
-                 svd_terms=None, feat_thresh=0.05, 
-                 feat_nboot=1000, do_tfce=False, 
-                 connectivity=None, shape=None, 
+                 svd_terms=None, feat_thresh=0.05,
+                 feat_nboot=1000, do_tfce=False,
+                 connectivity=None, shape=None,
                  dt=.01, E=2/3., H=2.0,
-                 #nperms=500, nboot=100, 
                  n_jobs=1, verbose=10,
                  lmer_opts=None):
         """
@@ -465,10 +600,10 @@ class MELD(object):
         self._feat_thresh = feat_thresh
         self._feat_nboot = feat_nboot
         self._do_tfce = do_tfce
-        self._connectivity=connectivity
-        self._dt=dt
-        self._E=E 
-        self._H=H
+        self._connectivity = connectivity
+        self._dt = dt
+        self._E = E
+        self._H = H
 
         # see if memmapping
         self._memmap = memmap
@@ -479,6 +614,9 @@ class MELD(object):
 
         # eventually fill the feature shape
         self._feat_shape = None
+
+        # handle the dep_mask
+        self._dep_mask = dep_mask
 
         # fill A,M,O,D
         self._A = {}
@@ -497,37 +635,37 @@ class MELD(object):
             self._groups = np.unique(ind_data[re_group])
         for g in self._groups:
             # get that subj inds
-            if isinstance(ind_data,dict):
+            if isinstance(ind_data, dict):
                 # the index is just the group into that dict
                 ind_ind = g
             else:
                 # select the rows based on the group
-                ind_ind = ind_data[re_group]==g
+                ind_ind = ind_data[re_group] == g
 
             # process the row mask
             if row_mask is None:
                 # no mask, so all good
-                row_ind = np.ones(len(ind_data[ind_ind]),dtype=np.bool)
+                row_ind = np.ones(len(ind_data[ind_ind]), dtype=np.bool)
             elif isinstance(row_mask, dict):
                 # pull the row_mask from the dict
                 row_ind = row_mask[g]
             else:
                 # index into it with ind_ind
                 row_ind = row_mask[ind_ind]
-            
+
             # extract that group's A,M,O
             # first save the observations (rows of A)
             self._O[g] = ind_data[ind_ind][row_ind]
             if use_ranks:
                 # loop over non-factors and rank them
                 for n in self._O[g].dtype.names:
-                    if (n in factors) or isinstance(self._O[g][n][0],str):
+                    if (n in factors) or isinstance(self._O[g][n][0], str):
                         continue
                     self._O[g][n] = rankdata(self._O[g][n])
             O.append(self._O[g])
 
             # eventually allow for dict of data files for dep_data
-            if isinstance(dep_data,dict):
+            if isinstance(dep_data, dict):
                 # the index is just the group into that dict
                 dep_ind = g
             else:
@@ -538,84 +676,108 @@ class MELD(object):
             if self._feat_shape is None:
                 self._feat_shape = dep_data[dep_ind].shape[1:]
 
-            # Save D index into data
-            self._D[g] = dep_data[dep_ind][row_ind]
+            # handle the mask
+            if self._dep_mask is None:
+                self._dep_mask = np.ones(self._feat_shape,
+                                         dtype=np.bool)
+
+            # create the connectivity (will mask later)
+            if self._do_tfce and self._connectivity is None and \
+               (len(self._dep_mask.flatten()) > self._dep_mask.sum()):
+                # create the connectivity
+                self._connectivity = cluster.sparse_dim_connectivity([cluster.simple_neighbors_1d(n)
+                                                                      for n in self._feat_shape])
+
+            # Save D index into data (apply row and feature masks
+            # This will also reshape it
+            self._D[g] = dep_data[dep_ind][row_ind][:, self._dep_mask].copy()
+
             # reshape it
-            self._D[g] = self._D[g].reshape((self._D[g].shape[0],-1))
+            #self._D[g] = self._D[g].reshape((self._D[g].shape[0], -1))
             if use_ranks:
-                if verbose>0:
-                    sys.stdout.write('Ranking %s...'%(str(g)))
+                if verbose > 0:
+                    sys.stdout.write('Ranking %s...' % (str(g)))
                     sys.stdout.flush()
 
                 for i in xrange(self._D[g].shape[1]):
                     # rank it
-                    self._D[g][:,i] = rankdata(self._D[g][:,i])
+                    self._D[g][:, i] = rankdata(self._D[g][:, i])
 
                     # normalize it
-                    self._D[g][:,i] = (self._D[g][:,i] - 1)/(len(self._D[g][:,i])-1)
+                    self._D[g][:, i] = ((self._D[g][:, i] - 1) /
+                                        (len(self._D[g][:, i]) - 1))
 
-            # reshape M, so we don't have to do it repeatedly
-            self._M[g] = self._D[g].copy() 
-            
+            # save M from D so we can have a normalized version
+            self._M[g] = self._D[g].copy()
+
+            # remove any NaN's in dep_data
+            self._D[g][np.isnan(self._D[g])] = 0.0
+
             # normalize M
             if use_norm:
                 self._M[g] -= self._M[g].mean(0)
                 self._M[g] /= np.sqrt((self._M[g]**2).sum(0))
 
             # determine A from the model.matrix
-            rdf = DataFrame({k:(FactorVector(self._O[g][k])
-                                if k in factors else self._O[g][k])
+            rdf = DataFrame({k: (FactorVector(self._O[g][k])
+                                 if k in factors else self._O[g][k])
                              for k in self._O[g].dtype.names})
-            
+
             # model spec as data frame
             ms = r['data.frame'](r_model_matrix(Formula(fe_formula), data=rdf))
 
             cols = list(r['names'](ms))
             if svd_terms is None:
-                self._svd_terms = [c for c in cols if not 'Intercept' in c]
+                self._svd_terms = [c for c in cols
+                                   if 'Intercept' not in c]
             else:
                 self._svd_terms = svd_terms
 
-            #self._A[g] = np.vstack([ms[c] #np.array(ms.rx(c)) 
-            self._A[g] = np.concatenate([np.array(ms.rx(c)) 
+            # self._A[g] = np.vstack([ms[c] #np.array(ms.rx(c))
+            self._A[g] = np.concatenate([np.array(ms.rx(c))
                                          for c in self._svd_terms]).T
 
             if use_ranks:
                 for i in xrange(self._A[g].shape[1]):
                     # rank it
-                    self._A[g][:,i] = rankdata(self._A[g][:,i])
+                    self._A[g][:, i] = rankdata(self._A[g][:, i])
 
                     # normalize it
-                    self._A[g][:,i] = (self._A[g][:,i] - 1)/(len(self._A[g][:,i])-1)
+                    self._A[g][:, i] = ((self._A[g][:, i] - 1) /
+                                        (len(self._A[g][:, i]) - 1))
 
             # normalize A
-            if True: #use_norm:
+            if True:  # use_norm:
                 self._A[g] -= self._A[g].mean(0)
                 self._A[g] /= np.sqrt((self._A[g]**2).sum(0))
 
             # memmap if desired
             if self._memmap:
-                self._M[g] = _memmap_array(self._M[g], memmap_dir)
-                self._D[g] = _memmap_array(self._D[g], memmap_dir)
+                self._M[g] = _memmap_array(self._M[g], memmap_dir,
+                                           unique_id=str(g))
+                self._D[g] = _memmap_array(self._D[g], memmap_dir,
+                                           unique_id=str(g))
 
-
+        # save the new O
         self._O = O
         if lmer_opts is None:
             lmer_opts = {}
         self._lmer_opts = lmer_opts
         self._factors = factors
 
+        # mask the connectivity
+        if self._do_tfce and (len(self._dep_mask.flatten()) > self._dep_mask.sum()):
+            self._connectivity = self._connectivity.tolil()[self._dep_mask.flatten()][:,self._dep_mask.flatten()].tocoo()
 
         # prepare for the perms and boots and jackknife
         self._perms = []
-        ##self._boots = []
         self._tp = []
         self._tb = []
         self._tj = []
         self._pfmask = []
 
-        if verbose>0:
-            sys.stdout.write('Done (%.2g sec)\n'%(time.time()-start_time))
+        if verbose > 0:
+            sys.stdout.write('Done (%.2g sec)\n' % (time.time()-start_time))
             sys.stdout.write('Processing actual data...')
             sys.stdout.flush()
             start_time = time.time()
@@ -627,7 +789,7 @@ class MELD(object):
         self._R = None
         self._ss = None
         self._mer = None
-        tp,tb,R,feat_mask,ss,mer = _eval_model(id(self),None)
+        tp, tb, R, feat_mask, ss, mer = _eval_model(id(self), None)
         self._R = R
         self._tp.append(tp)
         self._tb.append(tb)
@@ -637,8 +799,8 @@ class MELD(object):
         self._ss = ss
         self._mer = mer
 
-        if verbose>0:
-            sys.stdout.write('Done (%.2g sec)\n'%(time.time()-start_time))
+        if verbose > 0:
+            sys.stdout.write('Done (%.2g sec)\n' % (time.time()-start_time))
             sys.stdout.flush()
 
     def __del__(self):
@@ -649,14 +811,14 @@ class MELD(object):
         if self._memmap:
             for g in self._M.keys():
                 try:
-                    filename = self._M[g].filename 
+                    filename = self._M[g].filename
                     del self._M[g]
                     os.remove(filename)
                 except OSError:
                     pass
             for g in self._D.keys():
                 try:
-                    filename = self._D[g].filename 
+                    filename = self._D[g].filename
                     del self._D[g]
                     os.remove(filename)
                 except OSError:
@@ -664,9 +826,8 @@ class MELD(object):
 
         # clean self out of global model list
         global _global_meld
-        if _global_meld and _global_meld.has_key(my_id):
+        if _global_meld and my_id in _global_meld:
             del _global_meld[my_id]
-
 
     def run_perms(self, perms, n_jobs=None, verbose=None):
         """Run the specified permutations.
@@ -680,7 +841,7 @@ class MELD(object):
         if verbose is None:
             verbose = self._verbose
 
-        if not isinstance(perms,list):
+        if not isinstance(perms, list):
             # perms is nperms
             nperms = perms
 
@@ -697,8 +858,8 @@ class MELD(object):
             # calc nperms
             nperms = len(perms)
 
-        if verbose>0:
-            sys.stdout.write('Running %d permutations...\n'%nperms)
+        if verbose > 0:
+            sys.stdout.write('Running %d permutations...\n' % nperms)
             sys.stdout.flush()
             start_time = time.time()
 
@@ -706,17 +867,17 @@ class MELD(object):
         self._perms.extend(perms)
 
         # must use the threading backend
-        res = Parallel(n_jobs=n_jobs, 
-                       verbose=verbose,
-                       backend='threading')(delayed(_eval_model)(id(self),perm)
-                                            for perm in perms)
-        tp,tfs,feat_mask = zip(*res)
+        res = Parallel(n_jobs=n_jobs,
+                       # backend='threading',
+                       verbose=verbose)(delayed(_eval_model)(id(self), perm)
+                                        for perm in perms)
+        tp, tfs, feat_mask = zip(*res)
         self._tp.extend(tp)
         self._tb.extend(tfs)
         self._pfmask.extend(feat_mask)
 
-        if verbose>0:
-            sys.stdout.write('Done (%.2g sec)\n'%(time.time()-start_time))
+        if verbose > 0:
+            sys.stdout.write('Done (%.2g sec)\n' % (time.time()-start_time))
             sys.stdout.flush()
 
     @property
@@ -729,116 +890,153 @@ class MELD(object):
 
     @property
     def t_features(self):
-        names = [n for n in self.terms
-                 if n != '(Intercept)']
-        tfeat = [self._tb[0][n].reshape(self._feat_shape)
-                 for n in names]
-        return np.rec.fromarrays(tfeat, names=','.join(names))
+        return self.get_t_features()
+
+    def get_t_features(self, names=None):
+        if names is None:
+            names = [n for n in self.terms
+                     if n != '(Intercept)']
+        tfeats = []
+        for n in names:
+            tfeat = np.zeros(self._feat_shape)
+            tfeat[self._dep_mask] = self._tb[0][n][0]
+            tfeats.append(tfeat)
+        return np.rec.fromarrays(tfeats, names=','.join(names))
 
     @property
     def p_features(self):
+        return self.get_p_features()
+
+    def get_p_features(self, names=None, conj=None):
         tpf = self._tb[0].__array_wrap__(np.hstack(self._tb))
-        pfmasks = np.array(self._pfmask).transpose((1,0,2))
+        pfmasks = np.array(self._pfmask).transpose((1, 0, 2))
         nperms = np.float(len(self._perms)+1)
 
         pfs = []
-        names = [n for n in tpf.dtype.names
+        if names is None:
+            if conj is not None:
+                # use the conj if it's not none
+                names = conj
+            else:
+                names = [n for n in tpf.dtype.names
                          if n != '(Intercept)']
 
         # convert all of the ts to ps
-        for i,n in enumerate(names):
+        for i, n in enumerate(names):
             tf = tpf[n]
-            tf = np.abs(tf.reshape(nperms,-1))
+            tf = np.abs(tf.reshape(int(nperms), -1))
             fmask = pfmasks[i]
-            tf[~fmask]=0
+            tf[~fmask] = 0
             # make null T dist within term
             nullTdist = tf.max(1)
             nullTdist.sort()
-            # use searchsorted to get indicies for turning ts into ps, then divide by number of perms
-            # got this from http://stackoverflow.com/questions/18875970/comparing-two-numpy-arrays-of-different-length
-            pf = ((nperms-np.searchsorted(nullTdist,tf.flatten(),'left'))/nperms).reshape((nperms,-1))
+            # use searchsorted to get indicies for turning ts into ps,
+            # then divide by number of perms
+            # got this from:
+            # http://stackoverflow.com/questions/18875970/comparing-two-numpy-arrays-of-different-length
+            pf = ((nperms-np.searchsorted(nullTdist, tf.flatten(), 'left')) /
+                  nperms).reshape((int(nperms), -1))
             pfs.append(pf)
 
         # pfs is terms by perms by features
         pfs = np.array(pfs)
+
+        # handle conjunction
+        if conj is not None:
+            # get max p-vals across terms for each perm and feature
+            pfs = pfs.max(0)[np.newaxis]
+
+            # set the names to be new conj
+            names = ['&'.join(names)]
 
         # make null p distribution
         nullPdist = pfs.min(2).min(0)
         nullPdist.sort()
 
         # get pvalues for each feature for each term
-        pfts = np.searchsorted(nullPdist,pfs[:,0,:].flatten(),'right').reshape(((-1,)+self._feat_shape))/nperms
+        pfts = np.searchsorted(nullPdist,
+                               pfs[:, 0, :].flatten(),
+                               'right').reshape(len(pfs), -1)/nperms
+        pfeats = []
+        for n in range(len(names)):
+            pfeat = np.ones(self._feat_shape)
+            pfeat[self._dep_mask] = pfts[n]
+            pfeats.append(pfeat)
 
         # reconstruct the recarray
-        pfts = np.rec.fromarrays(pfts, names=','.join(names))
+        pfts = np.rec.fromarrays(pfeats, names=','.join(names))
         return pfts
 
-    
 
 if __name__ == '__main__':
     np.random.RandomState(seed = 42)
 
     # test some MELD
     n_jobs = -1
-    verbose = 20
+    verbose = 10
 
     # generate some fake data
     nobs = 100
     nsubj = 10
-    nfeat = (10,30)
-    nperms = 50
+    nfeat = (10, 30)
+    nperms = 200
     use_ranks = False
     smoothed = False
     memmap = False
-    
-    s = np.concatenate([np.array(['subj%02d'%i]*nobs) for i in range(nsubj)])
-    beh = np.concatenate([np.array([1]*(nobs/2) + [0]*(nobs/2)) 
+
+    s = np.concatenate([np.array(['subj%02d' % i] * nobs)
+                        for i in range(nsubj)])
+    beh = np.concatenate([np.array([1] * (nobs/2) + [0]*(nobs / 2))
                           for i in range(nsubj)])
     # observations (data frame)
     ind_data = np.rec.fromarrays((np.zeros(len(s)),
                                   beh,
-                                  np.random.rand(len(s)),s),
+                                  np.random.rand(len(s)), s),
                                  names='val,beh,beh2,subj')
 
     # data with observations in first dimension and features on the remaining
-    dep_data = np.random.randn(len(s),*nfeat)
-    print 'Data shape:',dep_data.shape
+    dep_data = np.random.randn(len(s), *nfeat)
+    print 'Data shape:', dep_data.shape
+
+    # make a mask
+    dep_mask = np.ones(nfeat, dtype=np.bool)
+    dep_mask[:2, :] = False
+    dep_mask[:, :2] = False
 
     # now with signal
     # add in some signal
     dep_data_s = dep_data.copy()
-    for i in range(0,20,2):
+    for i in range(0, 20, 2):
         for j in range(2):
-            dep_data_s[:,4,i+j] += (ind_data['beh'] * (i+1)/50.)
-            dep_data_s[:,5,i+j] += (ind_data['beh'] * (i+1)/50.)
-    
+            dep_data_s[:, 4, i+j] += (ind_data['beh'] * (i+1)/50.)
+            dep_data_s[:, 5, i+j] += (ind_data['beh'] * (i+1)/50.)
+            dep_data_s[:, 5, i+j] += (ind_data['beh2'] * (i+1)/50.)
+            dep_data_s[:, 6, i+j] += (ind_data['beh2'] * (i+1)/50.)
+
     # smooth the data
     if smoothed:
         import scipy.ndimage
-        dep_data = scipy.ndimage.gaussian_filter(dep_data, [0,1,1])
-        dep_data_s = scipy.ndimage.gaussian_filter(dep_data_s, [0,1,1])
-
+        dep_data = scipy.ndimage.gaussian_filter(dep_data, [0, 1, 1])
+        dep_data_s = scipy.ndimage.gaussian_filter(dep_data_s, [0, 1, 1])
 
     print "Starting MELD test"
     print "beh has signal, beh2 does not"
     me_s = MELD('val ~ beh+beh2', '(1|subj)', 'subj',
-                dep_data_s, ind_data, factors = {'subj':None},
-                use_ranks=use_ranks, 
+                dep_data_s, ind_data, factors={'subj': None},
+                use_ranks=use_ranks,
+                dep_mask=dep_mask,
                 feat_nboot=1000, feat_thresh=0.05,
                 do_tfce=True,
-                connectivity=None, shape=None, 
+                connectivity=None, shape=None,
                 dt=.01, E=2/3., H=2.0,
-                n_jobs=n_jobs,verbose=verbose,
+                n_jobs=n_jobs, verbose=verbose,
                 memmap=memmap,
-                #lmer_opts={'control':lme4.lmerControl(#optimizer="nloptwrap",
-                #                                      optimizer="Nelder_Mead",
-                #                                      optCtrl=r['list'](maxfun=100000))
-                #       }
-    )
+                # lmer_opts={'control':lme4.lmerControl(optimizer="nloptwrap",
+                #                                       #optimizer="Nelder_Mead",
+                #                                       optCtrl=r['list'](maxfun=100000))
+                #        }
+               )
     me_s.run_perms(nperms)
     pfts = me_s.p_features
-    print "Number of signifcant features:",[(n,(pfts[n]<=.05).sum())
-                                 for n in pfts.dtype.names]
-
-
-
+    print "Number of signifcant features:", [(n, (pfts[n] <= .05).sum())
+                                             for n in pfts.dtype.names]
